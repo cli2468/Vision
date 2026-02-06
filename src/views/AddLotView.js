@@ -44,7 +44,7 @@ function renderUploadState() {
           <div class="upload-hint">Amazon, Target, Walmart, etc.</div>
         </div>
         
-        <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;" />
+        <input type="file" id="file-input" accept="image/*" style="display: none;" />
         
         <div style="text-align: center; margin-top: var(--spacing-xl);">
           <p class="text-muted" style="margin-bottom: var(--spacing-lg);">or</p>
