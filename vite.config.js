@@ -15,7 +15,8 @@ export default defineConfig({
         background_color: '#0f0f23',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: '/ResellApp/',
+        scope: '/ResellApp/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -31,6 +32,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        navigateFallback: '/ResellApp/index.html',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
