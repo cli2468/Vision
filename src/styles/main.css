@@ -1087,3 +1087,122 @@ body {
   width: auto;
   min-height: auto;
 }
+
+/* ===== Dashboard Chart ===== */
+.chart-card {
+  background: var(--bg-card);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  animation: fadeIn 0.3s ease;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-md);
+}
+
+.chart-totals {
+  display: flex;
+  gap: var(--spacing-xl);
+}
+
+.chart-total-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-total-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.chart-total-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chart-toggle {
+  display: flex;
+  background: var(--bg-glass);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+
+.toggle-btn {
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toggle-btn:hover {
+  color: var(--text-secondary);
+}
+
+.toggle-btn.active {
+  color: white;
+  background: var(--gradient-primary);
+}
+
+.chart-wrapper {
+  height: 200px;
+  position: relative;
+}
+
+/* ===== Day Breakdown Modal ===== */
+.day-sale-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: var(--border-subtle);
+}
+
+.day-sale-item:last-child {
+  border-bottom: none;
+}
+
+.day-sale-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.day-sale-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.day-sale-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.day-sale-values {
+  text-align: right;
+}
+
+.day-sale-revenue {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.day-sale-profit {
+  font-weight: 600;
+}

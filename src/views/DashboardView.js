@@ -1,10 +1,14 @@
-// Dashboard View - Profit overview with time-range filtering and Return Alerts
+// Dashboard View - Revenue/Profit chart with time-range filtering and Return Alerts
 
 import { getAllSales, getSalesByDateRange, getLots, getLotsNearingReturnDeadline, getReturnDeadline, markReturned, dismissReturnAlert } from '../services/storage.js';
 import { calculateMonthlyStats, formatCurrency } from '../services/calculations.js';
+import { aggregateSalesByDay, getSalesForDay } from '../services/chartData.js';
 
 // Current selected time range for dashboard
 let selectedRange = '30d'; // '7d' | '30d' | '90d' | 'all'
+let chartMode = 'revenue'; // 'revenue' | 'profit'
+let chartInstance = null;
+let currentChartData = null;
 
 export function setTimeRange(range) {
   selectedRange = range;
@@ -19,7 +23,7 @@ export function getSelectedRange() {
  */
 function getStartDateForRange(range) {
   const now = new Date();
-  now.setHours(23, 59, 59, 999); // End of today
+  now.setHours(23, 59, 59, 999);
 
   switch (range) {
     case '7d':
@@ -88,24 +92,12 @@ function renderReturnAlerts() {
   `;
 }
 
-function getRangeLabel(range) {
-  switch (range) {
-    case '7d': return 'Last 7 Days';
-    case '30d': return 'Last 30 Days';
-    case '90d': return 'Last 90 Days';
-    case 'all': return 'All Time';
-    default: return '';
-  }
-}
-
 export function DashboardView() {
   const salesData = getSalesForSelectedRange();
   const allLots = getLots();
   const unsoldUnits = allLots.reduce((sum, lot) => sum + (lot.remaining || 0), 0);
   const unsoldCostBasis = allLots.reduce((sum, lot) => sum + (lot.unitCost || 0) * (lot.remaining || 0), 0);
   const stats = calculateMonthlyStats(salesData);
-
-  const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
   const returnAlertsHtml = renderReturnAlerts();
 
   return `
@@ -123,111 +115,329 @@ export function DashboardView() {
         </div>
         
         <div id="dashboard-stats">
-          ${renderStatsContent(stats, profitClass, unsoldUnits, unsoldCostBasis)}
+          ${renderChartSection(stats)}
+        </div>
+        
+        <div class="card" style="margin-bottom: var(--spacing-lg);">
+          <h3 class="section-title">Summary</h3>
+          <div class="summary-box">
+            <div class="summary-row">
+              <span class="text-secondary">Revenue</span>
+              <span class="summary-value">${formatCurrency(stats.totalRevenue)}</span>
+            </div>
+            <div class="summary-row">
+              <span class="text-secondary">Cost of Goods</span>
+              <span class="summary-value">-${formatCurrency(stats.totalCosts)}</span>
+            </div>
+            <div class="summary-row">
+              <span class="text-secondary">Platform Fees</span>
+              <span class="summary-value">-${formatCurrency(stats.totalFees)}</span>
+            </div>
+            <div class="summary-row ${stats.totalProfit >= 0 ? 'profit' : 'loss'}">
+              <span>Net Profit</span>
+              <span class="summary-value">${formatCurrency(stats.totalProfit)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3 class="section-title">Inventory Status</h3>
+          <div class="stats-grid" style="margin-bottom: 0;">
+            <div class="stat-card">
+              <div class="stat-value">${unsoldUnits}</div>
+              <div class="stat-label">Unsold Units</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${formatCurrency(unsoldCostBasis)}</div>
+              <div class="stat-label">Cost Basis</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Day breakdown modal -->
+        <div class="modal-overlay day-breakdown-modal" id="day-breakdown-modal" style="display: none;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2 class="modal-title" id="day-breakdown-title">Sales</h2>
+              <button class="modal-close" id="close-day-modal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div id="day-breakdown-content"></div>
+          </div>
         </div>
       </div>
     </div>
   `;
 }
 
-function renderStatsContent(stats, profitClass, unsoldUnits, unsoldCostBasis) {
+function renderChartSection(stats) {
+  const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
+
   return `
-    <div class="stats-grid">
-      <div class="stat-card profit">
-        <div class="stat-icon">💰</div>
-        <div class="stat-value ${profitClass}">${formatCurrency(stats.totalProfit)}</div>
-        <div class="stat-label">Profit</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">📦</div>
-        <div class="stat-value">${stats.unitsSold}</div>
-        <div class="stat-label">Units Sold</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">💵</div>
-        <div class="stat-value">${formatCurrency(stats.totalRevenue)}</div>
-        <div class="stat-label">Revenue</div>
-      </div>
-      
-      <div class="stat-card">
-        <div class="stat-icon">🏷️</div>
-        <div class="stat-value">${formatCurrency(stats.totalFees)}</div>
-        <div class="stat-label">Fees Paid</div>
-      </div>
-    </div>
-    
-    <div class="card" style="margin-bottom: var(--spacing-lg);">
-      <h3 class="section-title">Summary</h3>
-      <div class="summary-box">
-        <div class="summary-row">
-          <span class="text-secondary">Revenue</span>
-          <span class="summary-value">${formatCurrency(stats.totalRevenue)}</span>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-totals">
+          <div class="chart-total-item">
+            <span class="chart-total-value">${formatCurrency(stats.totalRevenue)}</span>
+            <span class="chart-total-label">Revenue</span>
+          </div>
+          <div class="chart-total-item">
+            <span class="chart-total-value ${profitClass}">${formatCurrency(stats.totalProfit)}</span>
+            <span class="chart-total-label">Profit</span>
+          </div>
         </div>
-        <div class="summary-row">
-          <span class="text-secondary">Cost of Goods</span>
-          <span class="summary-value">-${formatCurrency(stats.totalCosts)}</span>
-        </div>
-        <div class="summary-row">
-          <span class="text-secondary">Platform Fees</span>
-          <span class="summary-value">-${formatCurrency(stats.totalFees)}</span>
-        </div>
-        <div class="summary-row ${stats.totalProfit >= 0 ? 'profit' : 'loss'}">
-          <span>Net Profit</span>
-          <span class="summary-value">${formatCurrency(stats.totalProfit)}</span>
+        <div class="chart-toggle">
+          <button class="toggle-btn ${chartMode === 'revenue' ? 'active' : ''}" data-mode="revenue">Revenue</button>
+          <button class="toggle-btn ${chartMode === 'profit' ? 'active' : ''}" data-mode="profit">Profit</button>
         </div>
       </div>
-    </div>
-    
-    <div class="card">
-      <h3 class="section-title">Inventory Status</h3>
-      <div class="stats-grid" style="margin-bottom: 0;">
-        <div class="stat-card">
-          <div class="stat-value">${unsoldUnits}</div>
-          <div class="stat-label">Unsold Units</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">${formatCurrency(unsoldCostBasis)}</div>
-          <div class="stat-label">Cost Basis</div>
-        </div>
+      <div class="chart-wrapper">
+        <canvas id="dashboard-chart"></canvas>
       </div>
     </div>
   `;
 }
 
-// Update stats without full page re-render
-function updateDashboardStats() {
+/**
+ * Initialize and render the chart
+ */
+function initChart() {
+  const canvas = document.getElementById('dashboard-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const salesData = getSalesForSelectedRange();
+  currentChartData = aggregateSalesByDay(salesData, selectedRange);
+
+  const { labels, revenues, profits } = currentChartData;
+  const data = chartMode === 'revenue' ? revenues : profits;
+  const isProfit = chartMode === 'profit';
+
+  // Destroy existing chart
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+
+  // Create gradient
+  const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+  if (isProfit) {
+    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)');
+    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
+  } else {
+    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.8)');
+    gradient.addColorStop(1, 'rgba(99, 102, 241, 0.1)');
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: isProfit ? 'line' : 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: isProfit ? 'Profit' : 'Revenue',
+        data: data,
+        backgroundColor: isProfit ? 'transparent' : gradient,
+        borderColor: isProfit ? '#10b981' : '#6366f1',
+        borderWidth: 2,
+        borderRadius: isProfit ? 0 : 6,
+        tension: 0.4,
+        fill: isProfit,
+        pointBackgroundColor: isProfit ? '#10b981' : '#6366f1',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: isProfit ? 4 : 0,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: {
+        duration: 600,
+        easing: 'easeOutQuart'
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const index = elements[0].index;
+          showDayBreakdown(index);
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 15, 35, 0.95)',
+          titleColor: '#f8fafc',
+          bodyColor: '#94a3b8',
+          borderColor: 'rgba(99, 102, 241, 0.3)',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: false,
+          callbacks: {
+            label: function (context) {
+              const value = context.raw;
+              return `$${value.toFixed(2)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: '#64748b',
+            font: { size: 11 },
+            maxRotation: 0
+          },
+          border: {
+            display: false
+          }
+        },
+        y: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)'
+          },
+          ticks: {
+            color: '#64748b',
+            font: { size: 11 },
+            callback: function (value) {
+              return '$' + value;
+            }
+          },
+          border: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Show breakdown of sales for a specific day
+ */
+function showDayBreakdown(dayIndex) {
+  if (!currentChartData) return;
+
+  const sales = getSalesForDay(currentChartData.salesByDay, dayIndex);
+  const dateKeys = Array.from(currentChartData.salesByDay.keys());
+  const dateKey = dateKeys[dayIndex];
+  const date = new Date(dateKey + 'T12:00:00');
+  const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+  const modal = document.getElementById('day-breakdown-modal');
+  const title = document.getElementById('day-breakdown-title');
+  const content = document.getElementById('day-breakdown-content');
+
+  if (!modal || !title || !content) return;
+
+  title.textContent = dateStr;
+
+  if (sales.length === 0) {
+    content.innerHTML = `<p class="text-muted" style="text-align: center; padding: var(--spacing-lg);">No sales on this day</p>`;
+  } else {
+    content.innerHTML = sales.map(({ lot, sale }) => `
+      <div class="day-sale-item">
+        <div class="day-sale-info">
+          <div class="day-sale-name">${lot.name}</div>
+          <div class="day-sale-meta">${sale.unitsSold} unit${sale.unitsSold > 1 ? 's' : ''} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}</div>
+        </div>
+        <div class="day-sale-values">
+          <div class="day-sale-revenue">${formatCurrency(sale.totalPrice)}</div>
+          <div class="day-sale-profit ${sale.profit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(sale.profit, true)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  modal.style.display = 'flex';
+}
+
+/**
+ * Close the day breakdown modal
+ */
+function closeDayModal() {
+  const modal = document.getElementById('day-breakdown-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+/**
+ * Update chart without full page re-render
+ */
+function updateDashboard() {
   const salesData = getSalesForSelectedRange();
   const allLots = getLots();
   const unsoldUnits = allLots.reduce((sum, lot) => sum + (lot.remaining || 0), 0);
   const unsoldCostBasis = allLots.reduce((sum, lot) => sum + (lot.unitCost || 0) * (lot.remaining || 0), 0);
   const stats = calculateMonthlyStats(salesData);
-  const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
 
   // Update range button active states
   document.querySelectorAll('.range-btn').forEach(btn => {
-    if (btn.dataset.range === selectedRange) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
+    btn.classList.toggle('active', btn.dataset.range === selectedRange);
   });
 
-  // Update stats content
-  const statsContainer = document.getElementById('dashboard-stats');
-  if (statsContainer) {
-    statsContainer.innerHTML = renderStatsContent(stats, profitClass, unsoldUnits, unsoldCostBasis);
-  }
+  // Update toggle button active states
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === chartMode);
+  });
+
+  // Re-render chart
+  initChart();
+
+  // Update totals
+  const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
+  const totalsHtml = `
+    <div class="chart-total-item">
+      <span class="chart-total-value">${formatCurrency(stats.totalRevenue)}</span>
+      <span class="chart-total-label">Revenue</span>
+    </div>
+    <div class="chart-total-item">
+      <span class="chart-total-value ${profitClass}">${formatCurrency(stats.totalProfit)}</span>
+      <span class="chart-total-label">Profit</span>
+    </div>
+  `;
+  const totalsEl = document.querySelector('.chart-totals');
+  if (totalsEl) totalsEl.innerHTML = totalsHtml;
 }
 
 export function initDashboardEvents() {
-  // Time range buttons - targeted update only
+  // Initialize chart on first load
+  initChart();
+
+  // Time range buttons
   document.querySelectorAll('.range-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedRange = btn.dataset.range;
-      updateDashboardStats();
+      updateDashboard();
     });
+  });
+
+  // Chart mode toggle
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      chartMode = btn.dataset.mode;
+      updateDashboard();
+    });
+  });
+
+  // Day breakdown modal close
+  document.getElementById('close-day-modal')?.addEventListener('click', closeDayModal);
+  document.getElementById('day-breakdown-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'day-breakdown-modal') closeDayModal();
   });
 
   // Mark Returned buttons
