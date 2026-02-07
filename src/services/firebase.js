@@ -6,12 +6,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // PASTE YOUR CONFIG HERE
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyD59FLH3amRac3fQjk7YtuHTdpCEofqFq0",
+    authDomain: "resell-tracker-5320f.firebaseapp.com",
+    projectId: "resell-tracker-5320f",
+    storageBucket: "resell-tracker-5320f.firebasestorage.app",
+    messagingSenderId: "355958720369",
+    appId: "1:355958720369:web:fd3c105d6542889b03d8d0"
 };
 
 // Initialize Firebase
