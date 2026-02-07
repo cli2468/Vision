@@ -278,6 +278,64 @@ function renderSaleModal() {
   `;
 }
 
+// Update just the summary box without re-rendering the entire page
+function updateSummaryBox() {
+  const lot = getLots().find(l => l.id === selectedLotId);
+  if (!lot) return;
+
+  const price = parseFloat(salePrice) || 0;
+  const units = Math.min(parseInt(unitsSold) || 1, lot.remaining);
+  const priceInCents = Math.round(price * 100);
+  const shipping = parseFloat(shippingCost) || 0;
+  const shippingCents = Math.round(shipping * 100);
+  const isEbay = selectedPlatform === 'ebay';
+
+  const { costBasis, totalSalePrice, fees, shippingCost: shippingCalc, profit } = calculateSaleProfit(
+    lot.unitCost,
+    units,
+    priceInCents,
+    selectedPlatform,
+    isEbay ? shippingCents : 0
+  );
+
+  const isValid = price > 0 && units > 0 && (!isEbay || shipping >= 0);
+
+  // Update summary box
+  const summaryBox = document.querySelector('.modal-content .summary-box');
+  if (summaryBox) {
+    summaryBox.innerHTML = `
+      <div class="summary-row">
+        <span class="text-secondary">Revenue (${units} × ${formatCurrency(priceInCents)})</span>
+        <span>${formatCurrency(totalSalePrice)}</span>
+      </div>
+      <div class="summary-row">
+        <span class="text-secondary">Platform Fees</span>
+        <span>-${formatCurrency(fees)}</span>
+      </div>
+      ${isEbay ? `
+      <div class="summary-row">
+        <span class="text-secondary">Shipping Cost</span>
+        <span>-${formatCurrency(shippingCalc)}</span>
+      </div>
+      ` : ''}
+      <div class="summary-row">
+        <span class="text-secondary">Cost Basis</span>
+        <span>-${formatCurrency(costBasis)}</span>
+      </div>
+      <div class="summary-row ${profit >= 0 ? 'profit' : 'loss'}">
+        <span>Net Profit</span>
+        <span class="summary-value">${formatCurrency(profit)}</span>
+      </div>
+    `;
+  }
+
+  // Update confirm button state
+  const confirmBtn = document.getElementById('confirm-sale');
+  if (confirmBtn) {
+    confirmBtn.disabled = !isValid;
+  }
+}
+
 export function openSaleModal(lotId) {
   selectedLotId = lotId;
   salePrice = '';
@@ -357,25 +415,25 @@ export function initInventoryEvents() {
     if (e.target.id === 'sale-modal') closeSaleModal();
   });
 
-  // Units sold input
+  // Units sold input - targeted update only
   document.getElementById('units-sold')?.addEventListener('input', (e) => {
     unitsSold = e.target.value;
-    window.dispatchEvent(new CustomEvent('viewchange'));
+    updateSummaryBox();
   });
 
-  // Sale price input
+  // Sale price input - targeted update only
   document.getElementById('sale-price')?.addEventListener('input', (e) => {
     salePrice = e.target.value;
-    window.dispatchEvent(new CustomEvent('viewchange'));
+    updateSummaryBox();
   });
 
-  // Shipping cost input
+  // Shipping cost input - targeted update only
   document.getElementById('shipping-cost')?.addEventListener('input', (e) => {
     shippingCost = e.target.value;
-    window.dispatchEvent(new CustomEvent('viewchange'));
+    updateSummaryBox();
   });
 
-  // Platform selection
+  // Platform selection - need full re-render to show/hide shipping field
   document.querySelectorAll('.platform-option').forEach(option => {
     option.addEventListener('click', () => {
       selectedPlatform = option.dataset.platform;
@@ -393,7 +451,6 @@ export function initInventoryEvents() {
       closeSaleModal();
     }
   });
-
 
   // Delete lot
   document.getElementById('delete-lot')?.addEventListener('click', () => {
