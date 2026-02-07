@@ -6,12 +6,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyD59FLH3amRac3fQjk7YtuHTdpCEofqFq0",
-    authDomain: "resell-tracker-5320f.firebaseapp.com",
-    projectId: "resell-tracker-5320f",
-    storageBucket: "resell-tracker-5320f.firebasestorage.app",
-    messagingSenderId: "355958720369",
-    appId: "1:355958720369:web:fd3c105d6542889b03d8d0"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 console.log('🔥 Initializing Firebase...');
