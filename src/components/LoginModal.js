@@ -6,11 +6,11 @@ import { getLots, setLots } from '../services/storage.js';
 let isOpen = false;
 
 export function LoginModal() {
-    if (!isOpen) return '';
+  if (!isOpen) return '';
 
-    const user = auth.currentUser;
+  const user = auth.currentUser;
 
-    return `
+  return `
     <div class="modal-overlay" id="login-modal-overlay">
       <div class="modal-content login-modal">
         <div class="modal-header">
@@ -32,7 +32,7 @@ export function LoginModal() {
 }
 
 function renderLoginPrompt() {
-    return `
+  return `
     <div class="login-prompt">
       <div class="login-icon">☁️</div>
       <h3>Sync Across Devices</h3>
@@ -54,7 +54,7 @@ function renderLoginPrompt() {
 }
 
 function renderUserAccount(user) {
-    return `
+  return `
     <div class="user-account">
       <div class="user-info">
         <img src="${user.photoURL}" class="user-avatar-large" alt="${user.displayName}">
@@ -75,52 +75,58 @@ function renderUserAccount(user) {
 }
 
 export function initLoginModalEvents() {
-    window.addEventListener('open-login-modal', () => {
-        isOpen = true;
-        window.dispatchEvent(new CustomEvent('viewchange'));
-    });
+  window.addEventListener('open-login-modal', () => {
+    isOpen = true;
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  });
 
-    document.addEventListener('click', async (e) => {
-        if (e.target.id === 'google-signin-btn' || e.target.closest('#google-signin-btn')) {
-            try {
-                const user = await signInWithGoogle();
-                if (user) {
-                    // Trigger initial sync: upload local data if cloud is empty
-                    // This is a simplified approach
-                    const localLots = getLots();
-                    if (localLots.length > 0) {
-                        await uploadLocalData(localLots);
-                    }
-                    isOpen = false;
-                    window.dispatchEvent(new CustomEvent('viewchange'));
-                }
-            } catch (error) {
-                alert("Failed to sign in. Check project config.");
-            }
-        }
-
-        if (e.target.id === 'logout-btn') {
-            await logout();
-            isOpen = false;
-            window.dispatchEvent(new CustomEvent('viewchange'));
-        }
-
-        if (e.target.id === 'close-login-modal' || e.target.id === 'login-modal-overlay') {
-            isOpen = false;
-            window.dispatchEvent(new CustomEvent('viewchange'));
-        }
-    });
-
-    // Listen for user changes to start sync listeners
-    onUserChanged((user) => {
+  document.addEventListener('click', async (e) => {
+    if (e.target.id === 'google-signin-btn' || e.target.closest('#google-signin-btn')) {
+      try {
+        const user = await signInWithGoogle();
         if (user) {
-            syncLots((cloudLots) => {
-                // When cloud data changes, update local storage and re-render
-                if (cloudLots.length > 0) {
-                    setLots(cloudLots);
-                    window.dispatchEvent(new CustomEvent('viewchange'));
-                }
-            });
+          isOpen = false;
+          window.dispatchEvent(new CustomEvent('viewchange'));
+          // Sync will be handled by onUserChanged listener below
         }
-    });
+      } catch (error) {
+        alert("Failed to sign in. Check project config.");
+      }
+    }
+
+    if (e.target.id === 'logout-btn') {
+      await logout();
+      isOpen = false;
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }
+
+    if (e.target.id === 'close-login-modal' || e.target.id === 'login-modal-overlay') {
+      isOpen = false;
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }
+  });
+
+  // Listen for user changes to start sync listeners
+  let syncInitialized = false;
+  onUserChanged((user) => {
+    if (user && !syncInitialized) {
+      syncInitialized = true;
+
+      // Start real-time sync listener
+      syncLots((cloudLots) => {
+        const localLots = getLots();
+
+        if (cloudLots.length > 0) {
+          // Cloud has data - use it (cloud is source of truth)
+          setLots(cloudLots);
+          window.dispatchEvent(new CustomEvent('viewchange'));
+        } else if (localLots.length > 0) {
+          // Cloud is empty but local has data - upload local to cloud
+          uploadLocalData(localLots);
+        }
+      });
+    } else if (!user) {
+      syncInitialized = false;
+    }
+  });
 }
