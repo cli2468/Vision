@@ -209,9 +209,10 @@ function renderEditSaleModal() {
   const { sale, lotId } = editSaleData;
   const priceValue = editSalePrice || (sale.pricePerUnit / 100).toFixed(2);
   // Shipping is stored as total cents, convert to per-unit dollars for display
-  const shippingPerUnitCents = (sale.shippingCost != null && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
+  const shippingPerUnitCents = (sale.shippingCost != null && sale.unitsSold > 0 && !isNaN(sale.shippingCost)) ? sale.shippingCost / sale.unitsSold : 0;
   // shippingPerUnitCents is in cents, divide by 100 once to get dollars
-  const shippingValue = editShippingCost !== '' ? editShippingCost : (shippingPerUnitCents / 100).toFixed(2);
+  const shippingDollars = isNaN(shippingPerUnitCents) ? 0 : shippingPerUnitCents / 100;
+  const shippingValue = editShippingCost !== '' ? editShippingCost : shippingDollars.toFixed(2);
   const dateValue = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
   return `
