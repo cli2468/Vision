@@ -635,7 +635,7 @@ function initLotCardEvents() {
     });
   });
 
-  // Edit sale button - opens edit modal
+  // Edit sale button - opens edit modal without full page refresh
   document.querySelectorAll('.edit-sale-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -647,10 +647,107 @@ function initLotCardEvents() {
         editSalePrice = '';
         editShippingCost = '';
         editSaleDate = '';
-        window.dispatchEvent(new CustomEvent('viewchange'));
+        // Inject modal directly without full page re-render
+        const modalHtml = renderEditSaleModal();
+        if (modalHtml) {
+          document.body.insertAdjacentHTML('beforeend', modalHtml);
+          attachEditSaleModalEvents();
+        }
       }
     });
   });
+}
+
+// Attach events for dynamically injected edit sale modal
+function attachEditSaleModalEvents() {
+  // Close edit sale modal
+  document.getElementById('close-edit-sale-modal')?.addEventListener('click', closeEditSaleModal);
+  document.getElementById('edit-sale-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'edit-sale-modal') closeEditSaleModal();
+  });
+
+  // Edit sale input handlers
+  document.getElementById('edit-sale-price')?.addEventListener('input', (e) => {
+    editSalePrice = e.target.value;
+  });
+  document.getElementById('edit-shipping-cost')?.addEventListener('input', (e) => {
+    editShippingCost = e.target.value;
+  });
+  document.getElementById('edit-sale-date')?.addEventListener('input', (e) => {
+    editSaleDate = e.target.value;
+  });
+
+  // Save edit sale
+  document.getElementById('save-edit-sale')?.addEventListener('click', handleSaveEditSale);
+}
+
+// Save edit sale handler
+function handleSaveEditSale() {
+  if (!editSaleData) return;
+
+  const { lotId, saleId, sale } = editSaleData;
+  const lot = getLots().find(l => l.id === lotId);
+  if (!lot) return;
+
+  // Parse new values with NaN protection
+  const priceInput = editSalePrice !== '' ? parseFloat(editSalePrice) : NaN;
+  const newPrice = Math.round((!isNaN(priceInput) ? priceInput : sale.pricePerUnit / 100) * 100);
+  // Shipping: shippingPerUnitOld is already in cents (stored as total / units)
+  const shippingPerUnitCentsOld = (sale.shippingCost != null && !isNaN(sale.shippingCost) && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
+  // editShippingCost is in dollars, convert to cents. If empty, use old value (already in cents)
+  const editShippingParsed = parseFloat(editShippingCost);
+  const shippingPerUnitCents = sale.platform === 'ebay'
+    ? (editShippingCost !== '' && !isNaN(editShippingParsed) ? Math.round(editShippingParsed * 100) : shippingPerUnitCentsOld)
+    : 0;
+  const newShipping = Math.round(shippingPerUnitCents * sale.unitsSold);
+  
+  // Safety check: if any values are NaN, show error and don't save
+  if (isNaN(newPrice) || isNaN(newShipping)) {
+    console.error('NaN detected in edit sale calculation:', { newPrice, newShipping, shippingPerUnitCents, sale });
+    alert('Error: Invalid number calculated. Please check your inputs and try again.');
+    return;
+  }
+  
+  // Validate lot.unitCost is valid
+  if (isNaN(lot.unitCost)) {
+    console.error('NaN detected in lot.unitCost:', lot);
+    alert('Error: Invalid unit cost in lot data. Please contact support.');
+    return;
+  }
+  
+  const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
+
+  // Recalculate profit with new values
+  const profitResult = calculateSaleProfit(
+    lot.unitCost,
+    sale.unitsSold,
+    newPrice,
+    sale.platform,
+    newShipping
+  );
+  
+  // Validate profit calculation result
+  if (isNaN(profitResult.profit)) {
+    console.error('NaN detected in profit calculation:', profitResult, { lot, sale, newPrice, newShipping });
+    alert('Error: Profit calculation failed. Please check your inputs and try again.');
+    return;
+  }
+
+  // Update the sale
+  const updates = {
+    pricePerUnit: Math.round(newPrice),
+    totalPrice: Math.round(newPrice * sale.unitsSold),
+    shippingCost: Math.round(newShipping),
+    dateSold: new Date(newDate + 'T12:00:00').toISOString(),
+    profit: profitResult.profit,
+    costBasis: profitResult.costBasis,
+    fees: profitResult.fees
+  };
+
+  updateSale(lotId, saleId, updates);
+  closeEditSaleModal();
+  // Refresh lot list to show updated profit
+  updateLotList();
 }
 
 export function initInventoryEvents() {
@@ -706,7 +803,7 @@ export function initInventoryEvents() {
     const price = parseFloat(salePrice);
     const units = parseInt(unitsSold) || 1;
     const shippingPerUnit = selectedPlatform === 'ebay' ? (parseFloat(shippingCost) || 0) : 0;
-    const totalShipping = shippingPerUnit * units; // Per-unit * units = total
+    const totalShipping = shippingPerUnit * units;
     if (price > 0 && units > 0 && selectedLotId) {
       recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
       closeSaleModal();
@@ -719,93 +816,6 @@ export function initInventoryEvents() {
       deleteLot(selectedLotId);
       closeSaleModal();
     }
-  });
-
-  // === Edit Sale Modal Events ===
-
-  // Close edit sale modal
-  document.getElementById('close-edit-sale-modal')?.addEventListener('click', closeEditSaleModal);
-  document.getElementById('edit-sale-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'edit-sale-modal') closeEditSaleModal();
-  });
-
-  // Edit sale input handlers
-  document.getElementById('edit-sale-price')?.addEventListener('input', (e) => {
-    editSalePrice = e.target.value;
-  });
-  document.getElementById('edit-shipping-cost')?.addEventListener('input', (e) => {
-    editShippingCost = e.target.value;
-  });
-  document.getElementById('edit-sale-date')?.addEventListener('input', (e) => {
-    editSaleDate = e.target.value;
-  });
-
-  // Save edit sale
-  document.getElementById('save-edit-sale')?.addEventListener('click', () => {
-    if (!editSaleData) return;
-
-    const { lotId, saleId, sale } = editSaleData;
-    const lot = getLots().find(l => l.id === lotId);
-    if (!lot) return;
-
-    // Parse new values with NaN protection
-    const priceInput = editSalePrice !== '' ? parseFloat(editSalePrice) : NaN;
-    const newPrice = Math.round((!isNaN(priceInput) ? priceInput : sale.pricePerUnit / 100) * 100);
-    // Shipping: shippingPerUnitOld is already in cents (stored as total / units)
-    const shippingPerUnitCentsOld = (sale.shippingCost != null && !isNaN(sale.shippingCost) && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
-    // editShippingCost is in dollars, convert to cents. If empty, use old value (already in cents)
-    const editShippingParsed = parseFloat(editShippingCost);
-    const shippingPerUnitCents = sale.platform === 'ebay'
-      ? (editShippingCost !== '' && !isNaN(editShippingParsed) ? Math.round(editShippingParsed * 100) : shippingPerUnitCentsOld)
-      : 0;
-    const newShipping = Math.round(shippingPerUnitCents * sale.unitsSold);
-    
-    // Safety check: if any values are NaN, show error and don't save
-    if (isNaN(newPrice) || isNaN(newShipping)) {
-      console.error('NaN detected in edit sale calculation:', { newPrice, newShipping, shippingPerUnitCents, sale });
-      alert('Error: Invalid number calculated. Please check your inputs and try again.');
-      return;
-    }
-    
-    // Validate lot.unitCost is valid
-    if (isNaN(lot.unitCost)) {
-      console.error('NaN detected in lot.unitCost:', lot);
-      alert('Error: Invalid unit cost in lot data. Please contact support.');
-      return;
-    }
-    
-    const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
-
-    // Recalculate profit with new values
-    // calculateSaleProfit(unitCostCents, unitsSold, pricePerUnitCents, platform, shippingCostCents)
-    const profitResult = calculateSaleProfit(
-      lot.unitCost,
-      sale.unitsSold,
-      newPrice,
-      sale.platform,
-      newShipping
-    );
-    
-    // Validate profit calculation result
-    if (isNaN(profitResult.profit)) {
-      console.error('NaN detected in profit calculation:', profitResult, { lot, sale, newPrice, newShipping });
-      alert('Error: Profit calculation failed. Please check your inputs and try again.');
-      return;
-    }
-
-    // Update the sale
-    const updates = {
-      pricePerUnit: Math.round(newPrice),
-      totalPrice: Math.round(newPrice * sale.unitsSold),
-      shippingCost: Math.round(newShipping),
-      dateSold: new Date(newDate + 'T12:00:00').toISOString(),
-      profit: profitResult.profit,
-      costBasis: profitResult.costBasis,
-      fees: profitResult.fees
-    };
-
-    updateSale(lotId, saleId, updates);
-    closeEditSaleModal();
   });
 
   // === CSV Import Events ===
