@@ -77,6 +77,10 @@ function scheduleViewChange() {
     if (app) {
       app.innerHTML = renderApp(content, currentRoute);
       initEvents();
+      // Fade in the app after first render
+      if (!app.classList.contains('ready')) {
+        requestAnimationFrame(() => app.classList.add('ready'));
+      }
     }
   }, 150); // 150ms debounce - batches auth + sync events into single render
 }

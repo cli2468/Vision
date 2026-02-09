@@ -18,6 +18,17 @@
 </head>
 
 <body>
+  <style>
+    /* Prevent flash on initial load */
+    #app {
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+    }
+
+    #app.ready {
+      opacity: 1;
+    }
+  </style>
   <div id="app"></div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script type="module" src="/src/main.js"></script>
