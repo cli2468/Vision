@@ -74,7 +74,13 @@ function renderUserAccount(user) {
   `;
 }
 
+let eventsInitialized = false;
+
 export function initLoginModalEvents() {
+  // Prevent registering duplicate listeners
+  if (eventsInitialized) return;
+  eventsInitialized = true;
+
   window.addEventListener('open-login-modal', () => {
     isOpen = true;
     window.dispatchEvent(new CustomEvent('viewchange'));
