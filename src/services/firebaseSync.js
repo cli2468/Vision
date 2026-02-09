@@ -19,6 +19,7 @@ export function syncLots(onUpdate) {
     const user = auth.currentUser;
     if (!user) return null;
 
+    console.log('📡 Starting Firestore sync listener for user:', user.email);
     const lotsRef = collection(db, 'users', user.uid, 'lots');
     const q = query(lotsRef);
 
@@ -27,6 +28,7 @@ export function syncLots(onUpdate) {
         snapshot.forEach((doc) => {
             lots.push({ id: doc.id, ...doc.data() });
         });
+        console.log('📥 Firestore returned', lots.length, 'lots:', lots.map(l => l.id));
         onUpdate(lots);
     }, (error) => {
         console.error("Error syncing lots:", error);

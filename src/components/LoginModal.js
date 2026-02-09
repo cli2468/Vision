@@ -126,16 +126,11 @@ export function initLoginModalEvents() {
       syncLots((cloudLots) => {
         if (isFirstSync) {
           isFirstSync = false;
-          const localLots = getLots();
-
-          if (cloudLots.length > 0) {
-            // Cloud has data - use it (cloud is source of truth for initial load)
-            setLots(cloudLots);
-            window.dispatchEvent(new CustomEvent('viewchange'));
-          } else if (localLots.length > 0) {
-            // Cloud is empty but local has data - upload local to cloud
-            uploadLocalData(localLots);
-          }
+          // Cloud is the SOLE source of truth
+          // Always use cloud data, even if empty (means everything was deleted)
+          console.log('📥 Initial sync: replacing local with', cloudLots.length, 'cloud items');
+          setLots(cloudLots);
+          window.dispatchEvent(new CustomEvent('viewchange'));
         }
         // After initial sync, changes are pushed from local to cloud, not pulled
       });
