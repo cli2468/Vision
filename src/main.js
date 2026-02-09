@@ -51,35 +51,42 @@ route('/add', () => renderApp(AddLotView(), '/add'));
 // Initialize router with event callback
 initRouter(initEvents);
 
+// Debounce helper to prevent multiple rapid re-renders
+let viewChangeTimeout = null;
+function scheduleViewChange() {
+  if (viewChangeTimeout) clearTimeout(viewChangeTimeout);
+  viewChangeTimeout = setTimeout(() => {
+    const currentRoute = getCurrentRoute();
+    const app = document.getElementById('app');
+
+    let content;
+    switch (currentRoute) {
+      case '/':
+        content = DashboardView();
+        break;
+      case '/inventory':
+        content = InventoryView();
+        break;
+      case '/add':
+        content = AddLotView();
+        break;
+      default:
+        content = DashboardView();
+    }
+
+    if (app) {
+      app.innerHTML = renderApp(content, currentRoute);
+      initEvents();
+    }
+  }, 50); // 50ms debounce - fast enough to feel instant but batches rapid events
+}
+
 // Handle custom view change events (for modals, state updates, etc.)
-window.addEventListener('viewchange', () => {
-  const currentRoute = getCurrentRoute();
-  const app = document.getElementById('app');
-
-  let content;
-  switch (currentRoute) {
-    case '/':
-      content = DashboardView();
-      break;
-    case '/inventory':
-      content = InventoryView();
-      break;
-    case '/add':
-      content = AddLotView();
-      break;
-    default:
-      content = DashboardView();
-  }
-
-  if (app) {
-    app.innerHTML = renderApp(content, currentRoute);
-    initEvents();
-  }
-});
+window.addEventListener('viewchange', scheduleViewChange);
 
 // Handle Firebase Auth state changes globally to re-render
 onAuthStateChanged(auth, () => {
-  window.dispatchEvent(new CustomEvent('viewchange'));
+  scheduleViewChange();
 });
 
 // Register service worker (handled by vite-plugin-pwa)

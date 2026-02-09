@@ -61,14 +61,18 @@ export function aggregateSalesByDay(salesData, range) {
     const labels = [];
     const revenues = [];
     const profits = [];
+    const cumulativeProfits = [];
+    let runningProfit = 0;
 
     for (const [dateKey, data] of salesByDay) {
         labels.push(formatDateLabel(dateKey, range));
         revenues.push(data.revenue / 100); // Convert cents to dollars
         profits.push(data.profit / 100);
+        runningProfit += data.profit / 100;
+        cumulativeProfits.push(runningProfit);
     }
 
-    return { labels, revenues, profits, salesByDay };
+    return { labels, revenues, profits, cumulativeProfits, salesByDay };
 }
 
 /**

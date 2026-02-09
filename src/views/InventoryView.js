@@ -14,6 +14,12 @@ let shippingCost = '';
 let saleDate = new Date().toISOString().split('T')[0]; // Default to today
 let showImportModal = false;
 
+// Edit sale state
+let editSaleData = null; // { lotId, saleId, sale }
+let editSalePrice = '';
+let editShippingCost = '';
+let editSaleDate = '';
+
 export function setActiveTab(tab) {
   activeTab = tab;
 }
@@ -30,6 +36,7 @@ export function InventoryView() {
 
   const modalHtml = selectedLotId ? renderSaleModal() : '';
   const importModalHtml = showImportModal ? renderImportModal() : '';
+  const editSaleModalHtml = editSaleData ? renderEditSaleModal() : '';
 
   return `
     <div class="page">
@@ -61,6 +68,7 @@ export function InventoryView() {
     </div>
     ${modalHtml}
     ${importModalHtml}
+    ${editSaleModalHtml}
   `;
 }
 
@@ -149,21 +157,27 @@ function renderSalesList(lot) {
   return `
     <div class="sales-list" style="margin-top: var(--spacing-md); border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: var(--spacing-sm);">
       ${lot.sales.map(sale => {
-    const saleDateValue = new Date(sale.dateSold).toISOString().split('T')[0];
+    const saleDateFormatted = formatDate(sale.dateSold);
+    const shippingDisplay = sale.shippingCost ? ` (+ ${formatCurrency(sale.shippingCost)} ship)` : '';
     return `
         <div class="sale-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 0.875rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
           <div>
             <div style="font-weight: 500;">Sold ${sale.unitsSold} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}</div>
-            <div class="sale-date-edit text-muted" style="font-size: 0.75rem;">
-              <input type="date" class="sale-date-input edit-sale-date" data-lot-id="${lot.id}" data-sale-id="${sale.id}" value="${saleDateValue}" />
-              <span>• @ ${formatCurrency(sale.pricePerUnit)}</span>
+            <div class="text-muted" style="font-size: 0.75rem;">
+              ${saleDateFormatted} • @ ${formatCurrency(sale.pricePerUnit)}${shippingDisplay}
             </div>
           </div>
-          <div style="text-align: right; display: flex; align-items: center; gap: 12px;">
+          <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
             <div class="${sale.profit >= 0 ? 'text-success' : 'text-danger'}" style="font-weight: 600;">
               ${formatCurrency(sale.profit, true)}
             </div>
-            <button class="delete-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+            <button class="edit-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;" title="Edit Sale">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="delete-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;" title="Delete Sale">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -185,6 +199,56 @@ function renderEmptyState() {
       <div class="empty-icon">📦</div>
       <div class="empty-title">No items yet</div>
       <div class="empty-text">Add your first inventory lot by taking a screenshot of your Amazon order</div>
+    </div>
+  `;
+}
+
+function renderEditSaleModal() {
+  if (!editSaleData) return '';
+
+  const { sale, lotId } = editSaleData;
+  const priceValue = editSalePrice || (sale.pricePerUnit / 100).toFixed(2);
+  const shippingValue = editShippingCost || (sale.shippingCost ? (sale.shippingCost / 100).toFixed(2) : '');
+  const dateValue = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
+
+  return `
+    <div class="modal-overlay" id="edit-sale-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Edit Sale</h2>
+          <button class="modal-close" id="close-edit-sale-modal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        
+        <p class="text-secondary" style="margin-bottom: var(--spacing-lg);">
+          Sold ${sale.unitsSold} unit${sale.unitsSold > 1 ? 's' : ''} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}
+        </p>
+        
+        <div class="form-group">
+          <label class="form-label">Price Per Unit ($)</label>
+          <input type="number" class="form-input" id="edit-sale-price" placeholder="0.00" step="0.01" min="0" value="${priceValue}" inputmode="decimal" />
+        </div>
+        
+        ${sale.platform === 'ebay' ? `
+          <div class="form-group">
+            <label class="form-label">Shipping Cost ($)</label>
+            <input type="number" class="form-input" id="edit-shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingValue}" inputmode="decimal" />
+          </div>
+        ` : ''}
+        
+        <div class="form-group">
+          <label class="form-label">Sale Date</label>
+          <input type="date" class="form-input" id="edit-sale-date" value="${dateValue}" />
+        </div>
+        
+        <button class="btn btn-success btn-full" id="save-edit-sale">
+          Save Changes
+        </button>
+      </div>
     </div>
   `;
 }
@@ -505,6 +569,14 @@ export function closeSaleModal() {
   window.dispatchEvent(new CustomEvent('viewchange'));
 }
 
+function closeEditSaleModal() {
+  editSaleData = null;
+  editSalePrice = '';
+  editShippingCost = '';
+  editSaleDate = '';
+  window.dispatchEvent(new CustomEvent('viewchange'));
+}
+
 
 // Event handlers specific to lot cards (called after lot list updates)
 function initLotCardEvents() {
@@ -554,14 +626,19 @@ function initLotCardEvents() {
     });
   });
 
-  // Edit sale date inline
-  document.querySelectorAll('.edit-sale-date').forEach(input => {
-    input.addEventListener('change', (e) => {
+  // Edit sale button - opens edit modal
+  document.querySelectorAll('.edit-sale-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const { lotId, saleId } = e.target.dataset;
-      const newDate = e.target.value;
-      if (newDate) {
-        updateSale(lotId, saleId, { dateSold: new Date(newDate + 'T12:00:00').toISOString() });
+      const { lotId, saleId } = btn.dataset;
+      const lot = getLots().find(l => l.id === lotId);
+      const sale = lot?.sales.find(s => s.id === saleId);
+      if (sale) {
+        editSaleData = { lotId, saleId, sale };
+        editSalePrice = '';
+        editShippingCost = '';
+        editSaleDate = '';
+        window.dispatchEvent(new CustomEvent('viewchange'));
       }
     });
   });
@@ -632,6 +709,62 @@ export function initInventoryEvents() {
       deleteLot(selectedLotId);
       closeSaleModal();
     }
+  });
+
+  // === Edit Sale Modal Events ===
+
+  // Close edit sale modal
+  document.getElementById('close-edit-sale-modal')?.addEventListener('click', closeEditSaleModal);
+  document.getElementById('edit-sale-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'edit-sale-modal') closeEditSaleModal();
+  });
+
+  // Edit sale input handlers
+  document.getElementById('edit-sale-price')?.addEventListener('input', (e) => {
+    editSalePrice = e.target.value;
+  });
+  document.getElementById('edit-shipping-cost')?.addEventListener('input', (e) => {
+    editShippingCost = e.target.value;
+  });
+  document.getElementById('edit-sale-date')?.addEventListener('input', (e) => {
+    editSaleDate = e.target.value;
+  });
+
+  // Save edit sale
+  document.getElementById('save-edit-sale')?.addEventListener('click', () => {
+    if (!editSaleData) return;
+
+    const { lotId, saleId, sale } = editSaleData;
+    const lot = getLots().find(l => l.id === lotId);
+    if (!lot) return;
+
+    // Parse new values
+    const newPrice = parseFloat(editSalePrice || (sale.pricePerUnit / 100)) * 100; // Convert to cents
+    const newShipping = sale.platform === 'ebay'
+      ? parseFloat(editShippingCost || (sale.shippingCost ? sale.shippingCost / 100 : 0)) * 100
+      : 0;
+    const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
+
+    // Recalculate profit with new values
+    const newProfit = calculateSaleProfit(
+      newPrice,
+      sale.unitsSold,
+      lot.unitCost,
+      sale.platform,
+      newShipping
+    );
+
+    // Update the sale
+    const updates = {
+      pricePerUnit: Math.round(newPrice),
+      totalPrice: Math.round(newPrice * sale.unitsSold),
+      shippingCost: Math.round(newShipping),
+      dateSold: new Date(newDate + 'T12:00:00').toISOString(),
+      profit: newProfit
+    };
+
+    updateSale(lotId, saleId, updates);
+    closeEditSaleModal();
   });
 
   // === CSV Import Events ===

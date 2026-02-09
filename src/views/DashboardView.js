@@ -212,8 +212,8 @@ function initChart() {
   const salesData = getSalesForSelectedRange();
   currentChartData = aggregateSalesByDay(salesData, selectedRange);
 
-  const { labels, revenues, profits } = currentChartData;
-  const data = chartMode === 'revenue' ? revenues : profits;
+  const { labels, revenues, cumulativeProfits } = currentChartData;
+  const data = chartMode === 'revenue' ? revenues : cumulativeProfits;
   const isProfit = chartMode === 'profit';
 
   // Destroy existing chart
