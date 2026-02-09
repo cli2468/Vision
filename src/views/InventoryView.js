@@ -208,7 +208,9 @@ function renderEditSaleModal() {
 
   const { sale, lotId } = editSaleData;
   const priceValue = editSalePrice || (sale.pricePerUnit / 100).toFixed(2);
-  const shippingValue = editShippingCost || (sale.shippingCost ? (sale.shippingCost / 100).toFixed(2) : '');
+  // Shipping is stored as total, but display/edit as per-unit
+  const shippingPerUnit = sale.shippingCost ? sale.shippingCost / sale.unitsSold : 0;
+  const shippingValue = editShippingCost || (shippingPerUnit ? (shippingPerUnit / 100).toFixed(2) : '');
   const dateValue = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
   return `
@@ -235,7 +237,7 @@ function renderEditSaleModal() {
         
         ${sale.platform === 'ebay' ? `
           <div class="form-group">
-            <label class="form-label">Shipping Cost ($)</label>
+            <label class="form-label">Shipping Cost Per Unit ($)</label>
             <input type="number" class="form-input" id="edit-shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingValue}" inputmode="decimal" />
           </div>
         ` : ''}
@@ -740,9 +742,12 @@ export function initInventoryEvents() {
 
     // Parse new values
     const newPrice = parseFloat(editSalePrice || (sale.pricePerUnit / 100)) * 100; // Convert to cents
-    const newShipping = sale.platform === 'ebay'
-      ? parseFloat(editShippingCost || (sale.shippingCost ? sale.shippingCost / 100 : 0)) * 100
+    // Shipping is entered per-unit, multiply by units to get total
+    const shippingPerUnitOld = sale.shippingCost ? sale.shippingCost / sale.unitsSold : 0;
+    const shippingPerUnit = sale.platform === 'ebay'
+      ? parseFloat(editShippingCost || (shippingPerUnitOld / 100)) * 100
       : 0;
+    const newShipping = shippingPerUnit * sale.unitsSold;
     const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
     // Recalculate profit with new values
