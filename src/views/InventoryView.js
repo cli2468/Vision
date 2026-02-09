@@ -699,9 +699,10 @@ export function initInventoryEvents() {
   document.getElementById('confirm-sale')?.addEventListener('click', () => {
     const price = parseFloat(salePrice);
     const units = parseInt(unitsSold) || 1;
-    const shipping = selectedPlatform === 'ebay' ? (parseFloat(shippingCost) || 0) : 0;
+    const shippingPerUnit = selectedPlatform === 'ebay' ? (parseFloat(shippingCost) || 0) : 0;
+    const totalShipping = shippingPerUnit * units; // Per-unit * units = total
     if (price > 0 && units > 0 && selectedLotId) {
-      recordSale(selectedLotId, price, units, selectedPlatform, shipping, saleDate);
+      recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
       closeSaleModal();
     }
   });
@@ -752,10 +753,11 @@ export function initInventoryEvents() {
     const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
     // Recalculate profit with new values
+    // calculateSaleProfit(unitCostCents, unitsSold, pricePerUnitCents, platform, shippingCostCents)
     const newProfit = calculateSaleProfit(
-      newPrice,
-      sale.unitsSold,
       lot.unitCost,
+      sale.unitsSold,
+      newPrice,
       sale.platform,
       newShipping
     );
