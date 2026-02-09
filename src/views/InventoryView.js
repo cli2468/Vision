@@ -297,21 +297,22 @@ function renderSaleModal() {
   const price = parseFloat(salePrice) || 0;
   const units = Math.min(parseInt(unitsSold) || 1, lot.remaining);
   const priceInCents = Math.round(price * 100);
-  const shipping = parseFloat(shippingCost) || 0;
-  const shippingCents = Math.round(shipping * 100);
+  const shippingPerUnit = parseFloat(shippingCost) || 0;
+  const shippingPerUnitCents = Math.round(shippingPerUnit * 100);
+  const totalShippingCents = shippingPerUnitCents * units; // Per-unit * units = total
 
   const { costBasis, totalSalePrice, fees, shippingCost: shippingCalc, profit } = calculateSaleProfit(
     lot.unitCost,
     units,
     priceInCents,
     selectedPlatform,
-    selectedPlatform === 'ebay' ? shippingCents : 0
+    selectedPlatform === 'ebay' ? totalShippingCents : 0
   );
 
   const isEbay = selectedPlatform === 'ebay';
   const shippingFieldHtml = isEbay ? `
     <div class="form-group shipping-field">
-      <label class="form-label">Shipping Cost ($)</label>
+      <label class="form-label">Shipping Cost Per Unit ($)</label>
       <input type="number" class="form-input" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
     </div>
   ` : '';
@@ -324,7 +325,7 @@ function renderSaleModal() {
   ` : '';
 
   // Validation: eBay requires shipping
-  const isValid = price > 0 && units > 0 && (!isEbay || shipping >= 0);
+  const isValid = price > 0 && units > 0 && (!isEbay || shippingPerUnit >= 0);
 
   return `
     <div class="modal-overlay" id="sale-modal">
@@ -350,9 +351,11 @@ function renderSaleModal() {
         </div>
         
         <div class="form-group">
-          <label class="form-label">Price Per Unit ($)</label>
+          <label class="form-label">Sale Price Per Unit ($)</label>
           <input type="number" class="form-input" id="sale-price" placeholder="0.00" step="0.01" min="0" value="${salePrice}" inputmode="decimal" />
         </div>
+        
+        ${shippingFieldHtml}
         
         <div class="form-group">
           <label class="form-label">Platform</label>
@@ -365,8 +368,6 @@ function renderSaleModal() {
             `).join('')}
           </div>
         </div>
-        
-        ${shippingFieldHtml}
         
         <div class="form-group">
           <label class="form-label">Sale Date</label>

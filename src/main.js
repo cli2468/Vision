@@ -78,7 +78,7 @@ function scheduleViewChange() {
       app.innerHTML = renderApp(content, currentRoute);
       initEvents();
     }
-  }, 50); // 50ms debounce - fast enough to feel instant but batches rapid events
+  }, 150); // 150ms debounce - batches auth + sync events into single render
 }
 
 // Handle custom view change events (for modals, state updates, etc.)
