@@ -110,7 +110,11 @@ function renderLotCard(lot) {
     </div>
   ` : '';
 
-  const salesListHtml = (isExpanded && hasAnySales) ? renderSalesList(lot) : '';
+  const salesListHtml = hasAnySales ? `
+    <div class="sales-list-accordion ${isExpanded ? 'expanded' : ''}" id="sales-list-${lot.id}">
+      ${renderSalesList(lot)}
+    </div>
+  ` : '';
   const viewSalesBtn = hasAnySales ? `
     <button class="btn btn-secondary btn-sm toggle-sales" data-lot-id="${lot.id}" style="margin-top: var(--spacing-sm); padding: 4px 8px; font-size: 0.75rem; min-height: 28px;">
       ${isExpanded ? 'Hide Sales' : 'View Sales'}
@@ -582,36 +586,71 @@ export function openSaleModal(lotId) {
 }
 
 export function closeSaleModal() {
-  selectedLotId = null;
-  salePrice = '';
-  unitsSold = '1';
-  shippingCost = '';
-  saleDate = new Date().toISOString().split('T')[0];
-  window.dispatchEvent(new CustomEvent('viewchange'));
+  const modal = document.getElementById('sale-modal');
+  if (modal) {
+    modal.classList.add('closing');
+    setTimeout(() => {
+      selectedLotId = null;
+      salePrice = '';
+      unitsSold = '1';
+      shippingCost = '';
+      saleDate = new Date().toISOString().split('T')[0];
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }, 200);
+  } else {
+    selectedLotId = null;
+    salePrice = '';
+    unitsSold = '1';
+    shippingCost = '';
+    saleDate = new Date().toISOString().split('T')[0];
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  }
 }
 
 function closeEditSaleModal() {
-  editSaleData = null;
-  editSalePrice = '';
-  editShippingCost = '';
-  editSaleDate = '';
-  window.dispatchEvent(new CustomEvent('viewchange'));
+  const modal = document.getElementById('edit-sale-modal');
+  if (modal) {
+    modal.classList.add('closing');
+    setTimeout(() => {
+      editSaleData = null;
+      editSalePrice = '';
+      editShippingCost = '';
+      editSaleDate = '';
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }, 200);
+  } else {
+    editSaleData = null;
+    editSalePrice = '';
+    editShippingCost = '';
+    editSaleDate = '';
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  }
 }
 
 
 // Event handlers specific to lot cards (called after lot list updates)
 function initLotCardEvents() {
-  // Toggle sales list
+  // Toggle sales list - accordion animation without page refresh
   document.querySelectorAll('.toggle-sales').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const lotId = btn.dataset.lotId;
-      if (expandedLots.has(lotId)) {
-        expandedLots.delete(lotId);
-      } else {
-        expandedLots.add(lotId);
+      const accordion = document.getElementById(`sales-list-${lotId}`);
+      const isCurrentlyExpanded = accordion?.classList.contains('expanded');
+      
+      // Toggle button text
+      btn.textContent = isCurrentlyExpanded ? 'View Sales' : 'Hide Sales';
+      
+      // Toggle accordion with animation
+      if (accordion) {
+        if (isCurrentlyExpanded) {
+          accordion.classList.remove('expanded');
+          expandedLots.delete(lotId);
+        } else {
+          accordion.classList.add('expanded');
+          expandedLots.add(lotId);
+        }
       }
-      window.dispatchEvent(new CustomEvent('viewchange'));
     });
   });
 
@@ -832,15 +871,26 @@ export function initInventoryEvents() {
     });
   });
 
-  // Confirm sale
+  // Confirm sale with animation
   document.getElementById('confirm-sale')?.addEventListener('click', () => {
     const price = parseFloat(salePrice);
     const units = parseInt(unitsSold) || 1;
     const shippingPerUnit = selectedPlatform === 'ebay' ? (parseFloat(shippingCost) || 0) : 0;
     const totalShipping = shippingPerUnit * units;
     if (price > 0 && units > 0 && selectedLotId) {
+      // Add animation class to button
+      const btn = document.getElementById('confirm-sale');
+      if (btn) {
+        btn.classList.add('animating');
+        btn.textContent = 'Sale Recorded!';
+      }
+      
       recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
-      closeSaleModal();
+      
+      // Delay close for animation
+      setTimeout(() => {
+        closeSaleModal();
+      }, 600);
     }
   });
 
@@ -911,8 +961,17 @@ export function initInventoryEvents() {
 }
 
 function closeImportModal() {
-  showImportModal = false;
-  window.dispatchEvent(new CustomEvent('viewchange'));
+  const modal = document.getElementById('import-modal');
+  if (modal) {
+    modal.classList.add('closing');
+    setTimeout(() => {
+      showImportModal = false;
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }, 200);
+  } else {
+    showImportModal = false;
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  }
 }
 
 async function processCSVFile(file) {
