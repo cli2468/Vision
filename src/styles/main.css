@@ -1142,12 +1142,11 @@ body {
   background: var(--bg-glass);
   border: var(--border-subtle);
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
   width: auto;
   min-height: auto;
 }
 
-/* ===== Dashboard Chart ===== */
+/* ===== Chart Card with Pill Selector ===== */
 .chart-card {
   background: var(--bg-card);
   border: var(--border-subtle);
@@ -1165,6 +1164,82 @@ body {
   gap: var(--spacing-md);
 }
 
+.chart-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-main-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-xs);
+}
+
+.chart-subtitle {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.chart-subtitle::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid currentColor;
+}
+
+.chart-subtitle.text-danger::before {
+  border-bottom: none;
+  border-top: 8px solid currentColor;
+}
+
+.chart-pill-selector {
+  display: flex;
+  background: var(--bg-glass);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.pill-btn {
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 28px;
+}
+
+.pill-btn:hover {
+  color: var(--text-primary);
+}
+
+.pill-btn.active {
+  color: var(--base);
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-wrapper {
+  height: 200px;
+  position: relative;
+}
+
+/* Old chart styles - keeping for compatibility */
 .chart-totals {
   display: flex;
   gap: var(--spacing-xl);
@@ -1186,40 +1261,6 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.chart-toggle {
-  display: flex;
-  background: var(--bg-glass);
-  border-radius: var(--radius-md);
-  padding: 3px;
-}
-
-.toggle-btn {
-  padding: 6px 12px;
-  font-family: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.toggle-btn:hover {
-  color: var(--text-secondary);
-}
-
-.toggle-btn.active {
-  color: var(--base);
-  background: var(--gradient-primary);
-}
-
-.chart-wrapper {
-  height: 200px;
-  position: relative;
 }
 
 /* ===== Day Breakdown Modal ===== */

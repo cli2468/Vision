@@ -107,16 +107,25 @@ export function DashboardView() {
         
         ${returnAlertsHtml}
         
-        <div class="time-range-selector">
-          <button class="range-btn ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">7D</button>
-          <button class="range-btn ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">30D</button>
-          <button class="range-btn ${selectedRange === '90d' ? 'active' : ''}" data-range="90d">90D</button>
-          <button class="range-btn ${selectedRange === 'all' ? 'active' : ''}" data-range="all">All</button>
+        <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title-section">
+          <div class="chart-main-title">Total revenue</div>
+          <div class="chart-subtitle ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">
+            ${stats.totalProfit >= 0 ? 'Gained' : 'Lost'} ${formatCurrency(Math.abs(stats.totalProfit))} this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'period'}
+          </div>
         </div>
-        
-        <div id="dashboard-stats">
-          ${renderChartSection(stats)}
+        <div class="chart-pill-selector">
+          <button class="pill-btn ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">7D</button>
+          <button class="pill-btn ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">30D</button>
+          <button class="pill-btn ${selectedRange === '90d' ? 'active' : ''}" data-range="90d">90D</button>
+          <button class="pill-btn ${selectedRange === 'all' ? 'active' : ''}" data-range="all">All</button>
         </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="dashboard-chart"></canvas>
+      </div>
+    </div>
         
         <div class="card" style="margin-bottom: var(--spacing-lg);">
           <h3 class="section-title">Summary</h3>
@@ -180,15 +189,17 @@ function renderChartSection(stats) {
   return `
     <div class="chart-card">
       <div class="chart-header">
-        <div class="chart-totals">
-          <div class="chart-total-item">
-            <span class="chart-total-value">${formatCurrency(stats.totalRevenue)}</span>
-            <span class="chart-total-label">Revenue</span>
+        <div class="chart-title-section">
+          <div class="chart-main-title">Total revenue</div>
+          <div class="chart-subtitle ${profitClass}">
+            ${stats.totalProfit >= 0 ? 'Gained' : 'Lost'} ${formatCurrency(Math.abs(stats.totalProfit))} this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'period'}
           </div>
-          <div class="chart-total-item">
-            <span class="chart-total-value ${profitClass}">${formatCurrency(stats.totalProfit)}</span>
-            <span class="chart-total-label">Profit</span>
-          </div>
+        </div>
+        <div class="chart-pill-selector">
+          <button class="pill-btn ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">7D</button>
+          <button class="pill-btn ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">30D</button>
+          <button class="pill-btn ${selectedRange === '90d' ? 'active' : ''}" data-range="90d">90D</button>
+          <button class="pill-btn ${selectedRange === 'all' ? 'active' : ''}" data-range="all">All</button>
         </div>
       </div>
       <div class="chart-wrapper">
@@ -217,10 +228,31 @@ function initChart() {
 
   const ctx = canvas.getContext('2d');
 
-  // Create neon green gradient for fill
-  const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-  gradient.addColorStop(0, 'rgba(204, 255, 0, 0.3)');
-  gradient.addColorStop(1, 'rgba(204, 255, 0, 0.05)');
+  // Create fade gradient that goes from neon to transparent
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 200);
+  gradient.addColorStop(0, 'rgba(204, 255, 0, 0.25)');
+  gradient.addColorStop(0.5, 'rgba(204, 255, 0, 0.08)');
+  gradient.addColorStop(1, 'rgba(204, 255, 0, 0)');
+
+  // Custom plugin for vertical dotted hover line
+  const verticalLinePlugin = {
+    id: 'verticalLine',
+    beforeDatasetsDraw: (chart) => {
+      const { ctx, chartArea: { top, bottom }, tooltip } = chart;
+      if (tooltip?._active?.length) {
+        const x = tooltip._active[0].element.x;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(204, 255, 0, 0.6)';
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  };
 
   chartInstance = new Chart(ctx, {
     type: 'line',
@@ -237,8 +269,11 @@ function initChart() {
         pointBackgroundColor: '#CCFF00',
         pointBorderColor: '#1C180D',
         pointBorderWidth: 2,
-        pointRadius: 4,
+        pointRadius: 0,
         pointHoverRadius: 6,
+        pointHoverBackgroundColor: '#CCFF00',
+        pointHoverBorderColor: '#1C180D',
+        pointHoverBorderWidth: 3,
       }]
     },
     options: {
@@ -263,21 +298,26 @@ function initChart() {
           display: false
         },
         tooltip: {
+          enabled: true,
           backgroundColor: 'rgba(28, 24, 13, 0.95)',
           titleColor: '#D4D0C9',
-          bodyColor: '#B4B1AB',
-          borderColor: 'rgba(204, 255, 0, 0.3)',
+          bodyColor: '#CCFF00',
+          borderColor: 'rgba(204, 255, 0, 0.4)',
           borderWidth: 1,
           padding: 12,
           cornerRadius: 8,
           displayColors: false,
           callbacks: {
+            title: function (context) {
+              return context[0].label;
+            },
             label: function (context) {
               const value = context.raw;
-              return '$' + value.toFixed(2);
+              return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
           }
-        }
+        },
+        verticalLine: verticalLinePlugin
       },
       scales: {
         x: {
@@ -287,21 +327,30 @@ function initChart() {
           ticks: {
             color: '#B4B1AB',
             font: { size: 11 },
-            maxRotation: 0
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 6
           },
           border: {
             display: false
           }
         },
         y: {
+          min: 0,
+          maxTicksLimit: 5,
           grid: {
             color: 'rgba(180, 177, 171, 0.15)',
-            drawBorder: false
+            drawBorder: false,
+            tickLength: 0
           },
           ticks: {
             color: '#B4B1AB',
             font: { size: 11 },
+            padding: 8,
             callback: function (value) {
+              if (value >= 1000) {
+                return '$' + (value / 1000).toFixed(1) + 'k';
+              }
               return '$' + value;
             }
           },
@@ -310,7 +359,8 @@ function initChart() {
           }
         }
       }
-    }
+    },
+    plugins: [verticalLinePlugin]
   });
 }
 
@@ -375,7 +425,7 @@ function updateDashboard() {
   const stats = calculateMonthlyStats(salesData);
 
   // Update range button active states
-  document.querySelectorAll('.range-btn').forEach(btn => {
+  document.querySelectorAll('.pill-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.range === selectedRange);
   });
 
@@ -402,8 +452,8 @@ export function initDashboardEvents() {
   // Initialize chart on first load
   initChart();
 
-  // Time range buttons
-  document.querySelectorAll('.range-btn').forEach(btn => {
+  // Time range pill buttons
+  document.querySelectorAll('.pill-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedRange = btn.dataset.range;
       updateDashboard();
