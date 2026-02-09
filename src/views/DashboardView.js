@@ -199,10 +199,11 @@ function renderInventoryCard(allLots, unsoldCostBasis) {
 
   const totalInventoryValue = topInventoryLots.reduce((sum, lot) => sum + lot.inventoryValue, 0);
   
-  // Calculate arc segments for top 3
+  // Calculate arc segments for top 3 - half pie chart
   const lotSegments = topInventoryLots.map((lot, index) => {
-    const percentage = totalInventoryValue > 0 ? (lot.inventoryValue / unsoldCostBasis) * 100 : 0;
-    const colors = ['#CCFF00', '#00D4FF', '#FF6B35'];
+    const percentage = totalInventoryValue > 0 ? (lot.inventoryValue / totalInventoryValue) * 100 : 0;
+    // Warm colors that work with gray card background (not neon)
+    const colors = ['#FF6B4A', '#4A90A4', '#8B7B6B'];
     return {
       ...lot,
       percentage,
@@ -210,30 +211,31 @@ function renderInventoryCard(allLots, unsoldCostBasis) {
     };
   });
 
-  // Build SVG arc paths
-  let currentAngle = -90; // Start from top
+  // Build SVG arc paths for half pie (180 degrees, starting from left)
+  const totalSegments = lotSegments.reduce((sum, s) => sum + s.percentage, 0);
+  let currentAngle = 180; // Start from left side (180 degrees)
   const segmentsHtml = lotSegments.map((segment, index) => {
-    const angle = (segment.percentage / 100) * 360;
+    const angle = totalSegments > 0 ? (segment.percentage / totalSegments) * 180 : 0;
     const endAngle = currentAngle + angle;
     
     // Calculate arc path
     const startRad = (currentAngle * Math.PI) / 180;
     const endRad = (endAngle * Math.PI) / 180;
-    const r = 45;
-    const cx = 60;
-    const cy = 60;
+    const r = 50;
+    const cx = 70;
+    const cy = 70;
     
     const x1 = cx + r * Math.cos(startRad);
     const y1 = cy + r * Math.sin(startRad);
     const x2 = cx + r * Math.cos(endRad);
     const y2 = cy + r * Math.sin(endRad);
     
-    const largeArc = angle > 180 ? 1 : 0;
+    const largeArc = angle > 90 ? 1 : 0;
     const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
     
     currentAngle = endAngle;
     
-    return `<path d="${path}" fill="${segment.color}" stroke="var(--bg-card)" stroke-width="2" />`;
+    return `<path d="${path}" fill="${segment.color}" />`;
   }).join('');
 
   // Build side items
@@ -252,12 +254,13 @@ function renderInventoryCard(allLots, unsoldCostBasis) {
       <div class="inventory-card-header">Inventory Remaining</div>
       <div class="inventory-card-body">
         <div class="inventory-chart">
-          <svg viewBox="0 0 120 120" class="inventory-donut">
-            <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(180, 177, 171, 0.15)" stroke-width="12" />
-            <g transform="rotate(-90 60 60)">
+          <svg viewBox="0 0 140 90" class="inventory-half-pie">
+            <!-- Background arc (gray) -->
+            <path d="M 20 70 A 50 50 0 0 1 120 70" fill="none" stroke="rgba(180, 177, 171, 0.2)" stroke-width="14" stroke-linecap="round" />
+            <!-- Segment arcs -->
+            <g transform="translate(0, 0)">
               ${segmentsHtml}
             </g>
-            <circle cx="60" cy="60" r="33" fill="var(--bg-card)" />
           </svg>
           <div class="inventory-center-value">
             <div class="inventory-total">${formatCurrency(unsoldCostBasis)}</div>
