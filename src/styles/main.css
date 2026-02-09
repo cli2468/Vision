@@ -630,15 +630,38 @@ body {
   opacity: 0.6;
 }
 
-.lot-cost {
-  font-weight: 600;
-  color: var(--text-primary);
+.lot-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: var(--spacing-md);
+  min-width: 120px;
+}
+
+.lot-cost-info {
   text-align: right;
+  line-height: 1.2;
+}
+
+.lot-total-cost {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .lot-profit {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
+  font-weight: 600;
   margin-top: 2px;
+}
+
+.add-sale-btn {
+  padding: 6px 12px !important;
+  min-height: 32px !important;
+  font-size: var(--font-size-xs) !important;
+  border-radius: var(--radius-full) !important;
+  white-space: nowrap;
 }
 
 /* ===== Lot Progress Bar ===== */
