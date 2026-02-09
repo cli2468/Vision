@@ -312,7 +312,9 @@ export function getSalesByDateRange(startDate, endDate = null) {
     for (const lot of lots) {
         if (!lot.sales) continue;
         for (const sale of lot.sales) {
-            const saleTime = new Date(sale.dateSold).getTime();
+            // Parse date as local time by appending T00:00:00 to avoid UTC shift
+            const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
+            const saleTime = new Date(saleDateStr).getTime();
             if (saleTime >= startTime && saleTime <= endTime) {
                 salesInRange.push({ lot, sale });
             }
