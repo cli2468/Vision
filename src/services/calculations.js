@@ -41,7 +41,7 @@ export function calculateSaleProfit(unitCostCents, unitsSold, pricePerUnitCents,
 /**
  * Calculate monthly stats from sales
  * @param {Array} salesData - Array of { lot, sale } objects
- * @returns {Object} Monthly statistics
+ * @returns {Object} Monthly statistics including returned sales
  */
 export function calculateMonthlyStats(salesData) {
     const stats = {
@@ -51,10 +51,22 @@ export function calculateMonthlyStats(salesData) {
         totalProfit: 0,
         unitsSold: 0,
         transactionCount: 0,
-        avgProfitPerUnit: 0
+        avgProfitPerUnit: 0,
+        // Returned/refunded tracking
+        totalReturned: 0,
+        returnedCount: 0,
+        returnedRevenue: 0
     };
 
     for (const { sale } of salesData) {
+        if (sale.returned) {
+            // Track returned sales separately
+            stats.totalReturned += sale.profit;
+            stats.returnedCount++;
+            stats.returnedRevenue += sale.totalPrice;
+            continue;
+        }
+        
         stats.totalRevenue += sale.totalPrice;
         stats.totalCosts += sale.costBasis;
         stats.totalFees += sale.fees;

@@ -190,10 +190,6 @@ function renderChartSection(stats) {
             <span class="chart-total-label">Profit</span>
           </div>
         </div>
-        <div class="chart-toggle">
-          <button class="toggle-btn ${chartMode === 'revenue' ? 'active' : ''}" data-mode="revenue">Revenue</button>
-          <button class="toggle-btn ${chartMode === 'profit' ? 'active' : ''}" data-mode="profit">Profit</button>
-        </div>
       </div>
       <div class="chart-wrapper">
         <canvas id="dashboard-chart"></canvas>
@@ -212,9 +208,7 @@ function initChart() {
   const salesData = getSalesForSelectedRange();
   currentChartData = aggregateSalesByDay(salesData, selectedRange);
 
-  const { labels, revenues, cumulativeProfits } = currentChartData;
-  const data = chartMode === 'revenue' ? revenues : cumulativeProfits;
-  const isProfit = chartMode === 'profit';
+  const { labels, cumulativeProfits } = currentChartData;
 
   // Destroy existing chart
   if (chartInstance) {
@@ -223,33 +217,27 @@ function initChart() {
 
   const ctx = canvas.getContext('2d');
 
-  // Create gradient
+  // Create neon green gradient for fill
   const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-  if (isProfit) {
-    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)');
-    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
-  } else {
-    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.8)');
-    gradient.addColorStop(1, 'rgba(99, 102, 241, 0.1)');
-  }
+  gradient.addColorStop(0, 'rgba(204, 255, 0, 0.3)');
+  gradient.addColorStop(1, 'rgba(204, 255, 0, 0.05)');
 
   chartInstance = new Chart(ctx, {
-    type: isProfit ? 'line' : 'bar',
+    type: 'line',
     data: {
       labels: labels,
       datasets: [{
-        label: isProfit ? 'Profit' : 'Revenue',
-        data: data,
-        backgroundColor: isProfit ? 'transparent' : gradient,
-        borderColor: isProfit ? '#10b981' : '#6366f1',
+        label: 'Profit',
+        data: cumulativeProfits,
+        backgroundColor: gradient,
+        borderColor: '#CCFF00',
         borderWidth: 2,
-        borderRadius: isProfit ? 0 : 6,
         tension: 0.4,
-        fill: isProfit,
-        pointBackgroundColor: isProfit ? '#10b981' : '#6366f1',
-        pointBorderColor: '#fff',
+        fill: true,
+        pointBackgroundColor: '#CCFF00',
+        pointBorderColor: '#1C180D',
         pointBorderWidth: 2,
-        pointRadius: isProfit ? 4 : 0,
+        pointRadius: 4,
         pointHoverRadius: 6,
       }]
     },
@@ -275,10 +263,10 @@ function initChart() {
           display: false
         },
         tooltip: {
-          backgroundColor: 'rgba(15, 15, 35, 0.95)',
-          titleColor: '#f8fafc',
-          bodyColor: '#94a3b8',
-          borderColor: 'rgba(99, 102, 241, 0.3)',
+          backgroundColor: 'rgba(28, 24, 13, 0.95)',
+          titleColor: '#D4D0C9',
+          bodyColor: '#B4B1AB',
+          borderColor: 'rgba(204, 255, 0, 0.3)',
           borderWidth: 1,
           padding: 12,
           cornerRadius: 8,
@@ -286,7 +274,7 @@ function initChart() {
           callbacks: {
             label: function (context) {
               const value = context.raw;
-              return `$${value.toFixed(2)}`;
+              return '$' + value.toFixed(2);
             }
           }
         }
@@ -297,7 +285,7 @@ function initChart() {
             display: false
           },
           ticks: {
-            color: '#64748b',
+            color: '#B4B1AB',
             font: { size: 11 },
             maxRotation: 0
           },
@@ -307,10 +295,11 @@ function initChart() {
         },
         y: {
           grid: {
-            color: 'rgba(255, 255, 255, 0.05)'
+            color: 'rgba(180, 177, 171, 0.15)',
+            drawBorder: false
           },
           ticks: {
-            color: '#64748b',
+            color: '#B4B1AB',
             font: { size: 11 },
             callback: function (value) {
               return '$' + value;
@@ -390,11 +379,6 @@ function updateDashboard() {
     btn.classList.toggle('active', btn.dataset.range === selectedRange);
   });
 
-  // Update toggle button active states
-  document.querySelectorAll('.toggle-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mode === chartMode);
-  });
-
   // Re-render chart
   initChart();
 
@@ -422,14 +406,6 @@ export function initDashboardEvents() {
   document.querySelectorAll('.range-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedRange = btn.dataset.range;
-      updateDashboard();
-    });
-  });
-
-  // Chart mode toggle
-  document.querySelectorAll('.toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      chartMode = btn.dataset.mode;
       updateDashboard();
     });
   });

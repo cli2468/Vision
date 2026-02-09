@@ -1,6 +1,6 @@
 // Inventory View - List all lots with sale recording
 
-import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn } from '../services/storage.js';
+import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn, markSaleReturned } from '../services/storage.js';
 import { formatCurrency, formatDate, PLATFORM_FEES, calculateSaleProfit } from '../services/calculations.js';
 import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
 
@@ -159,18 +159,30 @@ function renderSalesList(lot) {
       ${lot.sales.map(sale => {
     const saleDateFormatted = formatDate(sale.dateSold);
     const shippingDisplay = sale.shippingCost ? ` (+ ${formatCurrency(sale.shippingCost)} ship)` : '';
+    const returnedBadge = sale.returned ? `<span style="color: var(--accent-danger); font-size: 0.75rem; margin-left: 8px;">(RETURNED)</span>` : '';
+    const profitDisplay = sale.returned 
+      ? `<span style="color: var(--accent-danger); text-decoration: line-through;">${formatCurrency(sale.profit, true)}</span>`
+      : `<span class="${sale.profit >= 0 ? 'text-success' : 'text-danger'}" style="font-weight: 600;">${formatCurrency(sale.profit, true)}</span>`;
     return `
-        <div class="sale-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 0.875rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
+        <div class="sale-item ${sale.returned ? 'returned' : ''}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 0.875rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
           <div>
-            <div style="font-weight: 500;">Sold ${sale.unitsSold} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}</div>
+            <div style="font-weight: 500;">Sold ${sale.unitsSold} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}${returnedBadge}</div>
             <div class="text-muted" style="font-size: 0.75rem;">
               ${saleDateFormatted} • @ ${formatCurrency(sale.pricePerUnit)}${shippingDisplay}
             </div>
           </div>
           <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
-            <div class="${sale.profit >= 0 ? 'text-success' : 'text-danger'}" style="font-weight: 600;">
-              ${formatCurrency(sale.profit, true)}
-            </div>
+            ${profitDisplay}
+            ${!sale.returned ? `
+            <button class="return-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--accent-warning); cursor: pointer; padding: 4px;" title="Mark as Returned">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 10h18"></path>
+                <path d="M3 14h18"></path>
+                <path d="M10 3v18"></path>
+                <path d="M14 3v18"></path>
+              </svg>
+            </button>
+            ` : ''}
             <button class="edit-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;" title="Edit Sale">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -653,6 +665,28 @@ function initLotCardEvents() {
           document.body.insertAdjacentHTML('beforeend', modalHtml);
           attachEditSaleModalEvents();
         }
+      }
+    });
+  });
+
+  // Return sale button - marks sale as returned with confirmation
+  document.querySelectorAll('.return-sale-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const { lotId, saleId } = btn.dataset;
+      const lot = getLots().find(l => l.id === lotId);
+      const sale = lot?.sales.find(s => s.id === saleId);
+      
+      if (!sale) return;
+      
+      const profit = formatCurrency(sale.profit);
+      const message = sale.profit >= 0 
+        ? `This sale had a profit of ${profit}. Marking it as returned will:\n\n1. Remove this profit from your totals\n2. Restore ${sale.unitsSold} unit(s) to inventory\n\nAre you sure you want to mark this as returned?`
+        : `This sale had a loss of ${profit}. Marking it as returned will:\n\n1. Remove this loss from your totals (you'll lose the money you made from this sale)\n2. Restore ${sale.unitsSold} unit(s) to inventory\n\nAre you sure you want to mark this as returned?`;
+      
+      if (confirm(message)) {
+        markSaleReturned(lotId, saleId);
+        window.dispatchEvent(new CustomEvent('viewchange'));
       }
     });
   });

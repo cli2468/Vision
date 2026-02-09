@@ -4,7 +4,7 @@
  * Aggregate sales data by day for charting
  * @param {Array} salesData - Array of { lot, sale } objects
  * @param {string} range - '7d' | '30d' | '90d' | 'all'
- * @returns {Object} { labels[], revenues[], profits[], salesByDay: Map }
+ * @returns {Object} { labels[], revenues[], profits[], returns[], salesByDay: Map }
  */
 export function aggregateSalesByDay(salesData, range) {
     const now = new Date();
@@ -33,7 +33,7 @@ export function aggregateSalesByDay(salesData, range) {
         default: numDays = 30;
     }
 
-    // Create a map of date string -> { revenue, profit, sales[] }
+    // Create a map of date string -> { revenue, profit, returns, sales[] }
     const salesByDay = new Map();
 
     // Initialize all days in range with zeros
@@ -41,7 +41,7 @@ export function aggregateSalesByDay(salesData, range) {
         const date = new Date(now);
         date.setDate(date.getDate() - i);
         const dateKey = formatDateKey(date);
-        salesByDay.set(dateKey, { revenue: 0, profit: 0, sales: [] });
+        salesByDay.set(dateKey, { revenue: 0, profit: 0, returns: 0, sales: [] });
     }
 
     // Aggregate sales into days
@@ -51,9 +51,16 @@ export function aggregateSalesByDay(salesData, range) {
 
         if (salesByDay.has(dateKey)) {
             const dayData = salesByDay.get(dateKey);
-            dayData.revenue += sale.totalPrice;
-            dayData.profit += sale.profit;
             dayData.sales.push({ lot, sale });
+            
+            if (sale.returned) {
+                // Track returns separately (negative impact)
+                dayData.returns += sale.profit;
+            } else {
+                // Normal sale
+                dayData.revenue += sale.totalPrice;
+                dayData.profit += sale.profit;
+            }
         }
     }
 
@@ -61,6 +68,7 @@ export function aggregateSalesByDay(salesData, range) {
     const labels = [];
     const revenues = [];
     const profits = [];
+    const returns = [];
     const cumulativeProfits = [];
     let runningProfit = 0;
 
@@ -68,11 +76,12 @@ export function aggregateSalesByDay(salesData, range) {
         labels.push(formatDateLabel(dateKey, range));
         revenues.push(data.revenue / 100); // Convert cents to dollars
         profits.push(data.profit / 100);
-        runningProfit += data.profit / 100;
+        returns.push(data.returns / 100);
+        runningProfit += (data.profit + data.returns) / 100; // Include returns in cumulative
         cumulativeProfits.push(runningProfit);
     }
 
-    return { labels, revenues, profits, cumulativeProfits, salesByDay };
+    return { labels, revenues, profits, returns, cumulativeProfits, salesByDay };
 }
 
 /**

@@ -178,7 +178,8 @@ export function recordSale(id, pricePerUnit, unitsSold, platform, shippingCost =
         shippingCost: shippingCostCents,
         costBasis,
         profit,
-        dateSold: saleDateStr ? new Date(saleDateStr + 'T12:00:00').toISOString() : new Date().toISOString()
+        dateSold: saleDateStr ? new Date(saleDateStr + 'T12:00:00').toISOString() : new Date().toISOString(),
+        returned: false
     };
 
     const updatedSales = [...(lot.sales || []), saleRecord];
@@ -242,6 +243,37 @@ export function updateSale(lotId, saleId, updates) {
     if (saleIndex === -1) return null;
 
     lot.sales[saleIndex] = { ...lot.sales[saleIndex], ...updates };
+    saveStorageData(data);
+    return lot;
+}
+
+/**
+ * Mark a specific sale as returned/refunded
+ * @param {string} lotId - Lot ID
+ * @param {string} saleId - Sale record ID
+ * @returns {Object|null} Updated lot or null
+ */
+export function markSaleReturned(lotId, saleId) {
+    const data = getStorageData();
+    const lotIndex = data.lots.findIndex(l => l.id === lotId);
+
+    if (lotIndex === -1) return null;
+    const lot = data.lots[lotIndex];
+
+    const saleIndex = lot.sales.findIndex(s => s.id === saleId);
+    if (saleIndex === -1) return null;
+
+    const sale = lot.sales[saleIndex];
+    
+    // Already returned, nothing to do
+    if (sale.returned) return lot;
+
+    // Mark as returned
+    lot.sales[saleIndex] = { ...sale, returned: true };
+    
+    // Restore units to inventory
+    lot.remaining += sale.unitsSold;
+    
     saveStorageData(data);
     return lot;
 }
