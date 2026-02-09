@@ -46,7 +46,9 @@ export function aggregateSalesByDay(salesData, range) {
 
     // Aggregate sales into days
     for (const { lot, sale } of salesData) {
-        const saleDate = new Date(sale.dateSold);
+        // Parse date as local time by appending T00:00:00 to avoid UTC shift
+        const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
+        const saleDate = new Date(saleDateStr);
         const dateKey = formatDateKey(saleDate);
 
         if (salesByDay.has(dateKey)) {
@@ -98,10 +100,9 @@ function formatDateLabel(dateKey, range) {
     const date = new Date(dateKey + 'T12:00:00');
     if (range === '7d') {
         return date.toLocaleDateString('en-US', { weekday: 'short' });
-    } else if (range === '30d') {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } else {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        // Use M/D format (e.g., "1/12")
+        return `${date.getMonth() + 1}/${date.getDate()}`;
     }
 }
 
