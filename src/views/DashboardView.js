@@ -198,7 +198,7 @@ function renderInventoryCard(allLots, unsoldCostBasis) {
     .slice(0, 3);
 
   const totalInventoryValue = topInventoryLots.reduce((sum, lot) => sum + lot.inventoryValue, 0);
-  
+
   // Calculate arc segments for top 3 - half pie chart
   const lotSegments = topInventoryLots.map((lot, index) => {
     const percentage = totalInventoryValue > 0 ? (lot.inventoryValue / totalInventoryValue) * 100 : 0;
@@ -217,24 +217,24 @@ function renderInventoryCard(allLots, unsoldCostBasis) {
   const segmentsHtml = lotSegments.map((segment, index) => {
     const angle = totalSegments > 0 ? (segment.percentage / totalSegments) * 180 : 0;
     const endAngle = currentAngle + angle;
-    
+
     // Calculate arc path
     const startRad = (currentAngle * Math.PI) / 180;
     const endRad = (endAngle * Math.PI) / 180;
     const r = 50;
     const cx = 70;
     const cy = 70;
-    
+
     const x1 = cx + r * Math.cos(startRad);
     const y1 = cy + r * Math.sin(startRad);
     const x2 = cx + r * Math.cos(endRad);
     const y2 = cy + r * Math.sin(endRad);
-    
+
     const largeArc = angle > 90 ? 1 : 0;
     const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-    
+
     currentAngle = endAngle;
-    
+
     return `<path d="${path}" fill="${segment.color}" />`;
   }).join('');
 
@@ -287,10 +287,19 @@ function initChart() {
 
   const { labels, cumulativeProfits } = currentChartData;
 
-  // Calculate Y-axis step size for exactly 5 ticks (including 0)
+  // Calculate Y-axis step size using nice increments (50, 100, 500, 1000)
   const maxProfit = Math.max(...cumulativeProfits, 0);
-  const yMax = Math.ceil(maxProfit * 1.1 / 100) * 100; // Round up to nearest 100 with 10% padding
-  const stepSize = yMax / 4; // 5 ticks = 4 intervals
+  const niceSteps = [50, 100, 500, 1000];
+  // Find the smallest nice step that gives us 4-6 intervals
+  let stepSize = 50;
+  for (const step of niceSteps) {
+    if (maxProfit / step <= 5) {
+      stepSize = step;
+      break;
+    }
+    stepSize = step; // Use largest if none fit
+  }
+  const yMax = Math.ceil(maxProfit * 1.1 / stepSize) * stepSize; // Round up to stepSize with 10% padding
 
   // Destroy existing chart
   if (chartInstance) {
@@ -399,8 +408,8 @@ function initChart() {
             color: '#B4B1AB',
             font: { size: 11 },
             maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 6
+            autoSkip: selectedRange !== '7d', // Show all labels for 7D
+            maxTicksLimit: selectedRange === '7d' ? 7 : 6
           },
           border: {
             display: false
@@ -500,7 +509,7 @@ function updateDashboard() {
   document.querySelectorAll('.time-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.range === selectedRange);
   });
-  
+
   const currentLabelEl = document.querySelector('.time-selector-current');
   if (currentLabelEl) {
     const labelMap = { '7d': '7D', '30d': '30D', '90d': '90D', 'all': 'All Time' };
@@ -513,10 +522,10 @@ function updateDashboard() {
   // Update totals in header
   const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
   const timeLabel = selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime';
-  
+
   const revenueEl = document.querySelector('.chart-revenue-value');
   if (revenueEl) revenueEl.textContent = formatCurrency(stats.totalRevenue);
-  
+
   const profitSubtitleEl = document.querySelector('.chart-profit-subtitle');
   if (profitSubtitleEl) {
     profitSubtitleEl.className = `chart-profit-subtitle ${profitClass}`;
@@ -531,7 +540,7 @@ export function initDashboardEvents() {
   // Time selector accordion toggle
   const timeSelector = document.getElementById('time-selector');
   const trigger = timeSelector?.querySelector('.time-selector-trigger');
-  
+
   trigger?.addEventListener('click', () => {
     timeSelector?.classList.toggle('open');
   });
