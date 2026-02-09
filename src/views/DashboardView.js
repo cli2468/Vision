@@ -187,7 +187,6 @@ function renderChartSection(stats) {
  * Render inventory card with circular design
  */
 function renderInventoryCard(allLots, unsoldCostBasis) {
-  // Get top 3 lots by inventory value (remaining units * unit cost)
   const topInventoryLots = allLots
     .filter(lot => lot.remaining > 0)
     .map(lot => ({
@@ -198,53 +197,21 @@ function renderInventoryCard(allLots, unsoldCostBasis) {
     .slice(0, 3);
 
   const totalInventoryValue = topInventoryLots.reduce((sum, lot) => sum + lot.inventoryValue, 0);
+  const colors = ['var(--accent)', '#4A90A4', '#8B7B6B'];
 
-  // Calculate arc segments for top 3 - half pie chart
-  const lotSegments = topInventoryLots.map((lot, index) => {
-    const percentage = totalInventoryValue > 0 ? (lot.inventoryValue / totalInventoryValue) * 100 : 0;
-    // Warm colors that work with gray card background (not neon)
-    const colors = ['#FF6B4A', '#4A90A4', '#8B7B6B'];
-    return {
-      ...lot,
-      percentage,
-      color: colors[index % colors.length]
-    };
-  });
-
-  // Build SVG arc paths for half pie (180 degrees, starting from left)
-  const totalSegments = lotSegments.reduce((sum, s) => sum + s.percentage, 0);
-  let currentAngle = 180; // Start from left side (180 degrees)
-  const segmentsHtml = lotSegments.map((segment, index) => {
-    const angle = totalSegments > 0 ? (segment.percentage / totalSegments) * 180 : 0;
-    const endAngle = currentAngle + angle;
-
-    // Calculate arc path
-    const startRad = (currentAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
-    const r = 50;
-    const cx = 70;
-    const cy = 70;
-
-    const x1 = cx + r * Math.cos(startRad);
-    const y1 = cy + r * Math.sin(startRad);
-    const x2 = cx + r * Math.cos(endRad);
-    const y2 = cy + r * Math.sin(endRad);
-
-    const largeArc = angle > 90 ? 1 : 0;
-    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-
-    currentAngle = endAngle;
-
-    return `<path d="${path}" fill="${segment.color}" />`;
+  // Build stacked bar segments
+  const barSegmentsHtml = topInventoryLots.map((lot, i) => {
+    const pct = totalInventoryValue > 0 ? (lot.inventoryValue / totalInventoryValue) * 100 : 0;
+    return `<div style="width: ${pct}%; height: 100%; background: ${colors[i]}; transition: width 0.3s ease;"></div>`;
   }).join('');
 
   // Build side items
-  const sideItemsHtml = lotSegments.map((segment, index) => `
+  const sideItemsHtml = topInventoryLots.map((lot, i) => `
     <div class="inventory-side-item">
-      <div class="inventory-item-color" style="background: ${segment.color}"></div>
+      <div class="inventory-item-color" style="background: ${colors[i]}"></div>
       <div class="inventory-item-info">
-        <div class="inventory-item-name">${segment.name}</div>
-        <div class="inventory-item-value">${formatCurrency(segment.inventoryValue)}</div>
+        <div class="inventory-item-name">${lot.name}</div>
+        <div class="inventory-item-value">${formatCurrency(lot.inventoryValue)}</div>
       </div>
     </div>
   `).join('');
@@ -252,24 +219,15 @@ function renderInventoryCard(allLots, unsoldCostBasis) {
   return `
     <div class="inventory-card">
       <div class="inventory-card-header">Inventory Remaining</div>
-      <div class="inventory-card-body">
-        <div class="inventory-chart">
-          <svg viewBox="0 0 140 90" class="inventory-half-pie">
-            <!-- Background arc (gray) -->
-            <path d="M 20 70 A 50 50 0 0 1 120 70" fill="none" stroke="rgba(180, 177, 171, 0.2)" stroke-width="14" stroke-linecap="round" />
-            <!-- Segment arcs -->
-            <g transform="translate(0, 0)">
-              ${segmentsHtml}
-            </g>
-          </svg>
-          <div class="inventory-center-value">
-            <div class="inventory-total">${formatCurrency(unsoldCostBasis)}</div>
-            <div class="inventory-total-label">Total Value</div>
-          </div>
-        </div>
-        <div class="inventory-side-list">
-          ${sideItemsHtml || '<div class="inventory-side-item"><div class="inventory-item-info"><div class="inventory-item-name">No inventory</div></div></div>'}
-        </div>
+      <div class="inventory-value-row">
+        <div class="inventory-total">${formatCurrency(unsoldCostBasis)}</div>
+        <div class="inventory-total-label">${topInventoryLots.length} item${topInventoryLots.length !== 1 ? 's' : ''} unsold</div>
+      </div>
+      <div class="inventory-bar">
+        ${barSegmentsHtml || '<div style="width: 100%; height: 100%; background: rgba(180, 177, 171, 0.2);"></div>'}
+      </div>
+      <div class="inventory-side-list" style="margin-top: var(--spacing-md);">
+        ${sideItemsHtml || '<div class="inventory-side-item"><div class="inventory-item-info"><div class="inventory-item-name">No inventory</div></div></div>'}
       </div>
     </div>
   `;

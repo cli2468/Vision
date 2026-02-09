@@ -60,7 +60,7 @@
   --radius-full: 9999px;
 
   /* Typography */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -389,7 +389,7 @@ body {
 
 .btn-primary {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--base);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1462,20 +1462,20 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
-.inventory-card-body {
+.inventory-value-row {
+  margin-bottom: var(--spacing-md);
+}
+
+.inventory-bar {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-xl);
-}
-
-.inventory-chart {
-  position: relative;
-  width: 160px;
-  height: 100px;
-  flex-shrink: 0;
+  height: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: rgba(180, 177, 171, 0.1);
+  gap: 2px;
 }
 
 .inventory-half-pie {

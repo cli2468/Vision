@@ -45,10 +45,10 @@ function getFilteredAndSortedLots() {
   filteredLots = [...filteredLots];
   switch (sortOrder) {
     case 'newest':
-      filteredLots.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+      filteredLots.sort((a, b) => new Date(b.purchaseDate || b.dateAdded || 0) - new Date(a.purchaseDate || a.dateAdded || 0));
       break;
     case 'oldest':
-      filteredLots.sort((a, b) => (a.dateAdded || 0) - (b.dateAdded || 0));
+      filteredLots.sort((a, b) => new Date(a.purchaseDate || a.dateAdded || 0) - new Date(b.purchaseDate || b.dateAdded || 0));
       break;
     case 'highest':
       filteredLots.sort((a, b) => b.totalCost - a.totalCost);
