@@ -208,9 +208,10 @@ function renderEditSaleModal() {
 
   const { sale, lotId } = editSaleData;
   const priceValue = editSalePrice || (sale.pricePerUnit / 100).toFixed(2);
-  // Shipping is stored as total, but display/edit as per-unit
-  const shippingPerUnit = sale.shippingCost ? sale.shippingCost / sale.unitsSold : 0;
-  const shippingValue = editShippingCost || (shippingPerUnit ? (shippingPerUnit / 100).toFixed(2) : '');
+  // Shipping is stored as total cents, convert to per-unit dollars for display
+  const shippingPerUnitCents = sale.shippingCost != null ? sale.shippingCost / sale.unitsSold : 0;
+  // shippingPerUnitCents is in cents, divide by 100 once to get dollars
+  const shippingValue = editShippingCost !== '' ? editShippingCost : (shippingPerUnitCents / 100).toFixed(2);
   const dateValue = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
   return `
@@ -319,7 +320,7 @@ function renderSaleModal() {
 
   const shippingRowHtml = isEbay ? `
     <div class="summary-row">
-      <span class="text-secondary">Shipping Cost</span>
+      <span class="text-secondary">Shipping (${units} × ${formatCurrency(shippingPerUnitCents)})</span>
       <span>-${formatCurrency(shippingCalc)}</span>
     </div>
   ` : '';
@@ -744,12 +745,13 @@ export function initInventoryEvents() {
 
     // Parse new values
     const newPrice = parseFloat(editSalePrice || (sale.pricePerUnit / 100)) * 100; // Convert to cents
-    // Shipping is entered per-unit, multiply by units to get total
-    const shippingPerUnitOld = sale.shippingCost ? sale.shippingCost / sale.unitsSold : 0;
-    const shippingPerUnit = sale.platform === 'ebay'
-      ? parseFloat(editShippingCost || (shippingPerUnitOld / 100)) * 100
+    // Shipping: shippingPerUnitOld is already in cents (stored as total / units)
+    const shippingPerUnitCentsOld = sale.shippingCost != null ? sale.shippingCost / sale.unitsSold : 0;
+    // editShippingCost is in dollars, convert to cents. If empty, use old value (already in cents)
+    const shippingPerUnitCents = sale.platform === 'ebay'
+      ? (editShippingCost !== '' ? parseFloat(editShippingCost) * 100 : shippingPerUnitCentsOld)
       : 0;
-    const newShipping = shippingPerUnit * sale.unitsSold;
+    const newShipping = shippingPerUnitCents * sale.unitsSold;
     const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
     // Recalculate profit with new values
