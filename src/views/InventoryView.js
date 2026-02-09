@@ -883,14 +883,14 @@ export function initInventoryEvents() {
       if (btn) {
         btn.classList.add('animating');
         btn.textContent = 'Sale Recorded!';
+        btn.disabled = true;
       }
       
-      recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
-      
-      // Delay close for animation
+      // Delay the actual sale recording and refresh until animation completes
       setTimeout(() => {
+        recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
         closeSaleModal();
-      }, 600);
+      }, 800);
     }
   });
 
