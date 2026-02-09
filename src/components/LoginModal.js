@@ -121,18 +121,23 @@ export function initLoginModalEvents() {
     if (user && !syncInitialized) {
       syncInitialized = true;
 
-      // Start real-time sync listener
+      // Start real-time sync listener - only sync on first callback (initial load)
+      let isFirstSync = true;
       syncLots((cloudLots) => {
-        const localLots = getLots();
+        if (isFirstSync) {
+          isFirstSync = false;
+          const localLots = getLots();
 
-        if (cloudLots.length > 0) {
-          // Cloud has data - use it (cloud is source of truth)
-          setLots(cloudLots);
-          window.dispatchEvent(new CustomEvent('viewchange'));
-        } else if (localLots.length > 0) {
-          // Cloud is empty but local has data - upload local to cloud
-          uploadLocalData(localLots);
+          if (cloudLots.length > 0) {
+            // Cloud has data - use it (cloud is source of truth for initial load)
+            setLots(cloudLots);
+            window.dispatchEvent(new CustomEvent('viewchange'));
+          } else if (localLots.length > 0) {
+            // Cloud is empty but local has data - upload local to cloud
+            uploadLocalData(localLots);
+          }
         }
+        // After initial sync, changes are pushed from local to cloud, not pulled
       });
     } else if (!user) {
       syncInitialized = false;
