@@ -4,7 +4,9 @@ import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfi
 import { formatCurrency, formatDate, PLATFORM_FEES, calculateSaleProfit } from '../services/calculations.js';
 import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
 
-let activeTab = 'all';
+let activeTab = 'unsold';
+let searchQuery = '';
+let sortOrder = 'newest';
 let selectedLotId = null;
 let salePrice = '';
 let unitsSold = '1';
@@ -24,15 +26,42 @@ export function setActiveTab(tab) {
   activeTab = tab;
 }
 
-export function InventoryView() {
+function getFilteredAndSortedLots() {
   const allLots = getLots();
-
   let filteredLots = allLots;
   if (activeTab === 'unsold') {
     filteredLots = allLots.filter(lot => lot.remaining > 0);
   } else if (activeTab === 'sold') {
     filteredLots = allLots.filter(lot => isFullySold(lot));
   }
+
+  // Search filter
+  if (searchQuery.trim()) {
+    const q = searchQuery.trim().toLowerCase();
+    filteredLots = filteredLots.filter(lot => lot.name.toLowerCase().includes(q));
+  }
+
+  // Sort
+  filteredLots = [...filteredLots];
+  switch (sortOrder) {
+    case 'newest':
+      filteredLots.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+      break;
+    case 'oldest':
+      filteredLots.sort((a, b) => (a.dateAdded || 0) - (b.dateAdded || 0));
+      break;
+    case 'highest':
+      filteredLots.sort((a, b) => b.totalCost - a.totalCost);
+      break;
+    case 'lowest':
+      filteredLots.sort((a, b) => a.totalCost - b.totalCost);
+      break;
+  }
+  return filteredLots;
+}
+
+export function InventoryView() {
+  const filteredLots = getFilteredAndSortedLots();
 
   const modalHtml = selectedLotId ? renderSaleModal() : '';
   const importModalHtml = showImportModal ? renderImportModal() : '';
@@ -57,6 +86,22 @@ export function InventoryView() {
           <button class="tab ${activeTab === 'all' ? 'active' : ''}" data-tab="all">All</button>
           <button class="tab ${activeTab === 'unsold' ? 'active' : ''}" data-tab="unsold">Available</button>
           <button class="tab ${activeTab === 'sold' ? 'active' : ''}" data-tab="sold">Sold Out</button>
+        </div>
+
+        <div class="inventory-controls">
+          <div class="search-bar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="search-input" id="inventory-search" placeholder="Search items..." value="${searchQuery}" />
+          </div>
+          <select class="sort-dropdown" id="inventory-sort">
+            <option value="newest" ${sortOrder === 'newest' ? 'selected' : ''}>Newest</option>
+            <option value="oldest" ${sortOrder === 'oldest' ? 'selected' : ''}>Oldest</option>
+            <option value="highest" ${sortOrder === 'highest' ? 'selected' : ''}>Highest $</option>
+            <option value="lowest" ${sortOrder === 'lowest' ? 'selected' : ''}>Lowest $</option>
+          </select>
         </div>
         
         ${filteredLots.length === 0 ? renderEmptyState() : ''}
@@ -418,13 +463,7 @@ function renderSaleModal() {
 
 // Update just the lot list content without re-rendering the entire page
 function updateLotList() {
-  const allLots = getLots();
-  let filteredLots = allLots;
-  if (activeTab === 'unsold') {
-    filteredLots = allLots.filter(lot => lot.remaining > 0);
-  } else if (activeTab === 'sold') {
-    filteredLots = allLots.filter(lot => isFullySold(lot));
-  }
+  const filteredLots = getFilteredAndSortedLots();
 
   // Update tab active states
   document.querySelectorAll('.tab').forEach(tab => {
@@ -822,6 +861,18 @@ export function initInventoryEvents() {
       activeTab = e.target.dataset.tab;
       updateLotList();
     });
+  });
+
+  // Search input
+  document.getElementById('inventory-search')?.addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    updateLotList();
+  });
+
+  // Sort dropdown
+  document.getElementById('inventory-sort')?.addEventListener('change', (e) => {
+    sortOrder = e.target.value;
+    updateLotList();
   });
 
   // Initialize lot card specific events
