@@ -52,10 +52,15 @@ export async function saveLotToCloud(lot) {
  */
 export async function deleteLotFromCloud(lotId) {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+        console.warn('🚫 Cannot delete from cloud: No user logged in');
+        return;
+    }
 
+    console.log('🗑️ Deleting from Firestore:', lotId);
     const lotRef = doc(db, 'users', user.uid, 'lots', lotId);
     await deleteDoc(lotRef);
+    console.log('✅ Deleted from Firestore:', lotId);
 }
 
 /**

@@ -296,17 +296,25 @@ export function getSalesByDateRange(startDate, endDate = null) {
  * @returns {boolean} True if deleted
  */
 export function deleteLot(id) {
+    console.log('🗑️ deleteLot called with id:', id);
     const data = getStorageData();
     const index = data.lots.findIndex(lot => lot.id === id);
 
-    if (index === -1) return false;
+    if (index === -1) {
+        console.warn('🚫 Lot not found for deletion:', id);
+        return false;
+    }
 
     data.lots.splice(index, 1);
     saveStorageData(data);
+    console.log('✅ Deleted from localStorage:', id);
 
     // Cloud sync
     if (auth.currentUser) {
-        deleteLotFromCloud(id);
+        console.log('☁️ User logged in, deleting from cloud...');
+        deleteLotFromCloud(id).catch(err => console.error('❌ Cloud delete failed:', err));
+    } else {
+        console.warn('🚫 No user logged in, skipping cloud delete');
     }
 
     return true;
