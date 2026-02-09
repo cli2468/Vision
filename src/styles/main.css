@@ -1170,48 +1170,46 @@ body {
 }
 
 .chart-main-title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   margin-bottom: var(--spacing-xs);
 }
 
-.chart-subtitle {
-  font-size: var(--font-size-xl);
+.chart-revenue-value {
+  font-size: var(--font-size-3xl);
   font-weight: 700;
   color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+  line-height: 1.2;
+  margin-bottom: var(--spacing-xs);
 }
 
-.chart-subtitle::before {
-  content: '';
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 8px solid currentColor;
+.chart-profit-subtitle {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
 }
 
-.chart-subtitle.text-danger::before {
-  border-bottom: none;
-  border-top: 8px solid currentColor;
+.chart-profit-subtitle.text-success {
+  color: var(--accent);
+}
+
+.chart-profit-subtitle.text-danger {
+  color: var(--accent-danger);
 }
 
 .chart-pill-selector {
   display: flex;
-  background: var(--bg-glass);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-full);
-  padding: 3px;
+  padding: 4px;
   gap: 2px;
   flex-shrink: 0;
 }
 
 .pill-btn {
-  padding: 6px 14px;
+  padding: 6px 12px;
   font-family: inherit;
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -1231,7 +1229,7 @@ body {
 .pill-btn.active {
   color: var(--base);
   background: var(--accent);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(204, 255, 0, 0.3);
 }
 
 .chart-wrapper {
@@ -1261,6 +1259,103 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* ===== Inventory Card ===== */
+.inventory-card {
+  background: var(--bg-card);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  animation: fadeIn 0.3s ease;
+}
+
+.inventory-card-header {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--spacing-lg);
+}
+
+.inventory-card-body {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.inventory-chart {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.inventory-donut {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.inventory-center-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.inventory-total {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.inventory-total-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.inventory-side-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.inventory-side-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.inventory-item-color {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.inventory-item-info {
+  min-width: 0;
+}
+
+.inventory-item-name {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inventory-item-value {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
 }
 
 /* ===== Day Breakdown Modal ===== */

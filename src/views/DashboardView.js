@@ -103,65 +103,30 @@ export function DashboardView() {
   return `
     <div class="page">
       <div class="container">
-        <h1 class="page-title">Dashboard</h1>
-        
         ${returnAlertsHtml}
         
         <div class="chart-card">
-      <div class="chart-header">
-        <div class="chart-title-section">
-          <div class="chart-main-title">Total revenue</div>
-          <div class="chart-subtitle ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">
-            ${stats.totalProfit >= 0 ? 'Gained' : 'Lost'} ${formatCurrency(Math.abs(stats.totalProfit))} this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'period'}
+          <div class="chart-header">
+            <div class="chart-title-section">
+              <div class="chart-main-title">Total Revenue</div>
+              <div class="chart-revenue-value">${formatCurrency(stats.totalRevenue)}</div>
+              <div class="chart-profit-subtitle ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">
+                ${formatCurrency(Math.abs(stats.totalProfit))} profit this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime'}
+              </div>
+            </div>
+            <div class="chart-pill-selector">
+              <button class="pill-btn ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">7D</button>
+              <button class="pill-btn ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">30D</button>
+              <button class="pill-btn ${selectedRange === '90d' ? 'active' : ''}" data-range="90d">90D</button>
+              <button class="pill-btn ${selectedRange === 'all' ? 'active' : ''}" data-range="all">All</button>
+            </div>
           </div>
-        </div>
-        <div class="chart-pill-selector">
-          <button class="pill-btn ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">7D</button>
-          <button class="pill-btn ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">30D</button>
-          <button class="pill-btn ${selectedRange === '90d' ? 'active' : ''}" data-range="90d">90D</button>
-          <button class="pill-btn ${selectedRange === 'all' ? 'active' : ''}" data-range="all">All</button>
-        </div>
-      </div>
-      <div class="chart-wrapper">
-        <canvas id="dashboard-chart"></canvas>
-      </div>
-    </div>
-        
-        <div class="card" style="margin-bottom: var(--spacing-lg);">
-          <h3 class="section-title">Summary</h3>
-          <div class="summary-box">
-            <div class="summary-row">
-              <span class="text-secondary">Revenue</span>
-              <span class="summary-value">${formatCurrency(stats.totalRevenue)}</span>
-            </div>
-            <div class="summary-row">
-              <span class="text-secondary">Cost of Goods</span>
-              <span class="summary-value">-${formatCurrency(stats.totalCosts)}</span>
-            </div>
-            <div class="summary-row">
-              <span class="text-secondary">Platform Fees</span>
-              <span class="summary-value">-${formatCurrency(stats.totalFees)}</span>
-            </div>
-            <div class="summary-row ${stats.totalProfit >= 0 ? 'profit' : 'loss'}">
-              <span>Net Profit</span>
-              <span class="summary-value">${formatCurrency(stats.totalProfit)}</span>
-            </div>
+          <div class="chart-wrapper">
+            <canvas id="dashboard-chart"></canvas>
           </div>
         </div>
         
-        <div class="card">
-          <h3 class="section-title">Inventory Status</h3>
-          <div class="stats-grid" style="margin-bottom: 0;">
-            <div class="stat-card">
-              <div class="stat-value">${unsoldUnits}</div>
-              <div class="stat-label">Unsold Units</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${formatCurrency(unsoldCostBasis)}</div>
-              <div class="stat-label">Cost Basis</div>
-            </div>
-          </div>
-        </div>
+        ${renderInventoryCard(allLots, unsoldCostBasis)}
         
         <!-- Day breakdown modal -->
         <div class="modal-overlay day-breakdown-modal" id="day-breakdown-modal" style="display: none;">
@@ -190,9 +155,10 @@ function renderChartSection(stats) {
     <div class="chart-card">
       <div class="chart-header">
         <div class="chart-title-section">
-          <div class="chart-main-title">Total revenue</div>
-          <div class="chart-subtitle ${profitClass}">
-            ${stats.totalProfit >= 0 ? 'Gained' : 'Lost'} ${formatCurrency(Math.abs(stats.totalProfit))} this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'period'}
+          <div class="chart-main-title">Total Revenue</div>
+          <div class="chart-revenue-value">${formatCurrency(stats.totalRevenue)}</div>
+          <div class="chart-profit-subtitle ${profitClass}">
+            ${formatCurrency(Math.abs(stats.totalProfit))} profit this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime'}
           </div>
         </div>
         <div class="chart-pill-selector">
@@ -210,6 +176,95 @@ function renderChartSection(stats) {
 }
 
 /**
+ * Render inventory card with circular design
+ */
+function renderInventoryCard(allLots, unsoldCostBasis) {
+  // Get top 3 lots by inventory value (remaining units * unit cost)
+  const topInventoryLots = allLots
+    .filter(lot => lot.remaining > 0)
+    .map(lot => ({
+      ...lot,
+      inventoryValue: (lot.remaining || 0) * (lot.unitCost || 0)
+    }))
+    .sort((a, b) => b.inventoryValue - a.inventoryValue)
+    .slice(0, 3);
+
+  const totalInventoryValue = topInventoryLots.reduce((sum, lot) => sum + lot.inventoryValue, 0);
+  
+  // Calculate arc segments for top 3
+  const lotSegments = topInventoryLots.map((lot, index) => {
+    const percentage = totalInventoryValue > 0 ? (lot.inventoryValue / unsoldCostBasis) * 100 : 0;
+    const colors = ['#CCFF00', '#00D4FF', '#FF6B35'];
+    return {
+      ...lot,
+      percentage,
+      color: colors[index % colors.length]
+    };
+  });
+
+  // Build SVG arc paths
+  let currentAngle = -90; // Start from top
+  const segmentsHtml = lotSegments.map((segment, index) => {
+    const angle = (segment.percentage / 100) * 360;
+    const endAngle = currentAngle + angle;
+    
+    // Calculate arc path
+    const startRad = (currentAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+    const r = 45;
+    const cx = 60;
+    const cy = 60;
+    
+    const x1 = cx + r * Math.cos(startRad);
+    const y1 = cy + r * Math.sin(startRad);
+    const x2 = cx + r * Math.cos(endRad);
+    const y2 = cy + r * Math.sin(endRad);
+    
+    const largeArc = angle > 180 ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    
+    currentAngle = endAngle;
+    
+    return `<path d="${path}" fill="${segment.color}" stroke="var(--bg-card)" stroke-width="2" />`;
+  }).join('');
+
+  // Build side items
+  const sideItemsHtml = lotSegments.map((segment, index) => `
+    <div class="inventory-side-item">
+      <div class="inventory-item-color" style="background: ${segment.color}"></div>
+      <div class="inventory-item-info">
+        <div class="inventory-item-name">${segment.name}</div>
+        <div class="inventory-item-value">${formatCurrency(segment.inventoryValue)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="inventory-card">
+      <div class="inventory-card-header">Inventory Remaining</div>
+      <div class="inventory-card-body">
+        <div class="inventory-chart">
+          <svg viewBox="0 0 120 120" class="inventory-donut">
+            <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(180, 177, 171, 0.15)" stroke-width="12" />
+            <g transform="rotate(-90 60 60)">
+              ${segmentsHtml}
+            </g>
+            <circle cx="60" cy="60" r="33" fill="var(--bg-card)" />
+          </svg>
+          <div class="inventory-center-value">
+            <div class="inventory-total">${formatCurrency(unsoldCostBasis)}</div>
+            <div class="inventory-total-label">Total Value</div>
+          </div>
+        </div>
+        <div class="inventory-side-list">
+          ${sideItemsHtml || '<div class="inventory-side-item"><div class="inventory-item-info"><div class="inventory-item-name">No inventory</div></div></div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Initialize and render the chart
  */
 function initChart() {
@@ -220,6 +275,11 @@ function initChart() {
   currentChartData = aggregateSalesByDay(salesData, selectedRange);
 
   const { labels, cumulativeProfits } = currentChartData;
+
+  // Calculate Y-axis step size for exactly 5 ticks (including 0)
+  const maxProfit = Math.max(...cumulativeProfits, 0);
+  const yMax = Math.ceil(maxProfit * 1.1 / 100) * 100; // Round up to nearest 100 with 10% padding
+  const stepSize = yMax / 4; // 5 ticks = 4 intervals
 
   // Destroy existing chart
   if (chartInstance) {
@@ -337,13 +397,9 @@ function initChart() {
         },
         y: {
           min: 0,
-          maxTicksLimit: 5,
-          grid: {
-            color: 'rgba(180, 177, 171, 0.15)',
-            drawBorder: false,
-            tickLength: 0
-          },
+          max: yMax,
           ticks: {
+            stepSize: stepSize,
             color: '#B4B1AB',
             font: { size: 11 },
             padding: 8,
@@ -353,6 +409,11 @@ function initChart() {
               }
               return '$' + value;
             }
+          },
+          grid: {
+            color: 'rgba(180, 177, 171, 0.15)',
+            drawBorder: false,
+            tickLength: 0
           },
           border: {
             display: false
