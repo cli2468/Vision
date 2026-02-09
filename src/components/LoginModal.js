@@ -87,10 +87,13 @@ export function initLoginModalEvents() {
         if (user) {
           isOpen = false;
           window.dispatchEvent(new CustomEvent('viewchange'));
-          // Sync will be handled by onUserChanged listener below
         }
       } catch (error) {
-        alert("Failed to sign in. Check project config.");
+        console.error('Sign-in error:', error);
+        // Only show alert for actual config errors, not user cancellation
+        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+          alert("Failed to sign in: " + (error.message || "Check project config."));
+        }
       }
     }
 

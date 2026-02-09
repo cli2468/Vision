@@ -1,7 +1,7 @@
 // Firebase initialization and authentication service
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
@@ -20,33 +20,12 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-// Handle redirect results on page load
-getRedirectResult(auth)
-    .then((result) => {
-        if (result?.user) {
-            console.log('✅ Redirect sign-in success:', result.user.email);
-        }
-    })
-    .catch((error) => {
-        console.error('❌ Redirect sign-in error:', error);
-    });
-
-// Auth function - hybrid popup/redirect
+// Simple popup sign-in
 export const signInWithGoogle = async () => {
     console.log('🔑 Starting Google sign-in...');
-    try {
-        const result = await signInWithPopup(auth, googleProvider);
-        console.log('✅ Popup sign-in success:', result.user.email);
-        return result.user;
-    } catch (error) {
-        console.warn('⚠️ Popup sign-in failed/blocked, trying redirect...', error.code);
-        // If popup is blocked or fails, use redirect as fallback
-        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/internal-error') {
-            await signInWithRedirect(auth, googleProvider);
-            return null; // Page will redirect
-        }
-        throw error;
-    }
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('✅ Sign-in success:', result.user.email);
+    return result.user;
 };
 
 export const logout = () => {
@@ -61,4 +40,3 @@ export const onUserChanged = (callback) => {
         callback(user);
     });
 };
-
