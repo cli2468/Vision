@@ -209,7 +209,7 @@ function renderEditSaleModal() {
   const { sale, lotId } = editSaleData;
   const priceValue = editSalePrice || (sale.pricePerUnit / 100).toFixed(2);
   // Shipping is stored as total cents, convert to per-unit dollars for display
-  const shippingPerUnitCents = sale.shippingCost != null ? sale.shippingCost / sale.unitsSold : 0;
+  const shippingPerUnitCents = (sale.shippingCost != null && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
   // shippingPerUnitCents is in cents, divide by 100 once to get dollars
   const shippingValue = editShippingCost !== '' ? editShippingCost : (shippingPerUnitCents / 100).toFixed(2);
   const dateValue = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
@@ -476,7 +476,7 @@ function updatePlatformSelection(newPlatform) {
     const shippingDiv = document.createElement('div');
     shippingDiv.className = 'form-group shipping-field';
     shippingDiv.innerHTML = `
-      <label class="form-label">Shipping Cost ($)</label>
+      <label class="form-label">Shipping Cost Per Unit ($)</label>
       <input type="number" class="form-input" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
     `;
     summaryBox.before(shippingDiv);
@@ -505,7 +505,8 @@ function updateSummaryBox() {
   const units = Math.min(parseInt(unitsSold) || 1, lot.remaining);
   const priceInCents = Math.round(price * 100);
   const shipping = parseFloat(shippingCost) || 0;
-  const shippingCents = Math.round(shipping * 100);
+  const shippingPerUnitCents = Math.round(shipping * 100);
+  const totalShippingCents = shippingPerUnitCents * units;
   const isEbay = selectedPlatform === 'ebay';
 
   const { costBasis, totalSalePrice, fees, shippingCost: shippingCalc, profit } = calculateSaleProfit(
@@ -513,7 +514,7 @@ function updateSummaryBox() {
     units,
     priceInCents,
     selectedPlatform,
-    isEbay ? shippingCents : 0
+    isEbay ? totalShippingCents : 0
   );
 
   const isValid = price > 0 && units > 0 && (!isEbay || shipping >= 0);
@@ -532,7 +533,7 @@ function updateSummaryBox() {
       </div>
       ${isEbay ? `
       <div class="summary-row">
-        <span class="text-secondary">Shipping Cost</span>
+        <span class="text-secondary">Shipping (${units} × ${formatCurrency(shippingPerUnitCents)})</span>
         <span>-${formatCurrency(shippingCalc)}</span>
       </div>
       ` : ''}
@@ -746,10 +747,11 @@ export function initInventoryEvents() {
     // Parse new values
     const newPrice = parseFloat(editSalePrice || (sale.pricePerUnit / 100)) * 100; // Convert to cents
     // Shipping: shippingPerUnitOld is already in cents (stored as total / units)
-    const shippingPerUnitCentsOld = sale.shippingCost != null ? sale.shippingCost / sale.unitsSold : 0;
+    const shippingPerUnitCentsOld = (sale.shippingCost != null && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
     // editShippingCost is in dollars, convert to cents. If empty, use old value (already in cents)
+    const editShippingParsed = parseFloat(editShippingCost);
     const shippingPerUnitCents = sale.platform === 'ebay'
-      ? (editShippingCost !== '' ? parseFloat(editShippingCost) * 100 : shippingPerUnitCentsOld)
+      ? (editShippingCost !== '' && !isNaN(editShippingParsed) ? Math.round(editShippingParsed * 100) : shippingPerUnitCentsOld)
       : 0;
     const newShipping = shippingPerUnitCents * sale.unitsSold;
     const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
