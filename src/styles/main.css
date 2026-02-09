@@ -1,43 +1,49 @@
 /* ===== Design System ===== */
 :root {
   /* 5-Color System - Dark Mode Only */
-  --base: #1C180D;           /* Robin Black - page background */
-  --surface: #8A8783;        /* Heather #1 - cards, modals, elevated surfaces */
-  --accent: #CCFF00;         /* Robin Neon - primary actions, profit, charts, FAB */
-  --text-primary: #D4D0C9;   /* Heather #3 - headlines, numbers, labels */
-  --text-secondary: #B4B1AB; /* Heather #2 - hints, metadata, disabled */
-  
+  --base: #1C180D;
+  /* Robin Black - page background */
+  --surface: #8A8783;
+  /* Heather #1 - cards, modals, elevated surfaces */
+  --accent: #CCFF00;
+  /* Robin Neon - primary actions, profit, charts, FAB */
+  --text-primary: #D4D0C9;
+  /* Heather #3 - headlines, numbers, labels */
+  --text-secondary: #B4B1AB;
+  /* Heather #2 - hints, metadata, disabled */
+
   /* Legacy compatibility - mapped to new system */
   --bg-primary: var(--base);
   --bg-secondary: var(--base);
   --bg-card: rgba(138, 135, 131, 0.15);
   --bg-glass: rgba(138, 135, 131, 0.1);
-  
+
   /* Accent mapped to neon */
   --accent-primary: var(--accent);
-  --accent-secondary: #b3e600; /* Slightly dimmer neon for hover */
+  --accent-secondary: #b3e600;
+  /* Slightly dimmer neon for hover */
   --accent-success: var(--accent);
   --accent-warning: #ffaa00;
   --accent-danger: #ff4444;
-  
+
   /* Text mapped */
   --text-muted: var(--text-secondary);
-  
+
   /* Gradients - Neon on black */
   --gradient-primary: linear-gradient(135deg, var(--accent) 0%, #b3e600 100%);
   --gradient-success: linear-gradient(135deg, var(--accent) 0%, #b3e600 100%);
   --gradient-card: linear-gradient(135deg, rgba(138, 135, 131, 0.1) 0%, rgba(138, 135, 131, 0.05) 100%);
-  
+
   /* Shadows - subtle on dark */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
   --shadow-glow: 0 0 20px rgba(204, 255, 0, 0.3);
-  
+
   /* Subtle lines instead of borders */
   --border-subtle: 1px solid rgba(180, 177, 171, 0.15);
   --border-accent: 1px solid rgba(204, 255, 0, 0.4);
-  
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -45,14 +51,14 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
-  
+
   /* Border Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-full: 9999px;
-  
+
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-size-xs: 0.75rem;
@@ -62,12 +68,12 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 2rem;
-  
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Layout */
   --nav-height: 64px;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -545,8 +551,8 @@ body {
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
+  align-items: flex-start;
+  gap: var(--spacing-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
   position: relative;
@@ -554,13 +560,13 @@ body {
 }
 
 .lot-card:active {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 
 .delete-lot-card-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 12px;
+  right: 12px;
   width: 32px;
   height: 32px;
   display: flex;
@@ -598,30 +604,6 @@ body {
   font-weight: 700;
   padding: 2px 32px;
   transform: rotate(45deg);
-}
-
-.lot-thumbnail {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-md);
-  background: var(--bg-glass);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.lot-thumbnail img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.lot-thumbnail svg {
-  width: 24px;
-  height: 24px;
-  color: var(--text-muted);
 }
 
 .lot-info {
@@ -983,6 +965,7 @@ body {
     max-height: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     max-height: 1000px;
@@ -996,6 +979,7 @@ body {
     max-height: 1000px;
     transform: translateY(0);
   }
+
   to {
     opacity: 0;
     max-height: 0;
@@ -1008,12 +992,15 @@ body {
     opacity: 0;
     transform: scale(0.3);
   }
+
   50% {
     transform: scale(1.05);
   }
+
   70% {
     transform: scale(0.9);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
@@ -1021,18 +1008,31 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.05);
   }
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 @keyframes ripple {
@@ -1040,6 +1040,7 @@ body {
     transform: scale(0);
     opacity: 0.5;
   }
+
   100% {
     transform: scale(4);
     opacity: 0;
@@ -1051,9 +1052,9 @@ body {
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
-              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(-8px);
 }
 
@@ -1071,11 +1072,26 @@ body {
 
 /* Add sale button pulse on success */
 @keyframes saleSuccess {
-  0% { transform: scale(1); }
-  25% { transform: scale(0.9); }
-  50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(204, 255, 0, 0.5); }
-  75% { transform: scale(0.95); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  25% {
+    transform: scale(0.9);
+  }
+
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(204, 255, 0, 0.5);
+  }
+
+  75% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .add-sale-btn.sale-completed {

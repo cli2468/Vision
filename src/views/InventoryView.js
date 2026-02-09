@@ -87,12 +87,6 @@ function renderLotCard(lot) {
   const returnDateStr = returnDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const showReturnWarning = !fullySold && daysUntilReturn <= 3 && daysUntilReturn >= 0;
 
-  const thumbnailContent = lot.imageData
-    ? `<img src="${lot.imageData}" alt="${lot.name}" />`
-    : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-      </svg>`;
-
   const profitHtml = hasAnySales
     ? `<div class="lot-profit ${totalProfit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(totalProfit, true)}</div>`
     : '';
@@ -131,7 +125,6 @@ function renderLotCard(lot) {
           <line x1="14" y1="11" x2="14" y2="17"></line>
         </svg>
       </button>
-      <div class="lot-thumbnail">${thumbnailContent}</div>
       <div class="lot-info">
         <div class="lot-name">${lot.name}</div>
         <div class="lot-meta">${formatCurrency(lot.unitCost)}/unit • ${lot.remaining} available</div>
@@ -164,7 +157,7 @@ function renderSalesList(lot) {
     const saleDateFormatted = formatDate(sale.dateSold);
     const shippingDisplay = sale.shippingCost ? ` (+ ${formatCurrency(sale.shippingCost)} ship)` : '';
     const returnedBadge = sale.returned ? `<span style="color: var(--accent-danger); font-size: 0.75rem; margin-left: 8px;">(RETURNED)</span>` : '';
-    const profitDisplay = sale.returned 
+    const profitDisplay = sale.returned
       ? `<span style="color: var(--accent-danger); text-decoration: line-through;">${formatCurrency(sale.profit, true)}</span>`
       : `<span class="${sale.profit >= 0 ? 'text-success' : 'text-danger'}" style="font-weight: 600;">${formatCurrency(sale.profit, true)}</span>`;
     return `
@@ -637,10 +630,10 @@ function initLotCardEvents() {
       const lotId = btn.dataset.lotId;
       const accordion = document.getElementById(`sales-list-${lotId}`);
       const isCurrentlyExpanded = accordion?.classList.contains('expanded');
-      
+
       // Toggle button text
       btn.textContent = isCurrentlyExpanded ? 'View Sales' : 'Hide Sales';
-      
+
       // Toggle accordion with animation
       if (accordion) {
         if (isCurrentlyExpanded) {
@@ -715,14 +708,14 @@ function initLotCardEvents() {
       const { lotId, saleId } = btn.dataset;
       const lot = getLots().find(l => l.id === lotId);
       const sale = lot?.sales.find(s => s.id === saleId);
-      
+
       if (!sale) return;
-      
+
       const profit = formatCurrency(sale.profit);
-      const message = sale.profit >= 0 
+      const message = sale.profit >= 0
         ? `This sale had a profit of ${profit}. Marking it as returned will:\n\n1. Remove this profit from your totals\n2. Restore ${sale.unitsSold} unit(s) to inventory\n\nAre you sure you want to mark this as returned?`
         : `This sale had a loss of ${profit}. Marking it as returned will:\n\n1. Remove this loss from your totals (you'll lose the money you made from this sale)\n2. Restore ${sale.unitsSold} unit(s) to inventory\n\nAre you sure you want to mark this as returned?`;
-      
+
       if (confirm(message)) {
         markSaleReturned(lotId, saleId);
         window.dispatchEvent(new CustomEvent('viewchange'));
@@ -773,21 +766,21 @@ function handleSaveEditSale() {
     ? (editShippingCost !== '' && !isNaN(editShippingParsed) ? Math.round(editShippingParsed * 100) : shippingPerUnitCentsOld)
     : 0;
   const newShipping = Math.round(shippingPerUnitCents * sale.unitsSold);
-  
+
   // Safety check: if any values are NaN, show error and don't save
   if (isNaN(newPrice) || isNaN(newShipping)) {
     console.error('NaN detected in edit sale calculation:', { newPrice, newShipping, shippingPerUnitCents, sale });
     alert('Error: Invalid number calculated. Please check your inputs and try again.');
     return;
   }
-  
+
   // Validate lot.unitCost is valid
   if (isNaN(lot.unitCost)) {
     console.error('NaN detected in lot.unitCost:', lot);
     alert('Error: Invalid unit cost in lot data. Please contact support.');
     return;
   }
-  
+
   const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
   // Recalculate profit with new values
@@ -798,7 +791,7 @@ function handleSaveEditSale() {
     sale.platform,
     newShipping
   );
-  
+
   // Validate profit calculation result
   if (isNaN(profitResult.profit)) {
     console.error('NaN detected in profit calculation:', profitResult, { lot, sale, newPrice, newShipping });
@@ -885,7 +878,7 @@ export function initInventoryEvents() {
         btn.textContent = 'Sale Recorded!';
         btn.disabled = true;
       }
-      
+
       // Delay the actual sale recording and refresh until animation completes
       setTimeout(() => {
         recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
