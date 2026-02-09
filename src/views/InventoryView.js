@@ -752,7 +752,7 @@ export function initInventoryEvents() {
     const priceInput = editSalePrice !== '' ? parseFloat(editSalePrice) : NaN;
     const newPrice = Math.round((!isNaN(priceInput) ? priceInput : sale.pricePerUnit / 100) * 100);
     // Shipping: shippingPerUnitOld is already in cents (stored as total / units)
-    const shippingPerUnitCentsOld = (sale.shippingCost != null && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
+    const shippingPerUnitCentsOld = (sale.shippingCost != null && !isNaN(sale.shippingCost) && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
     // editShippingCost is in dollars, convert to cents. If empty, use old value (already in cents)
     const editShippingParsed = parseFloat(editShippingCost);
     const shippingPerUnitCents = sale.platform === 'ebay'
