@@ -114,11 +114,19 @@ export function DashboardView() {
                 ${formatCurrency(Math.abs(stats.totalProfit))} profit this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime'}
               </div>
             </div>
-            <div class="chart-pill-selector">
-              <button class="pill-btn ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">7D</button>
-              <button class="pill-btn ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">30D</button>
-              <button class="pill-btn ${selectedRange === '90d' ? 'active' : ''}" data-range="90d">90D</button>
-              <button class="pill-btn ${selectedRange === 'all' ? 'active' : ''}" data-range="all">All</button>
+            <div class="time-selector-accordion" id="time-selector">
+              <button class="time-selector-trigger">
+                <span class="time-selector-current">${selectedRange === '7d' ? '7D' : selectedRange === '30d' ? '30D' : selectedRange === '90d' ? '90D' : 'All Time'}</span>
+                <svg class="time-selector-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="time-selector-dropdown">
+                <button class="time-option ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">Last 7 Days</button>
+                <button class="time-option ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">Last 30 Days</button>
+                <button class="time-option ${selectedRange === '90d' ? 'active' : ''}" data-range="90d">Last 90 Days</button>
+                <button class="time-option ${selectedRange === 'all' ? 'active' : ''}" data-range="all">All Time</button>
+              </div>
             </div>
           </div>
           <div class="chart-wrapper">
@@ -485,38 +493,58 @@ function updateDashboard() {
   const unsoldCostBasis = allLots.reduce((sum, lot) => sum + (lot.unitCost || 0) * (lot.remaining || 0), 0);
   const stats = calculateMonthlyStats(salesData);
 
-  // Update range button active states
-  document.querySelectorAll('.pill-btn').forEach(btn => {
+  // Update time selector active state and current label
+  document.querySelectorAll('.time-option').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.range === selectedRange);
   });
+  
+  const currentLabelEl = document.querySelector('.time-selector-current');
+  if (currentLabelEl) {
+    const labelMap = { '7d': '7D', '30d': '30D', '90d': '90D', 'all': 'All Time' };
+    currentLabelEl.textContent = labelMap[selectedRange];
+  }
 
   // Re-render chart
   initChart();
 
-  // Update totals
+  // Update totals in header
   const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
-  const totalsHtml = `
-    <div class="chart-total-item">
-      <span class="chart-total-value">${formatCurrency(stats.totalRevenue)}</span>
-      <span class="chart-total-label">Revenue</span>
-    </div>
-    <div class="chart-total-item">
-      <span class="chart-total-value ${profitClass}">${formatCurrency(stats.totalProfit)}</span>
-      <span class="chart-total-label">Profit</span>
-    </div>
-  `;
-  const totalsEl = document.querySelector('.chart-totals');
-  if (totalsEl) totalsEl.innerHTML = totalsHtml;
+  const timeLabel = selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime';
+  
+  const revenueEl = document.querySelector('.chart-revenue-value');
+  if (revenueEl) revenueEl.textContent = formatCurrency(stats.totalRevenue);
+  
+  const profitSubtitleEl = document.querySelector('.chart-profit-subtitle');
+  if (profitSubtitleEl) {
+    profitSubtitleEl.className = `chart-profit-subtitle ${profitClass}`;
+    profitSubtitleEl.textContent = `${formatCurrency(Math.abs(stats.totalProfit))} profit this ${timeLabel}`;
+  }
 }
 
 export function initDashboardEvents() {
   // Initialize chart on first load
   initChart();
 
-  // Time range pill buttons
-  document.querySelectorAll('.pill-btn').forEach(btn => {
+  // Time selector accordion toggle
+  const timeSelector = document.getElementById('time-selector');
+  const trigger = timeSelector?.querySelector('.time-selector-trigger');
+  
+  trigger?.addEventListener('click', () => {
+    timeSelector?.classList.toggle('open');
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (timeSelector && !timeSelector.contains(e.target)) {
+      timeSelector.classList.remove('open');
+    }
+  });
+
+  // Time option selection
+  document.querySelectorAll('.time-option').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedRange = btn.dataset.range;
+      timeSelector?.classList.remove('open');
       updateDashboard();
     });
   });
