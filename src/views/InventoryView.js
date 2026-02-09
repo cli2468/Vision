@@ -766,17 +766,32 @@ export function initInventoryEvents() {
       alert('Error: Invalid number calculated. Please check your inputs and try again.');
       return;
     }
+    
+    // Validate lot.unitCost is valid
+    if (isNaN(lot.unitCost)) {
+      console.error('NaN detected in lot.unitCost:', lot);
+      alert('Error: Invalid unit cost in lot data. Please contact support.');
+      return;
+    }
+    
     const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
     // Recalculate profit with new values
     // calculateSaleProfit(unitCostCents, unitsSold, pricePerUnitCents, platform, shippingCostCents)
-    const newProfit = calculateSaleProfit(
+    const profitResult = calculateSaleProfit(
       lot.unitCost,
       sale.unitsSold,
       newPrice,
       sale.platform,
       newShipping
     );
+    
+    // Validate profit calculation result
+    if (isNaN(profitResult.profit)) {
+      console.error('NaN detected in profit calculation:', profitResult, { lot, sale, newPrice, newShipping });
+      alert('Error: Profit calculation failed. Please check your inputs and try again.');
+      return;
+    }
 
     // Update the sale
     const updates = {
@@ -784,7 +799,9 @@ export function initInventoryEvents() {
       totalPrice: Math.round(newPrice * sale.unitsSold),
       shippingCost: Math.round(newShipping),
       dateSold: new Date(newDate + 'T12:00:00').toISOString(),
-      profit: newProfit
+      profit: profitResult.profit,
+      costBasis: profitResult.costBasis,
+      fees: profitResult.fees
     };
 
     updateSale(lotId, saleId, updates);
