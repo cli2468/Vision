@@ -471,21 +471,24 @@ function updatePlatformSelection(newPlatform) {
   const existingShippingField = document.querySelector('.shipping-field');
   const summaryBox = document.querySelector('.modal-content .summary-box');
 
-  if (newPlatform === 'ebay' && !existingShippingField && summaryBox) {
-    // Add shipping field before summary box
-    const shippingDiv = document.createElement('div');
-    shippingDiv.className = 'form-group shipping-field';
-    shippingDiv.innerHTML = `
-      <label class="form-label">Shipping Cost Per Unit ($)</label>
-      <input type="number" class="form-input" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
-    `;
-    summaryBox.before(shippingDiv);
+  if (newPlatform === 'ebay' && !existingShippingField) {
+    // Add shipping field after the sale price input (before platform selection)
+    const platformGroup = document.querySelector('.platform-grid')?.closest('.form-group');
+    if (platformGroup) {
+      const shippingDiv = document.createElement('div');
+      shippingDiv.className = 'form-group shipping-field';
+      shippingDiv.innerHTML = `
+        <label class="form-label">Shipping Cost Per Unit ($)</label>
+        <input type="number" class="form-input" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
+      `;
+      platformGroup.before(shippingDiv);
 
-    // Attach event listener to new shipping input
-    document.getElementById('shipping-cost')?.addEventListener('input', (e) => {
-      shippingCost = e.target.value;
-      updateSummaryBox();
-    });
+      // Attach event listener to new shipping input
+      document.getElementById('shipping-cost')?.addEventListener('input', (e) => {
+        shippingCost = e.target.value;
+        updateSummaryBox();
+      });
+    }
   } else if (newPlatform !== 'ebay' && existingShippingField) {
     // Remove shipping field
     existingShippingField.remove();
@@ -744,8 +747,9 @@ export function initInventoryEvents() {
     const lot = getLots().find(l => l.id === lotId);
     if (!lot) return;
 
-    // Parse new values
-    const newPrice = parseFloat(editSalePrice || (sale.pricePerUnit / 100)) * 100; // Convert to cents
+    // Parse new values with NaN protection
+    const priceInput = editSalePrice !== '' ? parseFloat(editSalePrice) : NaN;
+    const newPrice = Math.round((!isNaN(priceInput) ? priceInput : sale.pricePerUnit / 100) * 100);
     // Shipping: shippingPerUnitOld is already in cents (stored as total / units)
     const shippingPerUnitCentsOld = (sale.shippingCost != null && sale.unitsSold > 0) ? sale.shippingCost / sale.unitsSold : 0;
     // editShippingCost is in dollars, convert to cents. If empty, use old value (already in cents)
@@ -753,7 +757,14 @@ export function initInventoryEvents() {
     const shippingPerUnitCents = sale.platform === 'ebay'
       ? (editShippingCost !== '' && !isNaN(editShippingParsed) ? Math.round(editShippingParsed * 100) : shippingPerUnitCentsOld)
       : 0;
-    const newShipping = shippingPerUnitCents * sale.unitsSold;
+    const newShipping = Math.round(shippingPerUnitCents * sale.unitsSold);
+    
+    // Safety check: if any values are NaN, show error and don't save
+    if (isNaN(newPrice) || isNaN(newShipping)) {
+      console.error('NaN detected in edit sale calculation:', { newPrice, newShipping, shippingPerUnitCents, sale });
+      alert('Error: Invalid number calculated. Please check your inputs and try again.');
+      return;
+    }
     const newDate = editSaleDate || new Date(sale.dateSold).toISOString().split('T')[0];
 
     // Recalculate profit with new values
