@@ -6,6 +6,10 @@ const base = process.env.VITE_BASE || '/';
 
 export default defineConfig({
   base,
+  server: {
+    host: true,  // Allow external connections (phone, other devices)
+    port: 5173
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

@@ -18,20 +18,253 @@
 </head>
 
 <body>
-  <style>
-    /* Prevent flash on initial load */
-    #app {
-      opacity: 0;
-      transition: opacity 0.15s ease-out;
-    }
+<style>
+/* Glitch Preloader - Currency Scramble */
+#preloader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #0a0a0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+}
 
-    #app.ready {
-      opacity: 1;
-    }
-  </style>
-  <div id="app"></div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script type="module" src="/src/main.js"></script>
+.glitch-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Currency symbols scrambling */
+.currency-display {
+  font-size: 100px;
+  font-weight: 900;
+  font-family: 'DM Sans', monospace;
+  color: #CCFF00;
+  position: relative;
+  z-index: 10;
+  letter-spacing: -2px;
+}
+
+/* Glitch layers for RGB split effect */
+.currency-display::before,
+.currency-display::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.currency-display::before {
+  color: #ff0000;
+  z-index: -1;
+  opacity: 0.8;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  transform: translate(-2px, 0);
+}
+
+.currency-display::after {
+  color: #00ffff;
+  z-index: -2;
+  opacity: 0.8;
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  transform: translate(2px, 0);
+}
+
+/* Scan lines overlay */
+.scan-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(204, 255, 0, 0.03) 2px,
+    rgba(204, 255, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Digital noise - static only */
+.noise {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.05;
+  z-index: 4;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  /* No animation - static noise */
+}
+
+/* Glitch bars - horizontal distortion lines - REMOVED for smoother experience */
+.glitch-bar {
+  display: none;
+}
+
+/* Final chart symbol */
+.final-symbol {
+  font-size: 100px;
+  opacity: 0;
+  transform: scale(0.5);
+  filter: blur(10px);
+  color: #CCFF00;
+  text-shadow: 0 0 30px rgba(204, 255, 0, 0.8), 0 0 60px rgba(204, 255, 0, 0.4);
+}
+
+.final-symbol.show {
+  animation: revealChart 0.6s ease-out forwards;
+}
+
+@keyframes revealChart {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(10px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+/* Pulse after reveal */
+.final-symbol.pulse {
+  animation: chartPulse 2s ease-in-out infinite;
+}
+
+@keyframes chartPulse {
+  0%, 100% { 
+    text-shadow: 0 0 30px rgba(204, 255, 0, 0.8), 0 0 60px rgba(204, 255, 0, 0.4);
+    transform: scale(1);
+  }
+  50% { 
+    text-shadow: 0 0 50px rgba(204, 255, 0, 1), 0 0 100px rgba(204, 255, 0, 0.6);
+    transform: scale(1.02);
+  }
+}
+
+/* Fade out preloader */
+#preloader.fade-out {
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+  pointer-events: none;
+}
+
+/* Hide app initially */
+#app {
+  opacity: 0;
+}
+
+#app.ready {
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
+}
+
+/* Prevent scrolling during preloader */
+body.preloader-active {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+</style>
+
+<!-- Glitch Preloader -->
+<div id="preloader">
+  <div class="noise"></div>
+  <div class="scan-lines"></div>
+  <div class="glitch-bar"></div>
+  <div class="glitch-bar"></div>
+  <div class="glitch-bar"></div>
+  <div class="glitch-bar"></div>
+  <div class="glitch-container">
+    <div class="currency-display" id="currencyDisplay" data-text="$">$</div>
+  </div>
+</div>
+
+<div id="app"></div>
+
+<script>
+// Lock scrolling during preloader
+document.body.classList.add('preloader-active');
+
+// Currency scramble animation - faster, no ending symbol
+const currencies = ['$', '€', '£', '¥', '₩'];
+const display = document.getElementById('currencyDisplay');
+let scrambleCount = 0;
+const totalScrambles = 15; // Fewer scrambles
+const scrambleInterval = 40; // Faster - 40ms between changes
+
+function scramble() {
+  if (scrambleCount >= totalScrambles) {
+    // Just fade out the currency display and end
+    display.style.opacity = '0';
+    display.style.transition = 'opacity 0.3s ease-out';
+    
+    // Fade out preloader
+    setTimeout(() => {
+      const preloader = document.getElementById('preloader');
+      preloader.classList.add('fade-out');
+      
+    setTimeout(() => {
+      const app = document.getElementById('app');
+      app.classList.add('ready');
+      preloader.style.display = 'none';
+      
+      // Re-enable scrolling
+      document.body.classList.remove('preloader-active');
+    }, 400);
+    }, 400);
+    
+    return;
+  }
+  
+  // Random currency symbol
+  const randomCurrency = currencies[Math.floor(Math.random() * currencies.length)];
+  display.textContent = randomCurrency;
+  display.setAttribute('data-text', randomCurrency);
+  
+  // More aggressive glitch offset
+  if (Math.random() > 0.5) {
+    display.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 6 - 3}px) skewX(${Math.random() * 10 - 5}deg)`;
+  } else {
+    display.style.transform = 'translate(0, 0)';
+  }
+  
+  scrambleCount++;
+  setTimeout(scramble, scrambleInterval + Math.random() * 20); // 40-60ms
+}
+
+// Start scramble after brief delay
+setTimeout(scramble, 200);
+</script>
+
+// Start scramble after brief delay
+setTimeout(scramble, 300);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script type="module" src="/src/main.js"></script>
 </body>
 
 </html>
