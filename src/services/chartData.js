@@ -7,8 +7,11 @@
  * @returns {Object} { labels[], revenues[], profits[], returns[], salesByDay: Map }
  */
 export function aggregateSalesByDay(salesData, range) {
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
+  const now = new Date();
+  // Set to start of today (midnight) to avoid timezone issues with tomorrow
+  now.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
 
     // Determine number of days based on range
     let numDays;
@@ -25,7 +28,7 @@ export function aggregateSalesByDay(salesData, range) {
                     const d = new Date(sale.dateSold);
                     return d < min ? d : min;
                 }, new Date());
-                numDays = Math.ceil((now - earliest) / (1000 * 60 * 60 * 24)) + 1;
+                numDays = Math.ceil((endOfToday - earliest) / (1000 * 60 * 60 * 24)) + 1;
                 numDays = Math.max(numDays, 7); // At least 7 days
                 numDays = Math.min(numDays, 365); // Cap at 1 year
             }
@@ -36,13 +39,13 @@ export function aggregateSalesByDay(salesData, range) {
     // Create a map of date string -> { revenue, profit, returns, sales[] }
     const salesByDay = new Map();
 
-    // Initialize all days in range with zeros
-    for (let i = numDays - 1; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        const dateKey = formatDateKey(date);
-        salesByDay.set(dateKey, { revenue: 0, profit: 0, returns: 0, sales: [] });
-    }
+  // Initialize all days in range with zeros
+  for (let i = numDays - 1; i >= 0; i--) {
+    const date = new Date(endOfToday);
+    date.setDate(date.getDate() - i);
+    const dateKey = formatDateKey(date);
+    salesByDay.set(dateKey, { revenue: 0, profit: 0, returns: 0, sales: [] });
+  }
 
     // Aggregate sales into days
     for (const { lot, sale } of salesData) {

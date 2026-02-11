@@ -107,7 +107,7 @@ export function InventoryView() {
         ${filteredLots.length === 0 ? renderEmptyState() : ''}
         
         <div class="lot-list">
-          ${filteredLots.map(lot => renderLotCard(lot)).join('')}
+          ${filteredLots.map((lot, index) => renderLotCard(lot, index)).join('')}
         </div>
       </div>
     </div>
@@ -118,7 +118,7 @@ export function InventoryView() {
 }
 
 
-function renderLotCard(lot) {
+function renderLotCard(lot, index = 0) {
   const fullySold = isFullySold(lot);
   const hasAnySales = hasSales(lot);
   const totalProfit = getLotTotalProfit(lot);
@@ -160,35 +160,55 @@ function renderLotCard(lot) {
     </button>
   ` : '';
 
-  return `
-    <div class="lot-card ${fullySold ? 'sold' : ''}" data-lot-id="${lot.id}">
-      <button class="delete-lot-card-btn" data-lot-id="${lot.id}" title="Delete Lot">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
-        </svg>
-      </button>
-      <div class="lot-info">
-        <div class="lot-name">${lot.name}</div>
-        <div class="lot-meta">${formatCurrency(lot.unitCost)}/unit • ${lot.remaining} available</div>
-        ${returnDeadlineHtml}
-        ${progressBar}
-        ${viewSalesBtn}
-        ${salesListHtml}
-      </div>
-
-      <div class="lot-actions">
-        <div class="lot-cost-info">
-          <div class="lot-total-cost">${formatCurrency(lot.totalCost)}</div>
-          ${profitHtml}
+return `
+    <div class="lot-card-swipe-wrapper" data-lot-id="${lot.id}" style="animation: cardFadeIn 0.3s ease-out forwards; animation-delay: ${index * 20}ms; opacity: 0;">
+      <!-- Background Actions - shown when card is swiped -->
+      <div class="swipe-actions-bg">
+        <!-- Edit action on left (swipe right) -->
+        <div class="swipe-bg-action edit-bg" data-lot-id="${lot.id}">
+          <div class="swipe-bg-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <span>Edit</span>
         </div>
-        ${!fullySold ? `
-          <button class="btn btn-primary add-sale-btn" data-lot-id="${lot.id}">
-            Record Sale
-          </button>
-        ` : ''}
+        
+        <!-- Delete action on right (swipe left) -->
+        <div class="swipe-bg-action delete-bg" data-lot-id="${lot.id}">
+          <div class="swipe-bg-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </div>
+          <span>Delete</span>
+        </div>
+      </div>
+      
+      <!-- Main Card Content -->
+      <div class="lot-card ${fullySold ? 'sold' : ''}" data-lot-id="${lot.id}">
+        <div class="lot-info">
+          <div class="lot-name">${lot.name}</div>
+          <div class="lot-meta">${formatCurrency(lot.unitCost)}/unit • ${lot.remaining} available</div>
+          ${returnDeadlineHtml}
+          ${progressBar}
+          ${viewSalesBtn}
+          ${salesListHtml}
+        </div>
+        
+        <div class="lot-actions">
+          <div class="lot-cost-info">
+            <div class="lot-total-cost">${formatCurrency(lot.totalCost)}</div>
+            ${profitHtml}
+          </div>
+          ${!fullySold ? `
+            <button class="btn btn-primary add-sale-btn" data-lot-id="${lot.id}">
+              Record Sale
+            </button>
+          ` : ''}
+        </div>
       </div>
     </div>
   `;
@@ -354,7 +374,7 @@ function renderSaleModal() {
   const priceInCents = Math.round(price * 100);
   const shippingPerUnit = parseFloat(shippingCost) || 0;
   const shippingPerUnitCents = Math.round(shippingPerUnit * 100);
-  const totalShippingCents = shippingPerUnitCents * units; // Per-unit * units = total
+  const totalShippingCents = shippingPerUnitCents * units;
 
   const { costBasis, totalSalePrice, fees, shippingCost: shippingCalc, profit } = calculateSaleProfit(
     lot.unitCost,
@@ -365,21 +385,21 @@ function renderSaleModal() {
   );
 
   const isEbay = selectedPlatform === 'ebay';
+  
+  // Platform icons as SVG
+  const platformIcons = {
+    facebook: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>`,
+    ebay: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line><path d="M6 7h12M6 11h12"></path></svg>`
+  };
+
   const shippingFieldHtml = isEbay ? `
-    <div class="form-group shipping-field">
-      <label class="form-label">Shipping Cost Per Unit ($)</label>
+    <div class="form-group">
+      <label class="form-label">Shipping Cost ($)</label>
       <input type="number" class="form-input" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
     </div>
   ` : '';
 
-  const shippingRowHtml = isEbay ? `
-    <div class="summary-row">
-      <span class="text-secondary">Shipping (${units} × ${formatCurrency(shippingPerUnitCents)})</span>
-      <span>-${formatCurrency(shippingCalc)}</span>
-    </div>
-  ` : '';
-
-  // Validation: eBay requires shipping
+  // Validation
   const isValid = price > 0 && units > 0 && (!isEbay || shippingPerUnit >= 0);
 
   return `
@@ -400,61 +420,81 @@ function renderSaleModal() {
           ${lot.remaining} of ${lot.quantity} available • ${formatCurrency(lot.unitCost)}/unit cost
         </p>
         
-        <div class="form-group">
-          <label class="form-label">Units to Sell (max ${lot.remaining})</label>
-          <input type="number" class="form-input" id="units-sold" placeholder="1" min="1" max="${lot.remaining}" value="${unitsSold}" inputmode="numeric" />
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Sale Price Per Unit ($)</label>
-          <input type="number" class="form-input" id="sale-price" placeholder="0.00" step="0.01" min="0" value="${salePrice}" inputmode="decimal" />
+        <!-- Inputs in a row - equal width -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Qty</label>
+            <div class="quantity-stepper">
+              <button type="button" class="stepper-btn" id="decrease-qty">-</button>
+              <input type="number" class="form-input stepper-input" id="units-sold" placeholder="1" min="1" max="${lot.remaining}" value="${unitsSold}" inputmode="numeric" readonly />
+              <button type="button" class="stepper-btn" id="increase-qty">+</button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Selling Price ($)</label>
+            <input type="number" class="form-input" id="sale-price" placeholder="0.00" step="0.01" min="0" value="${salePrice}" inputmode="decimal" />
+          </div>
         </div>
         
         ${shippingFieldHtml}
         
         <div class="form-group">
           <label class="form-label">Platform</label>
-          <div class="platform-grid">
+          <div class="platform-grid compact">
             ${Object.entries(PLATFORM_FEES).map(([key, platform]) => `
-              <div class="platform-option ${selectedPlatform === key ? 'selected' : ''}" data-platform="${key}">
+              <div class="platform-option compact ${selectedPlatform === key ? 'selected' : ''}" data-platform="${key}">
+                <div class="platform-icon">${platformIcons[key]}</div>
                 <div class="platform-name">${platform.name}</div>
-                <div class="platform-fee">${platform.label}</div>
               </div>
             `).join('')}
           </div>
         </div>
         
-        <div class="form-group">
+        <div class="form-group date-group">
           <label class="form-label">Sale Date</label>
           <input type="date" class="form-input" id="sale-date" value="${saleDate}" />
         </div>
         
-        <div class="summary-box">
-          <div class="summary-row">
-            <span class="text-secondary">Revenue (${units} × ${formatCurrency(priceInCents)})</span>
-            <span>${formatCurrency(totalSalePrice)}</span>
+        <!-- View Breakdown Toggle -->
+        <div class="breakdown-toggle" id="breakdown-toggle">
+          <span>View Breakdown</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="breakdown-arrow">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        
+        <!-- Breakdown Content with accordion -->
+        <div class="breakdown-wrapper" id="breakdown-wrapper">
+          <div class="breakdown-content" id="breakdown-content">
+            <div class="breakdown-row">
+              <span class="text-secondary">Revenue</span>
+              <span>${formatCurrency(totalSalePrice)}</span>
+            </div>
+            <div class="breakdown-row">
+              <span class="text-secondary">Platform Fees</span>
+              <span>-${formatCurrency(fees)}</span>
+            </div>
+            ${isEbay ? `
+              <div class="breakdown-row">
+                <span class="text-secondary">Shipping</span>
+                <span>-${formatCurrency(shippingCalc)}</span>
+              </div>
+            ` : ''}
+            <div class="breakdown-row">
+              <span class="text-secondary">Cost Basis</span>
+              <span>-${formatCurrency(costBasis)}</span>
+            </div>
           </div>
-          <div class="summary-row">
-            <span class="text-secondary">Platform Fees</span>
-            <span>-${formatCurrency(fees)}</span>
-          </div>
-          ${shippingRowHtml}
-          <div class="summary-row">
-            <span class="text-secondary">Cost Basis</span>
-            <span>-${formatCurrency(costBasis)}</span>
-          </div>
-          <div class="summary-row ${profit >= 0 ? 'profit' : 'loss'}">
-            <span>Net Profit</span>
-            <span class="summary-value">${formatCurrency(profit)}</span>
-          </div>
+        </div>
+        
+        <!-- Profit Display -->
+        <div class="profit-display ${profit >= 0 ? 'profit' : 'loss'}" style="text-align: center; padding: var(--spacing-md); background: var(--bg-glass); border-radius: var(--radius-md); margin: var(--spacing-md) 0;">
+          <div style="font-size: var(--font-size-sm); color: var(--text-secondary); margin-bottom: 4px;">Net Profit</div>
+          <div style="font-size: var(--font-size-2xl); font-weight: 700;" id="profit-display">${formatCurrency(profit)}</div>
         </div>
         
         <button class="btn btn-success btn-full" id="confirm-sale" ${!isValid ? 'disabled' : ''}>
           Confirm Sale
-        </button>
-        
-        <button class="btn btn-danger btn-full" id="delete-lot" style="margin-top: var(--spacing-md);">
-          Delete Lot
         </button>
       </div>
     </div>
@@ -583,10 +623,10 @@ function updateSummaryBox() {
         <span>-${formatCurrency(fees)}</span>
       </div>
       ${isEbay ? `
-      <div class="summary-row">
-        <span class="text-secondary">Shipping (${units} × ${formatCurrency(shippingPerUnitCents)})</span>
-        <span>-${formatCurrency(shippingCalc)}</span>
-      </div>
+        <div class="summary-row">
+          <span class="text-secondary">Shipping (${units} × ${formatCurrency(shippingPerUnitCents)})</span>
+          <span>-${formatCurrency(shippingCalc)}</span>
+        </div>
       ` : ''}
       <div class="summary-row">
         <span class="text-secondary">Cost Basis</span>
@@ -595,6 +635,43 @@ function updateSummaryBox() {
       <div class="summary-row ${profit >= 0 ? 'profit' : 'loss'}">
         <span>Net Profit</span>
         <span class="summary-value">${formatCurrency(profit)}</span>
+      </div>
+    `;
+  }
+
+  // Update profit display (for new modal style)
+  const profitDisplay = document.getElementById('profit-display');
+  if (profitDisplay) {
+    profitDisplay.textContent = formatCurrency(profit);
+    profitDisplay.parentElement.className = `profit-display ${profit >= 0 ? 'profit' : 'loss'}`;
+    profitDisplay.parentElement.style.textAlign = 'center';
+    profitDisplay.parentElement.style.padding = 'var(--spacing-md)';
+    profitDisplay.parentElement.style.background = 'var(--bg-glass)';
+    profitDisplay.parentElement.style.borderRadius = 'var(--radius-md)';
+    profitDisplay.parentElement.style.margin = 'var(--spacing-md) 0';
+  }
+
+  // Update breakdown content
+  const breakdownContent = document.getElementById('breakdown-content');
+  if (breakdownContent) {
+    breakdownContent.innerHTML = `
+      <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <span class="text-secondary" style="font-size: var(--font-size-sm);">Revenue</span>
+        <span>${formatCurrency(totalSalePrice)}</span>
+      </div>
+      <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <span class="text-secondary" style="font-size: var(--font-size-sm);">Platform Fees</span>
+        <span>-${formatCurrency(fees)}</span>
+      </div>
+      ${isEbay ? `
+        <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <span class="text-secondary" style="font-size: var(--font-size-sm);">Shipping</span>
+          <span>-${formatCurrency(shippingCalc)}</span>
+        </div>
+      ` : ''}
+      <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0;">
+        <span class="text-secondary" style="font-size: var(--font-size-sm);">Cost Basis</span>
+        <span>-${formatCurrency(costBasis)}</span>
       </div>
     `;
   }
@@ -758,8 +835,252 @@ function initLotCardEvents() {
         markSaleReturned(lotId, saleId);
         window.dispatchEvent(new CustomEvent('viewchange'));
       }
+  });
+});
+
+// Initialize swipe functionality for lot cards
+initSwipeHandlers();
+
+}
+
+// Swipe handling functions
+function initSwipeHandlers() {
+  const swipeWrappers = document.querySelectorAll('.lot-card-swipe-wrapper');
+  
+  swipeWrappers.forEach(wrapper => {
+    const card = wrapper.querySelector('.lot-card');
+    const lotId = wrapper.dataset.lotId;
+    
+    if (!card) return;
+    
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    let startY = 0;
+    let isHorizontal = false;
+    
+    // Touch start
+    card.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isDragging = true;
+      isHorizontal = false;
+      card.classList.add('swiping');
+    }, { passive: true });
+    
+    // Touch move
+    card.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      const deltaX = touchX - startX;
+      const deltaY = touchY - startY;
+      
+      // Determine if horizontal swipe on first significant movement
+      if (!isHorizontal && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+        isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+        if (isHorizontal) {
+          wrapper.classList.add('swiping');
+        }
+      }
+      
+      if (isHorizontal) {
+        e.preventDefault();
+        currentX = deltaX;
+        
+        // Limit the swipe distance
+        const maxSwipe = 120;
+        const clampedX = Math.max(-maxSwipe, Math.min(maxSwipe, currentX));
+        card.style.transform = `translateX(${clampedX}px)`;
+        
+        // Show action indicators
+        if (currentX < -40) {
+          wrapper.classList.add('swiping-left');
+          wrapper.classList.remove('swiping-right');
+        } else if (currentX > 40) {
+          wrapper.classList.add('swiping-right');
+          wrapper.classList.remove('swiping-left');
+        } else {
+          wrapper.classList.remove('swiping-left', 'swiping-right');
+        }
+      }
+    }, { passive: false });
+    
+    // Touch end
+    card.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      card.classList.remove('swiping');
+      wrapper.classList.remove('swiping');
+      
+      const threshold = 80;
+      
+      if (currentX > threshold) {
+        // Full right swipe - EDIT (now appears on left side)
+        card.style.transform = 'translateX(80px)';
+        card.classList.add('swiped-right');
+        setTimeout(() => {
+          openEditLotModal(lotId);
+          resetCardPosition(card);
+        }, 300);
+      } else if (currentX < -threshold) {
+        // Full left swipe - DELETE (now appears on right side)
+        card.style.transform = 'translateX(-80px)';
+        card.classList.add('swiped-left');
+        setTimeout(() => {
+          if (confirm('Delete this lot and all its sales history?')) {
+            deleteLot(lotId);
+            window.dispatchEvent(new CustomEvent('viewchange'));
+          } else {
+            resetCardPosition(card);
+          }
+        }, 300);
+      } else if (currentX > 40) {
+        // Partial right swipe - show EDIT button (on left)
+        card.style.transform = 'translateX(80px)';
+        card.classList.add('swiped-right');
+        const clickHandler = () => {
+          openEditLotModal(lotId);
+          resetCardPosition(card);
+          card.removeEventListener('click', clickHandler);
+        };
+        card.addEventListener('click', clickHandler);
+        setTimeout(() => {
+          if (card.classList.contains('swiped-right')) {
+            resetCardPosition(card);
+            card.removeEventListener('click', clickHandler);
+          }
+        }, 3000);
+      } else if (currentX < -40) {
+        // Partial left swipe - show DELETE button (on right)
+        card.style.transform = 'translateX(-80px)';
+        card.classList.add('swiped-left');
+        const clickHandler = () => {
+          if (confirm('Delete this lot and all its sales history?')) {
+            deleteLot(lotId);
+            window.dispatchEvent(new CustomEvent('viewchange'));
+          } else {
+            resetCardPosition(card);
+          }
+          card.removeEventListener('click', clickHandler);
+        };
+        card.addEventListener('click', clickHandler);
+        setTimeout(() => {
+          if (card.classList.contains('swiped-left')) {
+            resetCardPosition(card);
+            card.removeEventListener('click', clickHandler);
+          }
+        }, 3000);
+      } else {
+        resetCardPosition(card);
+      }
+      
+      wrapper.classList.remove('swiping-left', 'swiping-right');
+    });
+    
+    // Mouse events for desktop
+    card.addEventListener('mousedown', (e) => {
+      startX = e.clientX;
+      startY = e.clientY;
+      isDragging = true;
+      isHorizontal = false;
+      card.classList.add('swiping');
+    });
+    
+    card.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      
+      if (!isHorizontal && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+        isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+        if (isHorizontal) {
+          wrapper.classList.add('swiping');
+        }
+      }
+      
+      if (isHorizontal) {
+        e.preventDefault();
+        currentX = deltaX;
+        
+        const maxSwipe = 120;
+        const clampedX = Math.max(-maxSwipe, Math.min(maxSwipe, currentX));
+        card.style.transform = `translateX(${clampedX}px)`;
+        
+        if (currentX < -40) {
+          wrapper.classList.add('swiping-left');
+          wrapper.classList.remove('swiping-right');
+        } else if (currentX > 40) {
+          wrapper.classList.add('swiping-right');
+          wrapper.classList.remove('swiping-left');
+        } else {
+          wrapper.classList.remove('swiping-left', 'swiping-right');
+        }
+      }
+    });
+    
+    card.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      card.classList.remove('swiping');
+      wrapper.classList.remove('swiping');
+      
+      const threshold = 80;
+      
+      if (currentX > threshold) {
+        // Full right swipe - EDIT
+        card.style.transform = 'translateX(80px)';
+        card.classList.add('swiped-right');
+        setTimeout(() => {
+          openEditLotModal(lotId);
+          resetCardPosition(card);
+        }, 300);
+      } else if (currentX < -threshold) {
+        // Full left swipe - DELETE
+        card.style.transform = 'translateX(-80px)';
+        card.classList.add('swiped-left');
+        setTimeout(() => {
+          if (confirm('Delete this lot and all its sales history?')) {
+            deleteLot(lotId);
+            window.dispatchEvent(new CustomEvent('viewchange'));
+          } else {
+            resetCardPosition(card);
+          }
+        }, 300);
+      } else if (currentX > 40 || currentX < -40) {
+        resetCardPosition(card);
+      } else {
+        resetCardPosition(card);
+      }
+      
+      wrapper.classList.remove('swiping-left', 'swiping-right');
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      if (isDragging) {
+        isDragging = false;
+        resetCardPosition(card);
+        wrapper.classList.remove('swiping', 'swiping-left', 'swiping-right');
+      }
     });
   });
+}
+
+function resetCardPosition(card) {
+  card.classList.remove('swiped-left', 'swiped-right');
+  card.classList.add('restore');
+  card.style.transform = '';
+  setTimeout(() => {
+    card.classList.remove('restore');
+  }, 300);
+}
+
+// Placeholder for edit lot modal (you can implement this later)
+function openEditLotModal(lotId) {
+  // For now, just alert that edit is coming
+  alert('Edit functionality coming soon for lot: ' + lotId);
 }
 
 // Attach events for dynamically injected edit sale modal
@@ -912,6 +1233,73 @@ export function initInventoryEvents() {
     option.addEventListener('click', () => {
       updatePlatformSelection(option.dataset.platform);
     });
+  });
+
+  // Quantity stepper buttons - works on both desktop and mobile
+  const decreaseBtn = document.getElementById('decrease-qty');
+  const increaseBtn = document.getElementById('increase-qty');
+  
+  function handleDecrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const lot = getLots().find(l => l.id === selectedLotId);
+    if (lot) {
+      const currentQty = parseInt(unitsSold) || 1;
+      if (currentQty > 1) {
+        unitsSold = String(currentQty - 1);
+        const input = document.getElementById('units-sold');
+        if (input) input.value = unitsSold;
+        updateSummaryBox();
+      }
+    }
+  }
+  
+  function handleIncrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const lot = getLots().find(l => l.id === selectedLotId);
+    if (lot) {
+      const currentQty = parseInt(unitsSold) || 1;
+      if (currentQty < lot.remaining) {
+        unitsSold = String(currentQty + 1);
+        const input = document.getElementById('units-sold');
+        if (input) input.value = unitsSold;
+        updateSummaryBox();
+      }
+    }
+  }
+  
+  if (decreaseBtn) {
+    decreaseBtn.addEventListener('click', handleDecrease);
+    decreaseBtn.addEventListener('touchstart', handleDecrease, { passive: false });
+  }
+  
+  if (increaseBtn) {
+    increaseBtn.addEventListener('click', handleIncrease);
+    increaseBtn.addEventListener('touchstart', handleIncrease, { passive: false });
+  }
+
+  // Breakdown toggle with accordion animation
+  document.getElementById('breakdown-toggle')?.addEventListener('click', () => {
+    const wrapper = document.getElementById('breakdown-wrapper');
+    const arrow = document.getElementById('breakdown-arrow');
+    const toggle = document.getElementById('breakdown-toggle');
+    if (wrapper && arrow && toggle) {
+      const isOpen = wrapper.classList.contains('open');
+      if (isOpen) {
+        wrapper.classList.remove('open');
+        toggle.classList.remove('open');
+        arrow.style.transform = 'rotate(0deg)';
+      } else {
+        wrapper.classList.add('open');
+        toggle.classList.add('open');
+        arrow.style.transform = 'rotate(180deg)';
+      }
+    }
   });
 
   // Confirm sale with animation

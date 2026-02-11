@@ -4,8 +4,8 @@
  * Platform fee rates
  */
 export const PLATFORM_FEES = {
-    facebook: { name: 'Facebook Marketplace', rate: 0, label: '0% fees' },
-    ebay: { name: 'eBay', rate: 0.135, label: '13.5% fees' }
+  facebook: { name: 'Facebook', rate: 0, label: '0% fees' },
+  ebay: { name: 'eBay', rate: 0.135, label: '13.5% fees' }
 };
 
 /**

@@ -1788,3 +1788,299 @@ body {
   color: var(--text-primary);
   border: var(--border-subtle);
 }
+
+/* Compact platform cards */
+.platform-grid.compact {
+  gap: var(--spacing-sm);
+}
+
+.platform-option.compact {
+  padding: var(--spacing-md) var(--spacing-sm);
+}
+
+/* Quantity Stepper */
+.quantity-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-glass);
+}
+
+.stepper-btn {
+  width: 40px;
+  height: 48px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepper-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stepper-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.stepper-input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  text-align: center;
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+  min-width: 0;
+  padding: 0 var(--spacing-sm) !important;
+}
+
+/* Accordion Breakdown */
+.breakdown-toggle {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: color var(--transition-fast);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.breakdown-toggle:active {
+  color: var(--text-primary);
+}
+
+.breakdown-toggle.open {
+  color: var(--accent);
+}
+
+#breakdown-arrow {
+  transition: transform 0.3s ease;
+}
+
+.breakdown-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+  overflow: hidden;
+}
+
+.breakdown-wrapper.open {
+  grid-template-rows: 1fr;
+}
+
+.breakdown-content {
+  background: var(--bg-glass);
+  border-radius: var(--radius-md);
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease 0.1s, padding 0.3s ease;
+  padding: 0 var(--spacing-md);
+}
+
+.breakdown-wrapper.open .breakdown-content {
+  opacity: 1;
+  padding: var(--spacing-md);
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: var(--font-size-sm);
+}
+
+.breakdown-row:last-child {
+  border-bottom: none;
+}
+
+/* Mobile touch improvements for stepper buttons */
+.stepper-btn {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  z-index: 10;
+}
+
+.stepper-btn::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  z-index: -1;
+}
+
+/* ===== Sale Date Input - Clean & Simple ===== */
+.date-group {
+  width: 100%;
+}
+
+.date-group input[type="date"] {
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* iOS specific fixes */
+  min-width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fix for iOS date input width issues */
+@supports (-webkit-touch-callout: none) {
+  .date-group input[type="date"] {
+    font-size: 16px; /* Prevent iOS zoom */
+    min-height: 48px;
+  }
+}
+
+/* ===== Swipeable Lot Cards ===== */
+.lot-card-swipe-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lot-card-swipe-wrapper.swiping {
+  touch-action: none;
+}
+
+/* Background Actions - Circular icons in the background */
+.swipe-actions-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--spacing-lg);
+  z-index: 1;
+  background: var(--bg-primary);
+}
+
+.swipe-bg-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.swipe-bg-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-glass);
+  border: 2px solid transparent;
+}
+
+/* Delete on left (swipe right) */
+.swipe-bg-action.delete-bg {
+  color: var(--accent-danger);
+}
+
+.swipe-bg-action.delete-bg .swipe-bg-icon {
+  background: rgba(255, 68, 68, 0.15);
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
+/* Edit on left (swipe right) */
+.swipe-bg-action.edit-bg {
+  color: var(--accent);
+}
+
+.swipe-bg-action.edit-bg .swipe-bg-icon {
+  background: rgba(204, 255, 0, 0.15);
+  border-color: rgba(204, 255, 0, 0.3);
+}
+
+/* Delete on right (swipe left) */
+.swipe-bg-action.delete-bg {
+  color: var(--accent-danger);
+}
+
+.swipe-bg-action.delete-bg .swipe-bg-icon {
+  background: rgba(255, 68, 68, 0.15);
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
+/* Show actions when swiping - swapped */
+.lot-card-swipe-wrapper.swiping-right .swipe-bg-action.edit-bg,
+.lot-card-swipe-wrapper.swiping-left .swipe-bg-action.delete-bg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Card stagger animation */
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lot-card {
+  position: relative;
+  z-index: 2;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+  touch-action: pan-y;
+}
+
+.lot-card.swiping {
+  transition: none;
+  touch-action: none;
+}
+
+.lot-card.swiped-left {
+  transform: translateX(-80px);
+}
+
+.lot-card.swiped-right {
+  transform: translateX(80px);
+}
+
+.lot-card.restore {
+  transition: transform 0.3s ease-out;
+  transform: translateX(0) !important;
+}
