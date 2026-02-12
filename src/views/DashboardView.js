@@ -243,21 +243,21 @@ function initChart() {
   const salesData = getSalesForSelectedRange();
   currentChartData = aggregateSalesByDay(salesData, selectedRange);
 
-  const { labels, cumulativeProfits } = currentChartData;
+  const { labels, cumulativeRevenues } = currentChartData;
 
   // Calculate Y-axis step size using nice increments (50, 100, 500, 1000)
-  const maxProfit = Math.max(...cumulativeProfits, 0);
+  const maxRevenue = Math.max(...cumulativeRevenues, 0);
   const niceSteps = [50, 100, 500, 1000];
   // Find the smallest nice step that gives us 4-6 intervals
   let stepSize = 50;
   for (const step of niceSteps) {
-    if (maxProfit / step <= 5) {
+    if (maxRevenue / step <= 5) {
       stepSize = step;
       break;
     }
     stepSize = step; // Use largest if none fit
   }
-  const yMax = Math.ceil(maxProfit * 1.1 / stepSize) * stepSize; // Round up to stepSize with 10% padding
+  const yMax = Math.ceil(maxRevenue * 1.1 / stepSize) * stepSize; // Round up to stepSize with 10% padding
 
   // Destroy existing chart
   if (chartInstance) {
@@ -297,8 +297,8 @@ function initChart() {
     data: {
       labels: labels,
       datasets: [{
-        label: 'Profit',
-        data: cumulativeProfits,
+        label: 'Revenue',
+        data: cumulativeRevenues,
         backgroundColor: gradient,
         borderColor: '#CCFF00',
         borderWidth: 2,
@@ -345,15 +345,15 @@ function initChart() {
           padding: 12,
           cornerRadius: 8,
           displayColors: false,
-          callbacks: {
-            title: function (context) {
-              return context[0].label;
-            },
-            label: function (context) {
-              const value = context.raw;
-              return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            callbacks: {
+              title: function (context) {
+                return context[0].label;
+              },
+              label: function (context) {
+                const value = context.raw;
+                return 'Revenue: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
             }
-          }
         },
         verticalLine: verticalLinePlugin
       },

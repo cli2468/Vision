@@ -7,86 +7,97 @@
  * @returns {Object} { labels[], revenues[], profits[], returns[], salesByDay: Map }
  */
 export function aggregateSalesByDay(salesData, range) {
-  const now = new Date();
-  // Set to start of today (midnight) to avoid timezone issues with tomorrow
-  now.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(now);
-  endOfToday.setHours(23, 59, 59, 999);
+  // Get today's date at midnight (no time component)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Create end date string from today (for comparing sale dates)
+  const todayKey = formatDateKey(today);
 
-    // Determine number of days based on range
-    let numDays;
-    switch (range) {
-        case '7d': numDays = 7; break;
-        case '30d': numDays = 30; break;
-        case '90d': numDays = 90; break;
-        case 'all':
-            // For "all", find the earliest sale date or default to 30 days
-            if (salesData.length === 0) {
-                numDays = 30;
-            } else {
-                const earliest = salesData.reduce((min, { sale }) => {
-                    const d = new Date(sale.dateSold);
-                    return d < min ? d : min;
-                }, new Date());
-                numDays = Math.ceil((endOfToday - earliest) / (1000 * 60 * 60 * 24)) + 1;
-                numDays = Math.max(numDays, 7); // At least 7 days
-                numDays = Math.min(numDays, 365); // Cap at 1 year
-            }
-            break;
-        default: numDays = 30;
-    }
+  // Determine number of days based on range
+  let numDays;
+  switch (range) {
+    case '7d': numDays = 7; break;
+    case '30d': numDays = 30; break;
+    case '90d': numDays = 90; break;
+    case 'all':
+      // For "all", find the earliest sale date or default to 30 days
+      if (salesData.length === 0) {
+        numDays = 30;
+      } else {
+        const earliest = salesData.reduce((min, { sale }) => {
+          const d = new Date(sale.dateSold);
+          return d < min ? d : min;
+        }, new Date());
+        const earliestKey = formatDateKey(earliest);
+        const todayDate = new Date(todayKey + 'T00:00:00');
+        const earliestDate = new Date(earliestKey + 'T00:00:00');
+        numDays = Math.ceil((todayDate - earliestDate) / (1000 * 60 * 60 * 24)) + 1;
+        numDays = Math.max(numDays, 7); // At least 7 days
+        numDays = Math.min(numDays, 365); // Cap at 1 year
+      }
+      break;
+    default: numDays = 30;
+  }
 
-    // Create a map of date string -> { revenue, profit, returns, sales[] }
-    const salesByDay = new Map();
+  // Create a map of date string -> { revenue, profit, returns, sales[] }
+  const salesByDay = new Map();
 
-  // Initialize all days in range with zeros
-  for (let i = numDays - 1; i >= 0; i--) {
-    const date = new Date(endOfToday);
+  // Initialize all days in range with zeros, starting from today and going backwards
+  for (let i = 0; i < numDays; i++) {
+    const date = new Date(today);
     date.setDate(date.getDate() - i);
     const dateKey = formatDateKey(date);
     salesByDay.set(dateKey, { revenue: 0, profit: 0, returns: 0, sales: [] });
   }
 
-    // Aggregate sales into days
-    for (const { lot, sale } of salesData) {
-        // Parse date as local time by appending T00:00:00 to avoid UTC shift
-        const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
-        const saleDate = new Date(saleDateStr);
-        const dateKey = formatDateKey(saleDate);
+  // Aggregate sales into days
+  for (const { lot, sale } of salesData) {
+    // Parse date as local time by appending T00:00:00 to avoid UTC shift
+    const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
+    const saleDate = new Date(saleDateStr);
+    const dateKey = formatDateKey(saleDate);
 
-        if (salesByDay.has(dateKey)) {
-            const dayData = salesByDay.get(dateKey);
-            dayData.sales.push({ lot, sale });
-            
-            if (sale.returned) {
-                // Track returns separately (negative impact)
-                dayData.returns += sale.profit;
-            } else {
-                // Normal sale
-                dayData.revenue += sale.totalPrice;
-                dayData.profit += sale.profit;
-            }
-        }
+    if (salesByDay.has(dateKey)) {
+      const dayData = salesByDay.get(dateKey);
+      dayData.sales.push({ lot, sale });
+
+      if (sale.returned) {
+        // Track returns separately (negative impact)
+        dayData.returns += sale.profit;
+      } else {
+        // Normal sale
+        dayData.revenue += sale.totalPrice;
+        dayData.profit += sale.profit;
+      }
     }
+  }
 
-    // Convert to arrays for Chart.js
-    const labels = [];
-    const revenues = [];
-    const profits = [];
-    const returns = [];
-    const cumulativeProfits = [];
-    let runningProfit = 0;
+  // Convert to arrays for Chart.js - reverse to get chronological order (oldest first)
+  const labels = [];
+  const revenues = [];
+  const profits = [];
+  const returns = [];
+  const cumulativeRevenues = [];
+  const cumulativeProfits = [];
+  let runningRevenue = 0;
+  let runningProfit = 0;
 
-    for (const [dateKey, data] of salesByDay) {
-        labels.push(formatDateLabel(dateKey, range));
-        revenues.push(data.revenue / 100); // Convert cents to dollars
-        profits.push(data.profit / 100);
-        returns.push(data.returns / 100);
-        runningProfit += (data.profit + data.returns) / 100; // Include returns in cumulative
-        cumulativeProfits.push(runningProfit);
-    }
+  // Convert Map to array and reverse to get chronological order
+  const entries = Array.from(salesByDay.entries()).reverse();
+  
+  for (const [dateKey, data] of entries) {
+    labels.push(formatDateLabel(dateKey, range));
+    revenues.push(data.revenue / 100); // Convert cents to dollars
+    profits.push(data.profit / 100);
+    returns.push(data.returns / 100);
+    runningRevenue += (data.revenue) / 100;
+    runningProfit += (data.profit + data.returns) / 100; // Include returns in cumulative
+    cumulativeRevenues.push(runningRevenue);
+    cumulativeProfits.push(runningProfit);
+  }
 
-    return { labels, revenues, profits, returns, cumulativeProfits, salesByDay };
+  return { labels, revenues, profits, returns, cumulativeRevenues, cumulativeProfits, salesByDay };
 }
 
 /**
@@ -112,13 +123,14 @@ function formatDateLabel(dateKey, range) {
 /**
  * Get sales for a specific date
  * @param {Map} salesByDay - Map from aggregateSalesByDay
- * @param {number} index - Index of the day in the chart
+ * @param {number} index - Index of the day in the chart (0 = oldest)
  * @returns {Array} Array of { lot, sale } for that day
  */
 export function getSalesForDay(salesByDay, index) {
-    const keys = Array.from(salesByDay.keys());
-    if (index >= 0 && index < keys.length) {
-        return salesByDay.get(keys[index])?.sales || [];
-    }
-    return [];
+  // Sort keys chronologically to match chart order
+  const keys = Array.from(salesByDay.keys()).sort();
+  if (index >= 0 && index < keys.length) {
+    return salesByDay.get(keys[index])?.sales || [];
+  }
+  return [];
 }
