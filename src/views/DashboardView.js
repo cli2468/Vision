@@ -245,19 +245,32 @@ function initChart() {
 
   const { labels, cumulativeRevenues } = currentChartData;
 
-  // Calculate Y-axis step size using nice increments (50, 100, 500, 1000)
+  // Calculate Y-axis step size using nice increments (100, 500, 1000, 2000)
+  // Ensure 5-6 total Y-axis points (4-5 intervals) including zero
   const maxRevenue = Math.max(...cumulativeRevenues, 0);
-  const niceSteps = [50, 100, 500, 1000];
-  // Find the smallest nice step that gives us 4-6 intervals
-  let stepSize = 50;
+  const niceSteps = [100, 500, 1000, 2000];
+  
+  // Find step that gives us 4-5 intervals (5-6 total points including zero)
+  let stepSize = 2000; // Default to largest
   for (const step of niceSteps) {
-    if (maxRevenue / step <= 5) {
+    const intervals = maxRevenue / step;
+    if (intervals >= 4 && intervals <= 5) {
+      // Perfect: 4-5 intervals means 5-6 points (including zero)
+      stepSize = step;
+      break;
+    } else if (intervals < 4) {
+      // Too few intervals, use larger step (fewer intervals)
       stepSize = step;
       break;
     }
-    stepSize = step; // Use largest if none fit
+    stepSize = step;
   }
-  const yMax = Math.ceil(maxRevenue * 1.1 / stepSize) * stepSize; // Round up to stepSize with 10% padding
+  
+  // Calculate yMax to ensure exactly 5-6 points
+  // Round to nearest multiple of stepSize that gives 4-5 intervals
+  let targetIntervals = Math.ceil(maxRevenue / stepSize);
+  targetIntervals = Math.max(4, Math.min(5, targetIntervals)); // Clamp to 4-5 intervals
+  const yMax = targetIntervals * stepSize;
 
   // Destroy existing chart
   if (chartInstance) {
