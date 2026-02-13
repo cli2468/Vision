@@ -1479,6 +1479,186 @@ body {
   letter-spacing: 0.05em;
 }
 
+/* ===== Most Profitable Products ===== */
+.mpp-card {
+  background: var(--bg-card);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: var(--spacing-xl);
+  animation: fadeIn 0.3s ease;
+}
+
+.mpp-header {
+  margin-bottom: 24px;
+}
+
+.mpp-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.mpp-subtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 4px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mpp-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.mpp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mpp-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mpp-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Top-1 product gets a subtle accent left border */
+.mpp-row-top {
+  border-left: 3px solid var(--accent);
+  padding-left: 13px;
+  /* compensate for border */
+}
+
+.mpp-rank {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+  opacity: 0.5;
+}
+
+.mpp-row-top .mpp-rank {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.mpp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mpp-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.mpp-units {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  opacity: 0.6;
+}
+
+.mpp-metrics {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* ROI Badge — tiered by magnitude */
+.mpp-roi-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mpp-roi-low {
+  background: rgba(76, 175, 80, 0.08);
+  color: rgba(76, 175, 80, 0.7);
+}
+
+.mpp-roi-mid {
+  background: rgba(76, 175, 80, 0.12);
+  color: rgba(76, 175, 80, 0.85);
+}
+
+.mpp-roi-high {
+  background: rgba(76, 175, 80, 0.18);
+  color: #4caf50;
+}
+
+.mpp-roi-infinite {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(56, 142, 60, 0.1));
+  color: #4caf50;
+  font-style: italic;
+  font-size: 13px;
+  cursor: help;
+}
+
+/* Net Profit block */
+.mpp-profit-block {
+  text-align: right;
+}
+
+.mpp-profit-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #4caf50;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.mpp-profit-value.mpp-negative {
+  color: var(--danger);
+}
+
+.mpp-profit-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  opacity: 0.5;
+}
+
+/* Footer */
+.mpp-footer {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.4;
+  text-align: right;
+  margin-top: 16px;
+  letter-spacing: 0.02em;
+}
+
 /* ===== Inventory Card ===== */
 .inventory-card {
   background: var(--bg-card);
@@ -2449,40 +2629,7 @@ body {
   }
 }
 
-.nav-item.inventory-animating svg {
-  animation: boxUnfold 500ms cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: center bottom;
-}
 
-15% {
-  transform: scale(0.95) rotate(-2deg);
-}
-
-30% {
-  transform: scale(1.05) rotate(2deg);
-}
-
-45% {
-  transform: scale(0.98) rotate(-1deg);
-}
-
-60% {
-  transform: scale(1.4) rotate(0deg);
-}
-
-80% {
-  transform: scale(1.2) rotate(0deg);
-}
-
-100% {
-  transform: scale(1) rotate(0deg);
-}
-
-
-.nav-item.inventory-animating svg {
-  animation: jackInTheBox 600ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  transform-origin: center;
-}
 
 /* Plus/Add - Spin with Ease Animation */
 @keyframes plusSpin {

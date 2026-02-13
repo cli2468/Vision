@@ -1,6 +1,6 @@
 // Dashboard View - Revenue/Profit chart with time-range filtering and Return Alerts
 
-import { getAllSales, getSalesByDateRange, getLots, getLotsNearingReturnDeadline, getReturnDeadline, markReturned, dismissReturnAlert } from '../services/storage.js';
+import { getAllSales, getSalesByDateRange, getLots, getLotTotalProfit, getLotsNearingReturnDeadline, getReturnDeadline, markReturned, dismissReturnAlert } from '../services/storage.js';
 import { calculateMonthlyStats, formatCurrency } from '../services/calculations.js';
 import { aggregateSalesByDay, getSalesForDay } from '../services/chartData.js';
 import { animateCountUp } from '../utils/animations.js';
@@ -135,6 +135,8 @@ export function DashboardView() {
           </div>
         </div>
         
+        ${renderTopPerformers(allLots)}
+        
         ${renderInventoryCard(allLots, unsoldCostBasis)}
         
         <!-- Day breakdown modal -->
@@ -184,9 +186,93 @@ function renderChartSection(stats) {
   `;
 }
 
-/**
- * Render inventory card with circular design
- */
+function renderTopPerformers(allLots) {
+  // Calculate per-lot stats
+  const lotStats = allLots
+    .filter(lot => lot.sales && lot.sales.length > 0)
+    .map(lot => {
+      const totalProfit = getLotTotalProfit(lot);
+      const totalUnitsSold = lot.sales.reduce((sum, s) => sum + (s.unitsSold || 0), 0);
+      const totalCostBasis = lot.sales.reduce((sum, s) => sum + (s.costBasis || 0), 0);
+      const roi = totalCostBasis > 0 ? (totalProfit / totalCostBasis) * 100 : Infinity;
+      // Find the most recent sale date for this lot
+      const lastSaleDate = lot.sales.reduce((latest, s) => {
+        const d = new Date(s.dateSold);
+        return d > latest ? d : latest;
+      }, new Date(0));
+      return { name: lot.name, totalProfit, totalUnitsSold, roi, lastSaleDate };
+    })
+    .sort((a, b) => b.totalProfit - a.totalProfit)
+    .slice(0, 3);
+
+  if (lotStats.length === 0) {
+    return `
+      <div class="mpp-card">
+        <div class="mpp-header">
+          <div class="mpp-title">Most Profitable Products</div>
+          <div class="mpp-subtitle">All Time · Ranked by Net Profit</div>
+        </div>
+        <div class="mpp-empty">No sales data yet</div>
+      </div>
+    `;
+  }
+
+  // Calculate "updated ago" from the most recent sale across all top items
+  const mostRecentSale = lotStats.reduce((latest, item) =>
+    item.lastSaleDate > latest ? item.lastSaleDate : latest, new Date(0));
+  const minsAgo = Math.max(1, Math.round((Date.now() - mostRecentSale.getTime()) / 60000));
+  let updatedText;
+  if (minsAgo < 60) updatedText = `${minsAgo}m ago`;
+  else if (minsAgo < 1440) updatedText = `${Math.round(minsAgo / 60)}h ago`;
+  else updatedText = `${Math.round(minsAgo / 1440)}d ago`;
+
+  const itemsHtml = lotStats.map((item, i) => {
+    const isTop = i === 0;
+    const roiIsInfinite = !isFinite(item.roi);
+
+    // ROI display and intensity class
+    let roiHtml;
+    if (roiIsInfinite) {
+      roiHtml = `<span class="mpp-roi-badge mpp-roi-infinite" title="Cost basis was $0 — pure profit">∞</span>`;
+    } else {
+      const absRoi = Math.abs(item.roi);
+      const roiTier = absRoi >= 100 ? 'high' : absRoi >= 40 ? 'mid' : 'low';
+      const sign = item.roi >= 0 ? '+' : '';
+      roiHtml = `<span class="mpp-roi-badge mpp-roi-${roiTier}">${sign}${item.roi.toFixed(0)}%</span>`;
+    }
+
+    return `
+      <div class="mpp-row ${isTop ? 'mpp-row-top' : ''}">
+        <div class="mpp-rank">${i + 1}</div>
+        <div class="mpp-info">
+          <div class="mpp-name">${item.name}</div>
+          <div class="mpp-units">${item.totalUnitsSold} unit${item.totalUnitsSold !== 1 ? 's' : ''} sold</div>
+        </div>
+        <div class="mpp-metrics">
+          ${roiHtml}
+          <div class="mpp-profit-block">
+            <div class="mpp-profit-value ${item.totalProfit >= 0 ? '' : 'mpp-negative'}">${formatCurrency(Math.abs(item.totalProfit))}</div>
+            <div class="mpp-profit-label">Net Profit</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="mpp-card">
+      <div class="mpp-header">
+        <div class="mpp-title">Most Profitable Products</div>
+        <div class="mpp-subtitle">All Time · Ranked by Net Profit</div>
+      </div>
+      <div class="mpp-list">
+        ${itemsHtml}
+      </div>
+      <div class="mpp-footer">Updated ${updatedText}</div>
+    </div>
+  `;
+}
+
 function renderInventoryCard(allLots, unsoldCostBasis) {
   const topInventoryLots = allLots
     .filter(lot => lot.remaining > 0)
@@ -250,7 +336,7 @@ function initChart() {
   // Ensure 5-6 total Y-axis points (4-5 intervals) including zero
   const maxRevenue = Math.max(...cumulativeRevenues, 0);
   const niceSteps = [100, 500, 1000, 2000];
-  
+
   // Find step that gives us 4-5 intervals (5-6 total points including zero)
   let stepSize = 2000; // Default to largest
   for (const step of niceSteps) {
@@ -266,7 +352,7 @@ function initChart() {
     }
     stepSize = step;
   }
-  
+
   // Calculate yMax to ensure exactly 5-6 points
   // Round to nearest multiple of stepSize that gives 4-5 intervals
   let targetIntervals = Math.ceil(maxRevenue / stepSize);
@@ -359,15 +445,15 @@ function initChart() {
           padding: 12,
           cornerRadius: 8,
           displayColors: false,
-            callbacks: {
-              title: function (context) {
-                return context[0].label;
-              },
-              label: function (context) {
-                const value = context.raw;
-                return 'Revenue: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              }
+          callbacks: {
+            title: function (context) {
+              return context[0].label;
+            },
+            label: function (context) {
+              const value = context.raw;
+              return 'Revenue: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
+          }
         },
         verticalLine: verticalLinePlugin
       },
@@ -474,11 +560,11 @@ function animateDashboardTotals(stats, timeLabel) {
   const revenueEl = document.querySelector('.chart-revenue-value');
   const profitSubtitleEl = document.querySelector('.chart-profit-subtitle');
   const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
-  
+
   if (revenueEl) {
     animateCountUp(revenueEl, 0, stats.totalRevenue, 800, (val) => formatCurrency(val));
   }
-  
+
   if (profitSubtitleEl) {
     profitSubtitleEl.className = `chart-profit-subtitle ${profitClass}`;
     const prefix = stats.totalProfit < 0 ? '-' : '';
@@ -521,11 +607,11 @@ export function initDashboardEvents(isInitialLoad = false) {
   // On initial load, delay animations so preloader finishes first
   // Preloader takes ~1800ms total (200ms start + 15 scrambles * 50ms + 800ms fade out)
   const animationDelay = isInitialLoad ? 1400 : 0;
-  
+
   setTimeout(() => {
     // Initialize chart and animate count-up together
     initChart();
-    
+
     const salesData = getSalesForSelectedRange();
     const stats = calculateMonthlyStats(salesData);
     const timeLabel = selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime';
