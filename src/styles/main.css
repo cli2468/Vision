@@ -301,7 +301,7 @@ body {
 /* ===== Bottom Navigation ===== */
 .bottom-nav {
   position: fixed;
-  bottom: 6px;
+  bottom: 0;
   left: 0;
   right: 0;
   height: 78px;
@@ -309,7 +309,7 @@ body {
   background: var(--base);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   gap: 64px;
   z-index: 1000;
 }
@@ -318,7 +318,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 12px;
+  padding-top: 8px;
   color: var(--text-muted);
   transition: color var(--transition-fast), transform var(--transition-fast);
   cursor: pointer;
