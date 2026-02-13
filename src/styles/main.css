@@ -2060,15 +2060,16 @@ body {
   transform: translateX(0) !important;
 }
 
-/* ===== Page Transitions ===== */
-.page-container {
+/* ===== Page Content Container ===== */
+#page-content {
   position: relative;
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-.page-content {
+/* Each page view */
+.page-view {
   position: absolute;
   top: 0;
   left: 0;
@@ -2077,24 +2078,29 @@ body {
   will-change: transform, opacity;
 }
 
-/* Slide animations */
-.slide-enter {
-  animation: slideIn 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* ===== Page Transitions ===== */
+.page-enter {
+  animation: pageEnterForward 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 2;
 }
 
-.slide-exit {
-  animation: slideOut 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.page-exit {
+  animation: pageExitForward 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 1;
 }
 
-.slide-enter-reverse {
-  animation: slideInReverse 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.page-enter-reverse {
+  animation: pageEnterReverse 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 2;
 }
 
-.slide-exit-reverse {
-  animation: slideOutReverse 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.page-exit-reverse {
+  animation: pageExitReverse 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 1;
 }
 
-@keyframes slideIn {
+/* Forward animations */
+@keyframes pageEnterForward {
   from {
     transform: translateX(100%);
     opacity: 0;
@@ -2105,7 +2111,7 @@ body {
   }
 }
 
-@keyframes slideOut {
+@keyframes pageExitForward {
   from {
     transform: translateX(0);
     opacity: 1;
@@ -2116,7 +2122,8 @@ body {
   }
 }
 
-@keyframes slideInReverse {
+/* Reverse animations */
+@keyframes pageEnterReverse {
   from {
     transform: translateX(-100%);
     opacity: 0;
@@ -2127,7 +2134,7 @@ body {
   }
 }
 
-@keyframes slideOutReverse {
+@keyframes pageExitReverse {
   from {
     transform: translateX(0);
     opacity: 1;

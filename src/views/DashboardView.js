@@ -332,36 +332,8 @@ function initChart() {
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 1500,
-        easing: 'easeOutQuart',
-        x: {
-          type: 'number',
-          easing: 'linear',
-          duration: 1500,
-          from: NaN,
-          delay(ctx) {
-            if (ctx.type !== 'data' || ctx.xStarted) {
-              return 0;
-            }
-            ctx.xStarted = true;
-            return ctx.index * (1500 / cumulativeRevenues.length);
-          }
-        },
-        y: {
-          type: 'number',
-          easing: 'linear',
-          duration: 1500,
-          from: (ctx) => {
-            return ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(0) : ctx.chart.getDatasetMeta(0).data[ctx.index - 1].y;
-          },
-          delay(ctx) {
-            if (ctx.type !== 'data' || ctx.yStarted) {
-              return 0;
-            }
-            ctx.yStarted = true;
-            return ctx.index * (1500 / cumulativeRevenues.length);
-          }
-        }
+        duration: 1000,
+        easing: 'easeOutQuart'
       },
       interaction: {
         intersect: false,
@@ -496,6 +468,27 @@ function closeDayModal() {
 }
 
 /**
+ * Animate revenue and profit count-up
+ */
+function animateDashboardTotals(stats, timeLabel) {
+  const revenueEl = document.querySelector('.chart-revenue-value');
+  const profitSubtitleEl = document.querySelector('.chart-profit-subtitle');
+  const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
+  
+  if (revenueEl) {
+    animateCountUp(revenueEl, 0, stats.totalRevenue, 800, (val) => formatCurrency(val));
+  }
+  
+  if (profitSubtitleEl) {
+    profitSubtitleEl.className = `chart-profit-subtitle ${profitClass}`;
+    const prefix = stats.totalProfit < 0 ? '-' : '';
+    animateCountUp(profitSubtitleEl, 0, Math.abs(stats.totalProfit), 800, (val) => {
+      return `${prefix}${formatCurrency(val)} profit this ${timeLabel}`;
+    });
+  }
+}
+
+/**
  * Update chart without full page re-render
  */
 function updateDashboard() {
@@ -519,48 +512,25 @@ function updateDashboard() {
   // Re-render chart
   initChart();
 
-  // Update totals in header
-  const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
+  // Update totals in header with animation
   const timeLabel = selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime';
-
-  const revenueEl = document.querySelector('.chart-revenue-value');
-  if (revenueEl) revenueEl.textContent = formatCurrency(stats.totalRevenue);
-
-  const profitSubtitleEl = document.querySelector('.chart-profit-subtitle');
-  if (profitSubtitleEl) {
-    profitSubtitleEl.className = `chart-profit-subtitle ${profitClass}`;
-    profitSubtitleEl.textContent = `${formatCurrency(Math.abs(stats.totalProfit))} profit this ${timeLabel}`;
-  }
+  animateDashboardTotals(stats, timeLabel);
 }
 
-export function initDashboardEvents() {
-  // Initialize chart on first load
-  initChart();
-
-  // Animate count-up for revenue and profit on page load
+export function initDashboardEvents(isInitialLoad = false) {
+  // On initial load, delay animations so preloader finishes first
+  // Preloader takes ~1800ms total (200ms start + 15 scrambles * 50ms + 800ms fade out)
+  const animationDelay = isInitialLoad ? 1400 : 0;
+  
   setTimeout(() => {
-    const revenueEl = document.querySelector('.chart-revenue-value');
-    const profitEl = document.querySelector('.chart-profit-subtitle');
+    // Initialize chart and animate count-up together
+    initChart();
     
-    if (revenueEl) {
-      const revenueText = revenueEl.textContent;
-      const revenueValue = parseFloat(revenueText.replace(/[$,]/g, '')) || 0;
-      animateCountUp(revenueEl, 0, revenueValue, 800, (val) => formatCurrency(val));
-    }
-    
-    if (profitEl) {
-      const profitText = profitEl.textContent;
-      const profitMatch = profitText.match(/[\d,]+\.?\d*/);
-      if (profitMatch) {
-        const profitValue = parseFloat(profitMatch[0].replace(/,/g, '')) || 0;
-        const prefix = profitText.includes('-') ? '-' : '';
-        const suffix = profitText.split(profitMatch[0])[1] || '';
-        animateCountUp(profitEl, 0, profitValue, 800, (val) => {
-          return (prefix ? '-$' : '$') + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + suffix;
-        });
-      }
-    }
-  }, 100);
+    const salesData = getSalesForSelectedRange();
+    const stats = calculateMonthlyStats(salesData);
+    const timeLabel = selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime';
+    animateDashboardTotals(stats, timeLabel);
+  }, animationDelay);
 
   // Time selector accordion toggle
   const timeSelector = document.getElementById('time-selector');

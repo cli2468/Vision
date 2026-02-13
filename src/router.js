@@ -4,9 +4,10 @@ const routes = {};
 let currentView = null;
 let onRouteChange = null;
 let currentPath = '/';
+let isTransitioning = false;
 
 // Define route order for direction calculation
-const routeOrder = ['/', '/inventory', '/add', '/account'];
+const routeOrder = ['/', '/inventory', '/add'];
 
 /**
  * Register a route
@@ -22,6 +23,9 @@ export function route(path, handler) {
  * @param {string} path - Path to navigate to
  */
 export function navigate(path, direction = null) {
+    // Prevent navigation during transition
+    if (isTransitioning) return;
+    
     // Calculate direction if not provided
     if (direction === null) {
         direction = getNavigationDirection(currentPath, path);
@@ -68,52 +72,80 @@ function handleRoute() {
     
     if (handler) {
         currentView = handler;
-        const app = document.getElementById('app');
-        if (app) {
+        const pageContent = document.getElementById('page-content');
+        
+        if (pageContent) {
             // Get the new content
             const newContent = handler();
             
-            // Apply transition
-            applyPageTransition(app, newContent, direction);
+            // Apply transition only to page-content
+            applyPageTransition(pageContent, newContent, direction);
             
             // Update current path
             currentPath = path;
             
-            // Call the route change callback to init events
+            // Update bottom nav active state without re-rendering
+            updateBottomNavActiveState(path);
+            
+            // Call the route change callback to init events immediately
+            // This starts animations during the slide-in for smoother experience
             if (onRouteChange) {
-                setTimeout(() => onRouteChange(), 400); // Wait for transition
+                onRouteChange();
             }
         }
     }
 }
 
 /**
+ * Update bottom nav active state
+ * @param {string} activeRoute - Current active route
+ */
+function updateBottomNavActiveState(activeRoute) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const route = item.dataset.route;
+        if (route) {
+            item.classList.toggle('active', route === activeRoute);
+        }
+    });
+}
+
+/**
  * Apply page transition animation
- * @param {HTMLElement} app - App container
+ * @param {HTMLElement} pageContent - Page content container
  * @param {string} newContent - New HTML content
  * @param {string} direction - 'forward' or 'reverse'
  */
-function applyPageTransition(app, newContent, direction) {
-    // Create wrapper for transition
-    const wrapper = document.createElement('div');
-    wrapper.className = 'page-container';
-    wrapper.innerHTML = `
-        <div class="page-content slide-exit${direction === 'reverse' ? '-reverse' : ''}">
-            ${app.innerHTML}
-        </div>
-        <div class="page-content slide-enter${direction === 'reverse' ? '-reverse' : ''}">
-            ${newContent}
-        </div>
-    `;
+function applyPageTransition(pageContent, newContent, direction) {
+    if (isTransitioning) return;
+    isTransitioning = true;
     
-    // Replace app content with wrapper
-    app.innerHTML = '';
-    app.appendChild(wrapper);
+    // Store reference to old content
+    const oldContent = pageContent.firstElementChild;
+    
+    // Create new content container
+    const newContentEl = document.createElement('div');
+    newContentEl.className = 'page-view page-enter' + (direction === 'reverse' ? '-reverse' : '');
+    newContentEl.innerHTML = newContent;
+    
+    // Add new content to page
+    pageContent.appendChild(newContentEl);
+    
+    // Animate old content out if it exists
+    if (oldContent) {
+        oldContent.className = 'page-view page-exit' + (direction === 'reverse' ? '-reverse' : '');
+    }
     
     // Clean up after animation
     setTimeout(() => {
-        app.innerHTML = newContent;
-        app.classList.add('ready');
+        // Remove old content
+        if (oldContent && oldContent.parentNode) {
+            oldContent.remove();
+        }
+        
+        // Remove animation classes from new content
+        newContentEl.className = 'page-view';
+        
+        isTransitioning = false;
     }, 400);
 }
 
@@ -126,23 +158,6 @@ export function initRouter(callback) {
     currentPath = getPath();
 
     window.addEventListener('hashchange', handleRoute);
-
-    // Initial route on DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!window.location.hash) {
-                window.location.hash = '/';
-            } else {
-                handleRoute();
-            }
-        });
-    } else {
-        if (!window.location.hash) {
-            window.location.hash = '/';
-        } else {
-            handleRoute();
-        }
-    }
 }
 
 /**
@@ -150,9 +165,9 @@ export function initRouter(callback) {
  */
 export function refresh() {
     if (currentView) {
-        const app = document.getElementById('app');
-        if (app) {
-            app.innerHTML = currentView();
+        const pageContent = document.getElementById('page-content');
+        if (pageContent) {
+            pageContent.innerHTML = currentView();
             if (onRouteChange) {
                 onRouteChange();
             }
