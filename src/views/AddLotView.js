@@ -4,6 +4,7 @@ import { extractOrderData, fileToBase64, createThumbnail } from '../services/ocr
 import { saveLot } from '../services/storage.js';
 import { navigate } from '../router.js';
 import { celebrateSuccess } from '../utils/animations.js';
+import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
 
 let currentState = 'upload'; // 'upload', 'processing', 'preview'
 let ocrProgress = 0;
@@ -37,8 +38,6 @@ function renderUploadState() {
   return `
     <div class="page">
       <div class="container">
-        <h1 class="page-title">Add Lot</h1>
-        
         <div class="upload-area" id="upload-area">
           <div class="upload-icon">📸</div>
           <div class="upload-text">Tap to upload order screenshot</div>
@@ -53,6 +52,22 @@ function renderUploadState() {
             Enter Manually
           </button>
         </div>
+
+        <div style="text-align: center; margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md);">
+          <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-xl);">
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            <span class="text-muted" style="font-size: var(--font-size-sm);">BULK IMPORT</span>
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+          </div>
+        </div>
+
+        <div class="upload-area" id="import-csv-area" style="border-color: rgba(204, 255, 0, 0.15);">
+          <div class="upload-icon">📄</div>
+          <div class="upload-text">Import from CSV</div>
+          <div class="upload-hint">Bulk import lots and sales from a spreadsheet</div>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display: none;" />
+
       </div>
     </div>
   `;
@@ -62,8 +77,6 @@ function renderProcessingState() {
   return `
     <div class="page">
       <div class="container">
-        <h1 class="page-title">Add Lot</h1>
-        
         <div class="card">
           <div class="ocr-progress">
             <div class="progress-spinner"></div>
@@ -81,8 +94,6 @@ function renderPreviewState() {
   return `
     <div class="page">
       <div class="container">
-        <h1 class="page-title">Add Lot</h1>
-        
         ${imagePreview ? `
           <div class="image-preview-container ${zoomClass}" id="image-preview-container">
             <img src="${imagePreview}" class="image-preview ${zoomClass}" alt="Order screenshot" id="preview-image" />
@@ -203,7 +214,7 @@ function saveLotAndNavigate() {
   celebrateSuccess(saveBtn);
 
   resetAddLotState();
-  
+
   // Delay navigation to show celebration
   setTimeout(() => {
     navigate('/inventory');
@@ -255,6 +266,41 @@ export function initAddLotEvents() {
     thumbnailData = null;
     currentState = 'preview';
     window.dispatchEvent(new CustomEvent('viewchange'));
+  });
+
+  // CSV import
+  const importArea = document.getElementById('import-csv-area');
+  const csvFileInput = document.getElementById('csv-file-input');
+
+  importArea?.addEventListener('click', () => {
+    csvFileInput?.click();
+  });
+
+  csvFileInput?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await importLotsFromCSV(file);
+      let message = `Imported ${result.success} lot${result.success !== 1 ? 's' : ''}`;
+      if (result.salesImported > 0) {
+        message += ` and ${result.salesImported} sale${result.salesImported !== 1 ? 's' : ''}`;
+      }
+      if (result.errors.length > 0) {
+        message += `\n\n${result.errors.length} error(s):\n${result.errors.slice(0, 5).join('\n')}`;
+      }
+      alert(message);
+
+      if (result.success > 0) {
+        navigate('/inventory');
+        window.dispatchEvent(new CustomEvent('viewchange'));
+      }
+    } catch (error) {
+      console.error('CSV import failed:', error);
+      alert('Failed to import CSV: ' + error.message);
+    }
+    // Reset input so same file can be re-selected
+    csvFileInput.value = '';
   });
 
   // Auto-select item name on load for quick replacement

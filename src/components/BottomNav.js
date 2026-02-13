@@ -3,7 +3,6 @@
 import { navigate } from '../router.js';
 import { resetAddLotState } from '../views/AddLotView.js';
 
-
 export function BottomNav(activeRoute = '/') {
   return `
     <nav class="bottom-nav">
@@ -18,7 +17,7 @@ export function BottomNav(activeRoute = '/') {
 
       <button class="nav-item nav-inventory ${activeRoute === '/inventory' ? 'active' : ''}" data-route="/inventory" data-anim="inventory">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
           <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
           <line x1="12" y1="22.08" x2="12" y2="12"></line>
         </svg>
@@ -52,10 +51,8 @@ export function initBottomNavEvents() {
       const route = item.dataset.route;
       const animType = item.dataset.anim;
 
-      // Add specific animation class based on the button type
       if (animType) {
         item.classList.add(`${animType}-animating`);
-        // Dashboard needs 600ms (300ms per square x 2 with delays), inventory needs 600ms
         const duration = animType === 'dashboard' ? 700 : 650;
         setTimeout(() => item.classList.remove(`${animType}-animating`), duration);
       }
@@ -63,7 +60,6 @@ export function initBottomNavEvents() {
       if (route === '/add') {
         resetAddLotState();
       }
-      // Let the router calculate direction from its own up-to-date currentPath
       navigate(route);
     });
   });
@@ -71,12 +67,8 @@ export function initBottomNavEvents() {
   // Account button opens login modal
   document.getElementById('account-btn')?.addEventListener('click', (e) => {
     const btn = e.currentTarget;
-
-    // Add account animation
     btn.classList.add('account-animating');
     setTimeout(() => btn.classList.remove('account-animating'), 500);
-
-    // Open login/account modal
     window.dispatchEvent(new CustomEvent('open-login-modal'));
   });
 }

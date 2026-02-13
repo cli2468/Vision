@@ -2,7 +2,6 @@
 
 import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn, markSaleReturned } from '../services/storage.js';
 import { formatCurrency, formatDate, PLATFORM_FEES, calculateSaleProfit } from '../services/calculations.js';
-import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
 import { celebrateSuccess } from '../utils/animations.js';
 
 let activeTab = 'unsold';
@@ -15,7 +14,6 @@ let selectedPlatform = 'facebook';
 let expandedLots = new Set();
 let shippingCost = '';
 let saleDate = new Date().toISOString().split('T')[0]; // Default to today
-let showImportModal = false;
 
 // Edit sale state
 let editSaleData = null; // { lotId, saleId, sale }
@@ -65,24 +63,11 @@ export function InventoryView() {
   const filteredLots = getFilteredAndSortedLots();
 
   const modalHtml = selectedLotId ? renderSaleModal() : '';
-  const importModalHtml = showImportModal ? renderImportModal() : '';
   const editSaleModalHtml = editSaleData ? renderEditSaleModal() : '';
 
   return `
     <div class="page">
       <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-          <h1 class="page-title" style="margin-bottom: 0;">Inventory</h1>
-          <button class="btn btn-secondary btn-sm" id="import-csv-btn" style="padding: 8px 12px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            Import
-          </button>
-        </div>
-        
         <div class="tabs">
           <button class="tab ${activeTab === 'all' ? 'active' : ''}" data-tab="all">All</button>
           <button class="tab ${activeTab === 'unsold' ? 'active' : ''}" data-tab="unsold">Available</button>
@@ -113,7 +98,6 @@ export function InventoryView() {
       </div>
     </div>
     ${modalHtml}
-    ${importModalHtml}
     ${editSaleModalHtml}
   `;
 }
@@ -161,7 +145,7 @@ function renderLotCard(lot, index = 0) {
     </button>
   ` : '';
 
-return `
+  return `
     <div class="lot-card-swipe-wrapper" data-lot-id="${lot.id}" style="animation: cardFadeIn 0.3s ease-out forwards; animation-delay: ${index * 20}ms; opacity: 0;">
       <!-- Background Actions - shown when card is swiped -->
       <div class="swipe-actions-bg">
@@ -386,7 +370,7 @@ function renderSaleModal() {
   );
 
   const isEbay = selectedPlatform === 'ebay';
-  
+
   // Platform icons as SVG
   const platformIcons = {
     facebook: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>`,
@@ -836,30 +820,30 @@ function initLotCardEvents() {
         markSaleReturned(lotId, saleId);
         window.dispatchEvent(new CustomEvent('viewchange'));
       }
+    });
   });
-});
 
-// Initialize swipe functionality for lot cards
-initSwipeHandlers();
+  // Initialize swipe functionality for lot cards
+  initSwipeHandlers();
 
 }
 
 // Swipe handling functions
 function initSwipeHandlers() {
   const swipeWrappers = document.querySelectorAll('.lot-card-swipe-wrapper');
-  
+
   swipeWrappers.forEach(wrapper => {
     const card = wrapper.querySelector('.lot-card');
     const lotId = wrapper.dataset.lotId;
-    
+
     if (!card) return;
-    
+
     let startX = 0;
     let currentX = 0;
     let isDragging = false;
     let startY = 0;
     let isHorizontal = false;
-    
+
     // Touch start
     card.addEventListener('touchstart', (e) => {
       startX = e.touches[0].clientX;
@@ -868,16 +852,16 @@ function initSwipeHandlers() {
       isHorizontal = false;
       card.classList.add('swiping');
     }, { passive: true });
-    
+
     // Touch move
     card.addEventListener('touchmove', (e) => {
       if (!isDragging) return;
-      
+
       const touchX = e.touches[0].clientX;
       const touchY = e.touches[0].clientY;
       const deltaX = touchX - startX;
       const deltaY = touchY - startY;
-      
+
       // Determine if horizontal swipe on first significant movement
       if (!isHorizontal && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
         isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
@@ -885,16 +869,16 @@ function initSwipeHandlers() {
           wrapper.classList.add('swiping');
         }
       }
-      
+
       if (isHorizontal) {
         e.preventDefault();
         currentX = deltaX;
-        
+
         // Limit the swipe distance
         const maxSwipe = 120;
         const clampedX = Math.max(-maxSwipe, Math.min(maxSwipe, currentX));
         card.style.transform = `translateX(${clampedX}px)`;
-        
+
         // Show action indicators
         if (currentX < -40) {
           wrapper.classList.add('swiping-left');
@@ -907,16 +891,16 @@ function initSwipeHandlers() {
         }
       }
     }, { passive: false });
-    
+
     // Touch end
     card.addEventListener('touchend', () => {
       if (!isDragging) return;
       isDragging = false;
       card.classList.remove('swiping');
       wrapper.classList.remove('swiping');
-      
+
       const threshold = 80;
-      
+
       if (currentX > threshold) {
         // Full right swipe - EDIT (now appears on left side)
         card.style.transform = 'translateX(80px)';
@@ -976,10 +960,10 @@ function initSwipeHandlers() {
       } else {
         resetCardPosition(card);
       }
-      
+
       wrapper.classList.remove('swiping-left', 'swiping-right');
     });
-    
+
     // Mouse events for desktop
     card.addEventListener('mousedown', (e) => {
       startX = e.clientX;
@@ -988,28 +972,28 @@ function initSwipeHandlers() {
       isHorizontal = false;
       card.classList.add('swiping');
     });
-    
+
     card.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
-      
+
       const deltaX = e.clientX - startX;
       const deltaY = e.clientY - startY;
-      
+
       if (!isHorizontal && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
         isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
         if (isHorizontal) {
           wrapper.classList.add('swiping');
         }
       }
-      
+
       if (isHorizontal) {
         e.preventDefault();
         currentX = deltaX;
-        
+
         const maxSwipe = 120;
         const clampedX = Math.max(-maxSwipe, Math.min(maxSwipe, currentX));
         card.style.transform = `translateX(${clampedX}px)`;
-        
+
         if (currentX < -40) {
           wrapper.classList.add('swiping-left');
           wrapper.classList.remove('swiping-right');
@@ -1021,15 +1005,15 @@ function initSwipeHandlers() {
         }
       }
     });
-    
+
     card.addEventListener('mouseup', () => {
       if (!isDragging) return;
       isDragging = false;
       card.classList.remove('swiping');
       wrapper.classList.remove('swiping');
-      
+
       const threshold = 80;
-      
+
       if (currentX > threshold) {
         // Full right swipe - EDIT
         card.style.transform = 'translateX(80px)';
@@ -1055,10 +1039,10 @@ function initSwipeHandlers() {
       } else {
         resetCardPosition(card);
       }
-      
+
       wrapper.classList.remove('swiping-left', 'swiping-right');
     });
-    
+
     card.addEventListener('mouseleave', () => {
       if (isDragging) {
         isDragging = false;
@@ -1239,7 +1223,7 @@ export function initInventoryEvents() {
   // Quantity stepper buttons - works on both desktop and mobile
   const decreaseBtn = document.getElementById('decrease-qty');
   const increaseBtn = document.getElementById('increase-qty');
-  
+
   function handleDecrease(e) {
     if (e) {
       e.preventDefault();
@@ -1256,7 +1240,7 @@ export function initInventoryEvents() {
       }
     }
   }
-  
+
   function handleIncrease(e) {
     if (e) {
       e.preventDefault();
@@ -1273,12 +1257,12 @@ export function initInventoryEvents() {
       }
     }
   }
-  
+
   if (decreaseBtn) {
     decreaseBtn.addEventListener('click', handleDecrease);
     decreaseBtn.addEventListener('touchstart', handleDecrease, { passive: false });
   }
-  
+
   if (increaseBtn) {
     increaseBtn.addEventListener('click', handleIncrease);
     increaseBtn.addEventListener('touchstart', handleIncrease, { passive: false });

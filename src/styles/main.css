@@ -335,6 +335,44 @@ body {
   transition: fill var(--transition-fast);
 }
 
+.nav-item.active {
+  color: #ffffff;
+}
+
+
+/* Inventory bounce animation */
+.inventory-animating svg {
+  animation: iconBounce 500ms ease !important;
+  display: block;
+}
+
+@keyframes iconBounce {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+
+  20% {
+    transform: scale(1.15) translateY(-3px);
+  }
+
+  40% {
+    transform: scale(0.95) translateY(1px);
+  }
+
+  60% {
+    transform: scale(1.05) translateY(-1px);
+  }
+
+  80% {
+    transform: scale(0.98) translateY(0);
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+
 /* ===== Buttons ===== */
 .btn {
   display: inline-flex;
