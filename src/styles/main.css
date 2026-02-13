@@ -795,6 +795,36 @@ body {
   background: var(--bg-card);
 }
 
+.modal-overlay.closing {
+  animation: fadeOut 0.25s ease forwards;
+}
+
+.modal-overlay.closing .modal-content {
+  animation: slideDownExit 0.25s ease forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideDownExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
 /* ===== Upload Area ===== */
 .upload-area {
   border: 2px dashed rgba(204, 255, 0, 0.3);
@@ -1037,7 +1067,7 @@ body {
   }
 }
 
-@keyframes slideUp {
+@keyframes collapseUp {
   from {
     opacity: 1;
     max-height: 1000px;

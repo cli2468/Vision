@@ -1,27 +1,8 @@
 // Bottom Navigation Component
 
-import { navigate, getCurrentRoute } from '../router.js';
+import { navigate } from '../router.js';
 import { resetAddLotState } from '../views/AddLotView.js';
 
-// Define route order for direction calculation
-const routeOrder = ['/', '/inventory', '/add'];
-
-/**
- * Calculate navigation direction based on route order
- * @param {string} from - Current path
- * @param {string} to - Target path
- * @returns {string} 'forward' or 'reverse'
- */
-function getNavigationDirection(from, to) {
-    const fromIndex = routeOrder.indexOf(from);
-    const toIndex = routeOrder.indexOf(to);
-    
-    if (fromIndex === -1 || toIndex === -1) {
-        return 'forward';
-    }
-    
-    return toIndex > fromIndex ? 'forward' : 'reverse';
-}
 
 export function BottomNav(activeRoute = '/') {
   return `
@@ -60,15 +41,17 @@ export function BottomNav(activeRoute = '/') {
   `;
 }
 
+let eventsInitialized = false;
+
 export function initBottomNavEvents() {
-  const currentRoute = getCurrentRoute();
-  
+  if (eventsInitialized) return;
+  eventsInitialized = true;
+
   document.querySelectorAll('.nav-item[data-route]').forEach(item => {
     item.addEventListener('click', (e) => {
       const route = item.dataset.route;
       const animType = item.dataset.anim;
-      const direction = getNavigationDirection(currentRoute, route);
-      
+
       // Add specific animation class based on the button type
       if (animType) {
         item.classList.add(`${animType}-animating`);
@@ -76,22 +59,23 @@ export function initBottomNavEvents() {
         const duration = animType === 'dashboard' ? 700 : 650;
         setTimeout(() => item.classList.remove(`${animType}-animating`), duration);
       }
-      
+
       if (route === '/add') {
         resetAddLotState();
       }
-      navigate(route, direction);
+      // Let the router calculate direction from its own up-to-date currentPath
+      navigate(route);
     });
   });
 
   // Account button opens login modal
   document.getElementById('account-btn')?.addEventListener('click', (e) => {
     const btn = e.currentTarget;
-    
+
     // Add account animation
     btn.classList.add('account-animating');
     setTimeout(() => btn.classList.remove('account-animating'), 500);
-    
+
     // Open login/account modal
     window.dispatchEvent(new CustomEvent('open-login-modal'));
   });

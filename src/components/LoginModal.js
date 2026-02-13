@@ -5,9 +5,12 @@ import { getLots, setLots } from '../services/storage.js';
 
 let isOpen = false;
 
+// LoginModal() returns empty string — modal is opened/closed via direct DOM manipulation
 export function LoginModal() {
-  if (!isOpen) return '';
+  return '';
+}
 
+function getModalHtml() {
   const user = auth.currentUser;
 
   return `
@@ -74,6 +77,39 @@ function renderUserAccount(user) {
   `;
 }
 
+/**
+ * Open the login modal by inserting it into the DOM exactly once
+ */
+function openModal() {
+  if (isOpen) return;
+  isOpen = true;
+
+  const container = document.getElementById('modal-container');
+  if (!container) return;
+
+  container.innerHTML = getModalHtml();
+}
+
+/**
+ * Close the login modal with slide-down animation
+ */
+function closeModal() {
+  if (!isOpen) return;
+  isOpen = false;
+
+  const overlay = document.getElementById('login-modal-overlay');
+  if (overlay) {
+    overlay.classList.add('closing');
+    setTimeout(() => {
+      const container = document.getElementById('modal-container');
+      if (container) container.innerHTML = '';
+    }, 250);
+  } else {
+    const container = document.getElementById('modal-container');
+    if (container) container.innerHTML = '';
+  }
+}
+
 let eventsInitialized = false;
 
 export function initLoginModalEvents() {
@@ -81,37 +117,37 @@ export function initLoginModalEvents() {
   if (eventsInitialized) return;
   eventsInitialized = true;
 
+  // Open modal when profile icon is clicked
   window.addEventListener('open-login-modal', () => {
-    isOpen = true;
-    window.dispatchEvent(new CustomEvent('viewchange'));
+    openModal();
   });
 
+  // Delegated click handler for modal buttons
   document.addEventListener('click', async (e) => {
+    // Google sign-in
     if (e.target.id === 'google-signin-btn' || e.target.closest('#google-signin-btn')) {
       try {
         const user = await signInWithGoogle();
         if (user) {
-          isOpen = false;
-          window.dispatchEvent(new CustomEvent('viewchange'));
+          closeModal();
         }
       } catch (error) {
         console.error('Sign-in error:', error);
-        // Only show alert for actual config errors, not user cancellation
         if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
           alert("Failed to sign in: " + (error.message || "Check project config."));
         }
       }
     }
 
+    // Sign out
     if (e.target.id === 'logout-btn') {
       await logout();
-      isOpen = false;
-      window.dispatchEvent(new CustomEvent('viewchange'));
+      closeModal();
     }
 
-    if (e.target.id === 'close-login-modal' || e.target.id === 'login-modal-overlay') {
-      isOpen = false;
-      window.dispatchEvent(new CustomEvent('viewchange'));
+    // Close button or overlay click
+    if (e.target.closest('#close-login-modal') || e.target.id === 'login-modal-overlay') {
+      closeModal();
     }
   });
 
@@ -121,18 +157,15 @@ export function initLoginModalEvents() {
     if (user && !syncInitialized) {
       syncInitialized = true;
 
-      // Start real-time sync listener - only sync on first callback (initial load)
+      // Start real-time sync listener
       let isFirstSync = true;
       syncLots((cloudLots) => {
         if (isFirstSync) {
           isFirstSync = false;
-          // Cloud is the SOLE source of truth
-          // Always use cloud data, even if empty (means everything was deleted)
           console.log('📥 Initial sync: replacing local with', cloudLots.length, 'cloud items');
           setLots(cloudLots);
           window.dispatchEvent(new CustomEvent('viewchange'));
         }
-        // After initial sync, changes are pushed from local to cloud, not pulled
       });
     } else if (!user) {
       syncInitialized = false;

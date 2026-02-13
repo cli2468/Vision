@@ -35,7 +35,7 @@ function initEvents() {
       initAddLotEvents();
       break;
   }
-  
+
   // After first call, it's no longer initial load
   isInitialLoad = false;
 }
@@ -79,9 +79,6 @@ function scheduleViewChange() {
   }, 150); // 150ms debounce
 }
 
-// Handle custom view change events (for modals, state updates, etc.)
-window.addEventListener('viewchange', scheduleViewChange);
-
 // Handle Firebase Auth state changes globally to re-render
 onAuthStateChanged(auth, () => {
   scheduleViewChange();
@@ -93,7 +90,7 @@ function initApp() {
   if (!app) return;
 
   const currentRoute = getCurrentRoute();
-  
+
   // Create the initial app structure
   app.innerHTML = `
     <div id="page-content"></div>
@@ -121,18 +118,34 @@ function initApp() {
   const pageContent = document.getElementById('page-content');
   pageContent.innerHTML = `<div class="page-view">${content}</div>`;
   initEvents();
-  
+
   // Mark app as ready
   app.classList.add('ready');
 }
 
-// Update modal when state changes
+// Handle viewchange events from inventory/dashboard/addlot (e.g. after recording a sale)
+// Uses refresh() to update the current view content without transition animations
 window.addEventListener('viewchange', () => {
-  const modalContainer = document.getElementById('modal-container');
-  if (modalContainer) {
-    modalContainer.innerHTML = LoginModal();
-    initLoginModalEvents();
+  const pageContent = document.getElementById('page-content');
+  if (!pageContent) return;
+
+  const currentRoute = getCurrentRoute();
+  let content;
+  switch (currentRoute) {
+    case '/':
+      content = DashboardView();
+      break;
+    case '/inventory':
+      content = InventoryView();
+      break;
+    case '/add':
+      content = AddLotView();
+      break;
+    default:
+      content = DashboardView();
   }
+  pageContent.innerHTML = `<div class="page-view">${content}</div>`;
+  initEvents();
 });
 
 // Initialize app on load
