@@ -3,6 +3,7 @@
 import { getAllSales, getSalesByDateRange, getLots, getLotsNearingReturnDeadline, getReturnDeadline, markReturned, dismissReturnAlert } from '../services/storage.js';
 import { calculateMonthlyStats, formatCurrency } from '../services/calculations.js';
 import { aggregateSalesByDay, getSalesForDay } from '../services/chartData.js';
+import { animateCountUp } from '../utils/animations.js';
 
 // Current selected time range for dashboard
 let selectedRange = '30d'; // '7d' | '30d' | '90d' | 'all'
@@ -331,8 +332,36 @@ function initChart() {
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 600,
-        easing: 'easeOutQuart'
+        duration: 1500,
+        easing: 'easeOutQuart',
+        x: {
+          type: 'number',
+          easing: 'linear',
+          duration: 1500,
+          from: NaN,
+          delay(ctx) {
+            if (ctx.type !== 'data' || ctx.xStarted) {
+              return 0;
+            }
+            ctx.xStarted = true;
+            return ctx.index * (1500 / cumulativeRevenues.length);
+          }
+        },
+        y: {
+          type: 'number',
+          easing: 'linear',
+          duration: 1500,
+          from: (ctx) => {
+            return ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(0) : ctx.chart.getDatasetMeta(0).data[ctx.index - 1].y;
+          },
+          delay(ctx) {
+            if (ctx.type !== 'data' || ctx.yStarted) {
+              return 0;
+            }
+            ctx.yStarted = true;
+            return ctx.index * (1500 / cumulativeRevenues.length);
+          }
+        }
       },
       interaction: {
         intersect: false,
@@ -507,6 +536,31 @@ function updateDashboard() {
 export function initDashboardEvents() {
   // Initialize chart on first load
   initChart();
+
+  // Animate count-up for revenue and profit on page load
+  setTimeout(() => {
+    const revenueEl = document.querySelector('.chart-revenue-value');
+    const profitEl = document.querySelector('.chart-profit-subtitle');
+    
+    if (revenueEl) {
+      const revenueText = revenueEl.textContent;
+      const revenueValue = parseFloat(revenueText.replace(/[$,]/g, '')) || 0;
+      animateCountUp(revenueEl, 0, revenueValue, 800, (val) => formatCurrency(val));
+    }
+    
+    if (profitEl) {
+      const profitText = profitEl.textContent;
+      const profitMatch = profitText.match(/[\d,]+\.?\d*/);
+      if (profitMatch) {
+        const profitValue = parseFloat(profitMatch[0].replace(/,/g, '')) || 0;
+        const prefix = profitText.includes('-') ? '-' : '';
+        const suffix = profitText.split(profitMatch[0])[1] || '';
+        animateCountUp(profitEl, 0, profitValue, 800, (val) => {
+          return (prefix ? '-$' : '$') + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + suffix;
+        });
+      }
+    }
+  }, 100);
 
   // Time selector accordion toggle
   const timeSelector = document.getElementById('time-selector');

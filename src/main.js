@@ -1,7 +1,7 @@
 // ResellTracker - Main Application Entry Point
 
 import './styles/main.css';
-import { route, initRouter } from './router.js';
+import { route, initRouter, getCurrentRoute } from './router.js';
 import { DashboardView, initDashboardEvents } from './views/DashboardView.js';
 import { InventoryView, initInventoryEvents } from './views/InventoryView.js';
 import { AddLotView, initAddLotEvents } from './views/AddLotView.js';
@@ -9,12 +9,7 @@ import { BottomNav, initBottomNavEvents } from './components/BottomNav.js';
 import { LoginModal, initLoginModalEvents } from './components/LoginModal.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase.js';
-
-// Get current route from hash
-function getCurrentRoute() {
-  const hash = window.location.hash.slice(1);
-  return hash || '/';
-}
+import { initRippleEffects } from './utils/animations.js';
 
 // Render the full app layout
 function renderApp(viewContent, activeRoute) {
@@ -28,6 +23,7 @@ function initEvents() {
   // Always init global components
   initBottomNavEvents();
   initLoginModalEvents();
+  initRippleEffects();
 
   // Route-specific events
   switch (currentRoute) {

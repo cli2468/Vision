@@ -3,6 +3,7 @@
 import { extractOrderData, fileToBase64, createThumbnail } from '../services/ocr.js';
 import { saveLot } from '../services/storage.js';
 import { navigate } from '../router.js';
+import { celebrateSuccess } from '../utils/animations.js';
 
 let currentState = 'upload'; // 'upload', 'processing', 'preview'
 let ocrProgress = 0;
@@ -197,9 +198,16 @@ function saveLotAndNavigate() {
     imageData: thumbnailData
   });
 
+  // Celebrate successful save
+  const saveBtn = document.getElementById('save-lot-btn');
+  celebrateSuccess(saveBtn);
 
   resetAddLotState();
-  navigate('/inventory');
+  
+  // Delay navigation to show celebration
+  setTimeout(() => {
+    navigate('/inventory');
+  }, 1000);
 }
 
 export function initAddLotEvents() {

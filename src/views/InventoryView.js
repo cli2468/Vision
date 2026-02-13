@@ -3,6 +3,7 @@
 import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn, markSaleReturned } from '../services/storage.js';
 import { formatCurrency, formatDate, PLATFORM_FEES, calculateSaleProfit } from '../services/calculations.js';
 import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
+import { celebrateSuccess } from '../utils/animations.js';
 
 let activeTab = 'unsold';
 let searchQuery = '';
@@ -1317,11 +1318,14 @@ export function initInventoryEvents() {
         btn.disabled = true;
       }
 
+      // Trigger confetti celebration
+      celebrateSuccess(btn);
+
       // Delay the actual sale recording and refresh until animation completes
       setTimeout(() => {
         recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
         closeSaleModal();
-      }, 800);
+      }, 1200);
     }
   });
 

@@ -1,7 +1,27 @@
 // Bottom Navigation Component
 
-import { navigate } from '../router.js';
+import { navigate, getCurrentRoute } from '../router.js';
 import { resetAddLotState } from '../views/AddLotView.js';
+
+// Define route order for direction calculation
+const routeOrder = ['/', '/inventory', '/add'];
+
+/**
+ * Calculate navigation direction based on route order
+ * @param {string} from - Current path
+ * @param {string} to - Target path
+ * @returns {string} 'forward' or 'reverse'
+ */
+function getNavigationDirection(from, to) {
+    const fromIndex = routeOrder.indexOf(from);
+    const toIndex = routeOrder.indexOf(to);
+    
+    if (fromIndex === -1 || toIndex === -1) {
+        return 'forward';
+    }
+    
+    return toIndex > fromIndex ? 'forward' : 'reverse';
+}
 
 export function BottomNav(activeRoute = '/') {
   return `
@@ -30,7 +50,7 @@ export function BottomNav(activeRoute = '/') {
         </svg>
       </button>
       
-      <button class="nav-item ${activeRoute === '/account' ? 'active' : ''}" id="account-btn" data-route="/account">
+      <button class="nav-item" id="account-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
@@ -41,13 +61,33 @@ export function BottomNav(activeRoute = '/') {
 }
 
 export function initBottomNavEvents() {
+  const currentRoute = getCurrentRoute();
+  
   document.querySelectorAll('.nav-item[data-route]').forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('click', (e) => {
       const route = item.dataset.route;
+      const direction = getNavigationDirection(currentRoute, route);
+      
+      // Add spring animation class
+      item.classList.add('spring-active');
+      setTimeout(() => item.classList.remove('spring-active'), 400);
+      
       if (route === '/add') {
         resetAddLotState();
       }
-      navigate(route);
+      navigate(route, direction);
     });
+  });
+
+  // Account button opens login modal
+  document.getElementById('account-btn')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    
+    // Add spring animation
+    btn.classList.add('spring-active');
+    setTimeout(() => btn.classList.remove('spring-active'), 400);
+    
+    // Open login/account modal
+    window.dispatchEvent(new CustomEvent('open-login-modal'));
   });
 }
