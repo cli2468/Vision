@@ -304,21 +304,21 @@ body {
   bottom: 6px;
   left: 0;
   right: 0;
-  height: 70px;
+  height: 78px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--base);
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
   align-items: center;
+  gap: 64px;
   z-index: 1000;
 }
 
 .nav-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  flex: 1;
-  padding: 0;
+  padding-top: 12px;
   color: var(--text-muted);
   transition: color var(--transition-fast), transform var(--transition-fast);
   cursor: pointer;
