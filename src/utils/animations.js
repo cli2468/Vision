@@ -161,10 +161,13 @@ export function staggerListItems(selector, delay = 100) {
 }
 
 /**
- * Add ripple effect to all buttons
+ * Add ripple effect to all buttons except nav items
  */
 export function initRippleEffects() {
   document.querySelectorAll('button, .btn').forEach(button => {
+    // Skip nav items - they have their own animations
+    if (button.classList.contains('nav-item')) return;
+    
     button.classList.add('ripple-btn');
     button.addEventListener('click', (e) => createRipple(e, button));
   });

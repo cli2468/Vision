@@ -326,17 +326,7 @@ body {
   background: none;
 }
 
-.nav-item:active {
-  transform: scale(0.95);
-}
 
-.nav-item.active {
-  color: var(--accent-primary);
-}
-
-.nav-item.active svg {
-  fill: var(--accent-primary);
-}
 
 .nav-item svg {
   width: 28px;
@@ -1924,7 +1914,8 @@ body {
 /* Fix for iOS date input width issues */
 @supports (-webkit-touch-callout: none) {
   .date-group input[type="date"] {
-    font-size: 16px; /* Prevent iOS zoom */
+    font-size: 16px;
+    /* Prevent iOS zoom */
     min-height: 48px;
   }
 }
@@ -2025,6 +2016,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2105,6 +2097,7 @@ body {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -2116,6 +2109,7 @@ body {
     transform: translateX(0);
     opacity: 1;
   }
+
   to {
     transform: translateX(-30%);
     opacity: 0;
@@ -2128,6 +2122,7 @@ body {
     transform: translateX(-100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -2139,6 +2134,7 @@ body {
     transform: translateX(0);
     opacity: 1;
   }
+
   to {
     transform: translateX(30%);
     opacity: 0;
@@ -2147,11 +2143,25 @@ body {
 
 /* ===== Spring Animations for Nav ===== */
 @keyframes springBounce {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.2); }
-  50% { transform: scale(0.95); }
-  70% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  30% {
+    transform: scale(1.2);
+  }
+
+  50% {
+    transform: scale(0.95);
+  }
+
+  70% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .nav-item.spring-active svg {
@@ -2186,6 +2196,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2224,6 +2235,7 @@ body {
     opacity: 1;
     transform: translateY(0) rotate(0deg) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translateY(100vh) rotate(720deg) scale(0.5);
@@ -2262,9 +2274,17 @@ body {
 
 /* ===== Success Celebration Animation ===== */
 @keyframes successPop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .success-celebrate {
@@ -2279,4 +2299,170 @@ body {
 
 #app.ready {
   opacity: 1;
+}
+
+/* ===== Nav Icon Animations ===== */
+
+/* Dashboard - Grid Pulse Animation */
+@keyframes dashboardPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  25% {
+    transform: scale(0.9);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  75% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Dashboard - Sequential Square Pop Animation */
+.nav-item.dashboard-animating svg rect:nth-child(1) {
+  animation: squarePop 300ms ease-out 0ms forwards;
+  transform-origin: center;
+}
+
+.nav-item.dashboard-animating svg rect:nth-child(2) {
+  animation: squarePop 300ms ease-out 100ms forwards;
+  transform-origin: center;
+}
+
+.nav-item.dashboard-animating svg rect:nth-child(3) {
+  animation: squarePop 300ms ease-out 200ms forwards;
+  transform-origin: center;
+}
+
+.nav-item.dashboard-animating svg rect:nth-child(4) {
+  animation: squarePop 300ms ease-out 300ms forwards;
+  transform-origin: center;
+}
+
+@keyframes squarePop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.7);
+    fill: var(--accent-primary);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Inventory - Box Unfold Animation */
+@keyframes boxUnfold {
+  0% {
+    transform: perspective(200px) rotateX(0deg);
+  }
+
+  40% {
+    transform: perspective(200px) rotateX(-25deg);
+  }
+
+  70% {
+    transform: perspective(200px) rotateX(-15deg);
+  }
+
+  100% {
+    transform: perspective(200px) rotateX(0deg);
+  }
+}
+
+.nav-item.inventory-animating svg {
+  animation: boxUnfold 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center bottom;
+}
+
+15% {
+  transform: scale(0.95) rotate(-2deg);
+}
+
+30% {
+  transform: scale(1.05) rotate(2deg);
+}
+
+45% {
+  transform: scale(0.98) rotate(-1deg);
+}
+
+60% {
+  transform: scale(1.4) rotate(0deg);
+}
+
+80% {
+  transform: scale(1.2) rotate(0deg);
+}
+
+100% {
+  transform: scale(1) rotate(0deg);
+}
+
+
+.nav-item.inventory-animating svg {
+  animation: jackInTheBox 600ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transform-origin: center;
+}
+
+/* Plus/Add - Spin with Ease Animation */
+@keyframes plusSpin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  40% {
+    transform: rotate(180deg) scale(1.2);
+  }
+
+  70% {
+    transform: rotate(360deg) scale(0.9);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.nav-item.add-animating svg {
+  animation: plusSpin 700ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+/* Account - User Bounce Animation */
+@keyframes userBounce {
+  0% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-8px);
+  }
+
+  50% {
+    transform: translateY(2px);
+  }
+
+  70% {
+    transform: translateY(-4px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.nav-item.account-animating svg {
+  animation: userBounce 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
