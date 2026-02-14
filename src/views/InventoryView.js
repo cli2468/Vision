@@ -357,23 +357,28 @@ function renderEditSaleModal() {
           </button>
         </div>
         
-        <p class="text-secondary" style="margin-bottom: var(--spacing-lg);">
+        <p class="text-secondary" style="margin-bottom: var(--spacing-sm);">
           Sold ${sale.unitsSold} unit${sale.unitsSold > 1 ? 's' : ''} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}
         </p>
+        <p class="text-muted" style="margin-bottom: var(--spacing-lg);">
+          Original sale date: ${formatDate(sale.dateSold)}
+        </p>
         
-        <div class="form-group">
-          <label class="form-label">Price Per Unit ($)</label>
-          <input type="number" class="form-input" id="edit-sale-price" placeholder="0.00" step="0.01" min="0" value="${priceValue}" inputmode="decimal" />
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Price / Unit ($)</label>
+            <input type="number" class="form-input" id="edit-sale-price" placeholder="0.00" step="0.01" min="0" value="${priceValue}" inputmode="decimal" />
+          </div>
+          
+          ${sale.platform === 'ebay' ? `
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Ship / Unit ($)</label>
+              <input type="number" class="form-input" id="edit-shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingValue}" inputmode="decimal" />
+            </div>
+          ` : '<div class="form-group" style="margin-bottom: 0;"></div>'}
         </div>
         
-        ${sale.platform === 'ebay' ? `
-          <div class="form-group">
-            <label class="form-label">Shipping Cost Per Unit ($)</label>
-            <input type="number" class="form-input" id="edit-shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingValue}" inputmode="decimal" />
-          </div>
-        ` : ''}
-        
-        <div class="form-group">
+        <div class="form-group date-group">
           <label class="form-label">Sale Date</label>
           <input type="date" class="form-input" id="edit-sale-date" value="${dateValue}" />
         </div>
