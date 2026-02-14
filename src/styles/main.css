@@ -123,6 +123,8 @@ body {
 
 .page {
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-lg) 0;
   animation: fadeIn 0.3s ease;
 }
@@ -2323,8 +2325,8 @@ body {
 #page-content {
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  overflow-x: hidden;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 /* Each page view */
