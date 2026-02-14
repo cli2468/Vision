@@ -1,6 +1,6 @@
 // Inventory View - List all lots with sale recording
 
-import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn, markSaleReturned } from '../services/storage.js';
+import { getLots, recordSale, deleteLot, updateLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn, markSaleReturned } from '../services/storage.js';
 import { formatCurrency, formatDate, PLATFORM_FEES, calculateSaleProfit } from '../services/calculations.js';
 import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
 import { celebrateSuccess } from '../utils/animations.js';
@@ -167,7 +167,7 @@ function renderLotCard(lot, index = 0) {
       ${renderSalesList(lot)}
     </div>
   ` : '';
-  
+
   const viewSalesBtn = hasAnySales ? `
     <button class="btn btn-text toggle-sales ${isExpanded ? 'active' : ''}" data-lot-id="${lot.id}">
       ${isExpanded ? 'Hide Sales' : `View ${lot.sales.length} Sale${lot.sales.length > 1 ? 's' : ''}`}
@@ -271,7 +271,7 @@ function renderSalesList(lot) {
     const profitDisplay = sale.returned
       ? `<span class="sale-profit ${profitClass} crossed">${formatCurrency(sale.profit, true)}</span>`
       : `<span class="sale-profit ${profitClass}">${formatCurrency(sale.profit, true)}</span>`;
-    
+
     return `
         <div class="sale-item ${sale.returned ? 'returned' : ''}">
           <div class="sale-item-left">
@@ -916,11 +916,11 @@ function initLotCardEvents() {
   document.querySelectorAll('.edit-sale-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      
+
       // Remove any existing edit sale modal first
       const existingModal = document.getElementById('edit-sale-modal');
       if (existingModal) existingModal.remove();
-      
+
       const { lotId, saleId } = btn.dataset;
       const lot = getLots().find(l => l.id === lotId);
       const sale = lot?.sales.find(s => s.id === saleId);
@@ -1214,12 +1214,12 @@ function openEditLotModal(lotId) {
   editLotUnitCost = '';
   editLotQuantity = '';
   editLotPurchaseDate = '';
-  
+
   // Reset events flag when opening fresh
   editLotEventsAttached = false;
-  
+
   window.dispatchEvent(new CustomEvent('viewchange'));
-  
+
   // Attach events after DOM update
   setTimeout(() => {
     attachEditLotModalEvents();
@@ -1254,11 +1254,11 @@ function handleSaveEditLot(e) {
     e.preventDefault();
     e.stopPropagation();
   }
-  
+
   if (!editLotData) return;
 
   const { lot } = editLotData;
-  
+
   // Parse values - editLotUnitCost is now TOTAL cost (like Add Manually screen)
   const newName = editLotName !== '' ? editLotName.trim() : lot.name;
   const newTotalCostDollars = editLotUnitCost !== '' ? parseFloat(editLotUnitCost) : (lot.unitCost * lot.quantity) / 100;
@@ -1331,7 +1331,7 @@ function attachEditLotModalEvents() {
   // Prevent duplicate event attachment
   if (editLotEventsAttached) return;
   editLotEventsAttached = true;
-  
+
   document.getElementById('close-edit-lot-modal')?.addEventListener('click', closeEditLotModal);
   document.getElementById('edit-lot-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'edit-lot-modal') closeEditLotModal();
