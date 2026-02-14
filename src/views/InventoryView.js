@@ -1,7 +1,8 @@
 // Inventory View - List all lots with sale recording
 
-import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn, markSaleReturned, updateLot } from '../services/storage.js';
+import { getLots, recordSale, deleteLot, isFullySold, hasSales, getLotTotalProfit, deleteSale, updateSale, getReturnDeadline, getDaysUntilReturn, markSaleReturned } from '../services/storage.js';
 import { formatCurrency, formatDate, PLATFORM_FEES, calculateSaleProfit } from '../services/calculations.js';
+import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
 import { celebrateSuccess } from '../utils/animations.js';
 
 let activeTab = 'unsold';
@@ -20,13 +21,6 @@ let editSaleData = null; // { lotId, saleId, sale }
 let editSalePrice = '';
 let editShippingCost = '';
 let editSaleDate = '';
-
-// Edit lot state
-let editLotData = null; // { lot }
-let editLotName = '';
-let editLotUnitCost = '';
-let editLotQuantity = '';
-let editLotPurchaseDate = '';
 
 export function setActiveTab(tab) {
   activeTab = tab;
@@ -71,7 +65,6 @@ export function InventoryView() {
 
   const modalHtml = selectedLotId ? renderSaleModal() : '';
   const editSaleModalHtml = editSaleData ? renderEditSaleModal() : '';
-  const editLotModalHtml = editLotData ? renderEditLotModal() : '';
 
   return `
     <div class="page">
@@ -107,7 +100,6 @@ export function InventoryView() {
     </div>
     ${modalHtml}
     ${editSaleModalHtml}
-    ${editLotModalHtml}
   `;
 }
 
@@ -354,61 +346,6 @@ function renderImportModal() {
         <div style="margin-top: var(--spacing-lg); text-align: center;">
           <button class="btn btn-secondary btn-sm" id="download-template">Download Template</button>
         </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderEditLotModal() {
-  if (!editLotData) return '';
-
-  const { lot } = editLotData;
-  const nameValue = editLotName !== '' ? editLotName : lot.name;
-  const totalCostValue = editLotUnitCost !== '' ? editLotUnitCost : ((lot.unitCost * lot.quantity) / 100).toFixed(2);
-  const quantityValue = editLotQuantity !== '' ? editLotQuantity : lot.quantity;
-  const purchaseDateValue = editLotPurchaseDate !== '' ? editLotPurchaseDate : (lot.purchaseDate ? lot.purchaseDate.split('T')[0] : new Date().toISOString().split('T')[0]);
-
-  return `
-    <div class="modal-overlay" id="edit-lot-modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title">Edit Lot</h2>
-          <button class="modal-close" id="close-edit-lot-modal">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Item Name</label>
-          <input type="text" class="form-input" id="edit-lot-name" placeholder="Enter item name" value="${nameValue}" />
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Cost (USD)</label>
-            <input type="number" class="form-input" id="edit-lot-unit-cost" placeholder="0.00" step="0.01" min="0" value="${totalCostValue}" inputmode="decimal" />
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Qty</label>
-            <div class="quantity-stepper">
-              <button type="button" class="stepper-btn" id="edit-decrease-qty">-</button>
-              <input type="number" class="form-input stepper-input" id="edit-lot-quantity" placeholder="1" min="1" value="${quantityValue}" inputmode="numeric" readonly />
-              <button type="button" class="stepper-btn" id="edit-increase-qty">+</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group date-group">
-          <label class="form-label">Purchase Date</label>
-          <input type="date" class="form-input" id="edit-lot-purchase-date" value="${purchaseDateValue}" />
-        </div>
-
-        <button class="btn btn-primary btn-full" id="save-edit-lot" style="margin-top: var(--spacing-md);">
-          Save Changes
-        </button>
       </div>
     </div>
   `;
@@ -769,17 +706,18 @@ function closeEditSaleModal() {
   if (modal) {
     modal.classList.add('closing');
     setTimeout(() => {
-      modal.remove();
       editSaleData = null;
       editSalePrice = '';
       editShippingCost = '';
       editSaleDate = '';
+      window.dispatchEvent(new CustomEvent('viewchange'));
     }, 200);
   } else {
     editSaleData = null;
     editSalePrice = '';
     editShippingCost = '';
     editSaleDate = '';
+    window.dispatchEvent(new CustomEvent('viewchange'));
   }
 }
 
@@ -846,11 +784,6 @@ function initLotCardEvents() {
   document.querySelectorAll('.edit-sale-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      
-      // Remove any existing edit sale modal first (cleanup)
-      const existingModal = document.getElementById('edit-sale-modal');
-      if (existingModal) existingModal.remove();
-      
       const { lotId, saleId } = btn.dataset;
       const lot = getLots().find(l => l.id === lotId);
       const sale = lot?.sales.find(s => s.id === saleId);
@@ -1130,176 +1063,10 @@ function resetCardPosition(card) {
   }, 300);
 }
 
-// Open edit lot modal
+// Placeholder for edit lot modal (you can implement this later)
 function openEditLotModal(lotId) {
-  const lot = getLots().find(l => l.id === lotId);
-  if (!lot) return;
-
-  editLotData = { lot };
-  editLotName = '';
-  editLotUnitCost = '';
-  editLotQuantity = '';
-  editLotPurchaseDate = '';
-  window.dispatchEvent(new CustomEvent('viewchange'));
-}
-
-// Close edit lot modal
-function closeEditLotModal() {
-  const modal = document.getElementById('edit-lot-modal');
-  if (modal) {
-    modal.classList.add('closing');
-    setTimeout(() => {
-      modal.remove();
-      editLotData = null;
-      editLotName = '';
-      editLotUnitCost = '';
-      editLotQuantity = '';
-      editLotPurchaseDate = '';
-    }, 200);
-  } else {
-    editLotData = null;
-    editLotName = '';
-    editLotUnitCost = '';
-    editLotQuantity = '';
-    editLotPurchaseDate = '';
-  }
-}
-
-// Handle save edit lot
-function handleSaveEditLot() {
-  if (!editLotData) return;
-
-  const { lot } = editLotData;
-  
-  // Parse values - editLotUnitCost is now TOTAL cost (like Add Manually screen)
-  const newName = editLotName !== '' ? editLotName.trim() : lot.name;
-  const newTotalCostDollars = editLotUnitCost !== '' ? parseFloat(editLotUnitCost) : (lot.unitCost * lot.quantity) / 100;
-  const newQuantity = editLotQuantity !== '' ? parseInt(editLotQuantity) : lot.quantity;
-  const newPurchaseDate = editLotPurchaseDate ? new Date(editLotPurchaseDate + 'T12:00:00').toISOString() : lot.purchaseDate;
-
-  // Validate
-  if (!newName) {
-    alert('Please enter an item name');
-    return;
-  }
-  if (isNaN(newTotalCostDollars) || newTotalCostDollars < 0) {
-    alert('Please enter a valid cost');
-    return;
-  }
-  if (isNaN(newQuantity) || newQuantity < 1) {
-    alert('Please enter a valid quantity');
-    return;
-  }
-
-  // Calculate unit cost from total (backend calculation)
-  const newTotalCostCents = Math.round(newTotalCostDollars * 100);
-  const newUnitCost = Math.round(newTotalCostCents / newQuantity);
-
-  // Check if reducing quantity below already sold
-  const unitsSold = lot.quantity - lot.remaining;
-  if (newQuantity < unitsSold) {
-    alert(`Cannot reduce quantity below ${unitsSold} (already sold). Please delete sales first.`);
-    return;
-  }
-
-  // Calculate new remaining
-  const newRemaining = lot.remaining + (newQuantity - lot.quantity);
-
-  // Update lot
-  updateLot(lot.id, {
-    name: newName,
-    unitCost: newUnitCost,
-    quantity: newQuantity,
-    remaining: newRemaining,
-    totalCost: newTotalCostCents,
-    purchaseDate: newPurchaseDate
-  });
-
-  // Close modal and refresh view to show updated data
-  const modal = document.getElementById('edit-lot-modal');
-  if (modal) {
-    modal.classList.add('closing');
-    setTimeout(() => {
-      modal.remove();
-      editLotData = null;
-      editLotName = '';
-      editLotUnitCost = '';
-      editLotQuantity = '';
-      editLotPurchaseDate = '';
-      window.dispatchEvent(new CustomEvent('viewchange'));
-    }, 200);
-  } else {
-    editLotData = null;
-    editLotName = '';
-    editLotUnitCost = '';
-    editLotQuantity = '';
-    editLotPurchaseDate = '';
-    window.dispatchEvent(new CustomEvent('viewchange'));
-  }
-}
-
-// Attach events for dynamically injected edit lot modal
-function attachEditLotModalEvents() {
-  document.getElementById('close-edit-lot-modal')?.addEventListener('click', closeEditLotModal);
-  document.getElementById('edit-lot-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'edit-lot-modal') closeEditLotModal();
-  });
-
-  document.getElementById('edit-lot-name')?.addEventListener('input', (e) => {
-    editLotName = e.target.value;
-  });
-  document.getElementById('edit-lot-unit-cost')?.addEventListener('input', (e) => {
-    editLotUnitCost = e.target.value;
-  });
-  document.getElementById('edit-lot-quantity')?.addEventListener('input', (e) => {
-    editLotQuantity = e.target.value;
-  });
-  document.getElementById('edit-lot-purchase-date')?.addEventListener('input', (e) => {
-    editLotPurchaseDate = e.target.value;
-  });
-
-  // Quantity stepper buttons
-  const decreaseBtn = document.getElementById('edit-decrease-qty');
-  const increaseBtn = document.getElementById('edit-increase-qty');
-
-  function handleEditDecrease(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    const input = document.getElementById('edit-lot-quantity');
-    if (input) {
-      const currentQty = parseInt(input.value) || 1;
-      if (currentQty > 1) {
-        input.value = currentQty - 1;
-        editLotQuantity = String(currentQty - 1);
-      }
-    }
-  }
-
-  function handleEditIncrease(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    const input = document.getElementById('edit-lot-quantity');
-    if (input) {
-      const currentQty = parseInt(input.value) || 1;
-      input.value = currentQty + 1;
-      editLotQuantity = String(currentQty + 1);
-    }
-  }
-
-  if (decreaseBtn) {
-    decreaseBtn.addEventListener('click', handleEditDecrease);
-    decreaseBtn.addEventListener('touchstart', handleEditDecrease, { passive: true });
-  }
-  if (increaseBtn) {
-    increaseBtn.addEventListener('click', handleEditIncrease);
-    increaseBtn.addEventListener('touchstart', handleEditIncrease, { passive: true });
-  }
-
-  document.getElementById('save-edit-lot')?.addEventListener('click', handleSaveEditLot);
+  // For now, just alert that edit is coming
+  alert('Edit functionality coming soon for lot: ' + lotId);
 }
 
 // Attach events for dynamically injected edit sale modal
@@ -1423,9 +1190,6 @@ export function initInventoryEvents() {
   document.getElementById('sale-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'sale-modal') closeSaleModal();
   });
-
-  // Edit lot modal events
-  attachEditLotModalEvents();
 
   // Units sold input - targeted update only
   document.getElementById('units-sold')?.addEventListener('input', (e) => {
