@@ -22,6 +22,13 @@ let editSalePrice = '';
 let editShippingCost = '';
 let editSaleDate = '';
 
+// Edit lot state
+let editLotData = null; // { lot }
+let editLotName = '';
+let editLotUnitCost = '';
+let editLotQuantity = '';
+let editLotPurchaseDate = '';
+
 export function setActiveTab(tab) {
   activeTab = tab;
 }
@@ -65,6 +72,7 @@ export function InventoryView() {
 
   const modalHtml = selectedLotId ? renderSaleModal() : '';
   const editSaleModalHtml = editSaleData ? renderEditSaleModal() : '';
+  const editLotModalHtml = editLotData ? renderEditLotModal() : '';
 
   return `
     <div class="page">
@@ -92,7 +100,7 @@ export function InventoryView() {
         </div>
         
         ${filteredLots.length === 0 ? renderEmptyState() : ''}
-        
+         
         <div class="lot-list">
           ${filteredLots.map((lot, index) => renderLotCard(lot, index)).join('')}
         </div>
@@ -100,6 +108,7 @@ export function InventoryView() {
     </div>
     ${modalHtml}
     ${editSaleModalHtml}
+    ${editLotModalHtml}
   `;
 }
 
@@ -118,42 +127,79 @@ function renderLotCard(lot, index = 0) {
   const returnDateStr = returnDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const showReturnWarning = !fullySold && daysUntilReturn <= 3 && daysUntilReturn >= 0;
 
-  const profitHtml = hasAnySales
-    ? `<div class="lot-profit ${totalProfit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(totalProfit, true)}</div>`
-    : '';
+  // Premium profit display with glow effect
+  const profitDisplay = hasAnySales ? (() => {
+    const isPositive = totalProfit >= 0;
+    const profitClass = isPositive ? 'profit-positive' : 'profit-negative';
+    const glowClass = isPositive ? 'profit-glow' : '';
+    return `<div class="lot-profit ${profitClass} ${glowClass}" data-profit="${totalProfit}">${formatCurrency(totalProfit, true)}</div>`;
+  })() : '';
 
+  // Progress bar with sell-through label
   const progressBar = lot.quantity > 1 ? `
-    <div class="lot-progress">
-      <div class="lot-progress-bar" style="width: ${soldPercent}%"></div>
+    <div class="lot-progress-container">
+      <div class="lot-progress-header">
+        <span class="lot-progress-label">Sell-through</span>
+        <span class="lot-progress-percent">${soldPercent}%</span>
+      </div>
+      <div class="lot-progress">
+        <div class="lot-progress-bar" data-width="${soldPercent}" style="width: 0%"></div>
+      </div>
+      <div class="lot-progress-text">${unitsSold} of ${lot.quantity} sold</div>
     </div>
-    <div class="lot-progress-text">${unitsSold} of ${lot.quantity} sold</div>
   ` : '';
 
+  // Return deadline warning
   const returnDeadlineHtml = (!fullySold && lot.remaining > 0) ? `
     <div class="lot-return-deadline ${showReturnWarning ? 'urgent' : ''}">
-      Return by ${returnDateStr}
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      ${showReturnWarning ? `Return by ${returnDateStr}` : `Returns ${returnDateStr}`}
     </div>
   ` : '';
 
+  // Expandable sales section
   const salesListHtml = hasAnySales ? `
     <div class="sales-list-accordion ${isExpanded ? 'expanded' : ''}" id="sales-list-${lot.id}">
       ${renderSalesList(lot)}
     </div>
   ` : '';
+  
   const viewSalesBtn = hasAnySales ? `
-    <button class="btn btn-secondary btn-sm toggle-sales" data-lot-id="${lot.id}" style="margin-top: var(--spacing-sm); padding: 4px 8px; font-size: 0.75rem; min-height: 28px;">
-      ${isExpanded ? 'Hide Sales' : 'View Sales'}
+    <button class="btn btn-text toggle-sales ${isExpanded ? 'active' : ''}" data-lot-id="${lot.id}">
+      ${isExpanded ? 'Hide Sales' : `View ${lot.sales.length} Sale${lot.sales.length > 1 ? 's' : ''}`}
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toggle-arrow">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  ` : '';
+
+  // Sold out badge
+  const soldOutBadge = fullySold ? `
+    <div class="sold-out-badge">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      Sold Out
+    </div>
+  ` : '';
+
+  // Record Sale button (only if not fully sold)
+  const recordSaleBtn = !fullySold ? `
+    <button class="btn btn-primary btn-sale add-sale-btn" data-lot-id="${lot.id}">
+      Record Sale
     </button>
   ` : '';
 
   return `
-    <div class="lot-card-swipe-wrapper" data-lot-id="${lot.id}" style="animation: cardFadeIn 0.3s ease-out forwards; animation-delay: ${index * 20}ms; opacity: 0;">
-      <!-- Background Actions - shown when card is swiped -->
+    <div class="lot-card-swipe-wrapper ${isExpanded ? 'card-expanded' : ''}" data-lot-id="${lot.id}" style="animation: cardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: ${index * 60}ms; opacity: 0;">
+      <!-- Background Actions -->
       <div class="swipe-actions-bg">
-        <!-- Edit action on left (swipe right) -->
         <div class="swipe-bg-action edit-bg" data-lot-id="${lot.id}">
           <div class="swipe-bg-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
             </svg>
@@ -161,10 +207,9 @@ function renderLotCard(lot, index = 0) {
           <span>Edit</span>
         </div>
         
-        <!-- Delete action on right (swipe left) -->
         <div class="swipe-bg-action delete-bg" data-lot-id="${lot.id}">
           <div class="swipe-bg-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
@@ -175,26 +220,38 @@ function renderLotCard(lot, index = 0) {
       
       <!-- Main Card Content -->
       <div class="lot-card ${fullySold ? 'sold' : ''}" data-lot-id="${lot.id}">
-        <div class="lot-info">
-          <div class="lot-name">${lot.name}</div>
-          <div class="lot-meta">${formatCurrency(lot.unitCost)}/unit • ${lot.remaining} available</div>
-          ${returnDeadlineHtml}
-          ${progressBar}
-          ${viewSalesBtn}
-          ${salesListHtml}
+        
+        <!-- Row 1: Name + Badge + Profit -->
+        <div class="lot-card-row lot-card-header">
+          <div class="lot-name-wrapper">
+            <div class="lot-name">${lot.name}</div>
+            ${soldOutBadge}
+          </div>
+          ${profitDisplay}
         </div>
         
-        <div class="lot-actions">
-          <div class="lot-cost-info">
-            <div class="lot-total-cost">${formatCurrency(lot.totalCost)}</div>
-            ${profitHtml}
+        <!-- Row 2: Bought info -->
+        <div class="lot-card-row">
+          <div class="lot-bought">
+            <span class="lot-bought-label">Bought</span>
+            <span class="lot-bought-value">${formatCurrency(lot.unitCost)}/unit</span>
           </div>
-          ${!fullySold ? `
-            <button class="btn btn-primary add-sale-btn" data-lot-id="${lot.id}">
-              Record Sale
-            </button>
-          ` : ''}
         </div>
+        
+        <!-- Row 3: Progress (if applicable) -->
+        ${progressBar}
+        
+        <!-- Row 4: Return deadline & View Sales -->
+        <div class="lot-card-row lot-card-footer">
+          ${returnDeadlineHtml}
+          ${viewSalesBtn}
+        </div>
+        
+        <!-- Expandable Sales -->
+        ${salesListHtml}
+        
+        <!-- CTA -->
+        ${recordSaleBtn}
       </div>
     </div>
   `;
@@ -202,27 +259,35 @@ function renderLotCard(lot, index = 0) {
 
 function renderSalesList(lot) {
   return `
-    <div class="sales-list" style="margin-top: var(--spacing-md); border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: var(--spacing-sm);">
+    <div class="sales-list">
       ${lot.sales.map(sale => {
     const saleDateFormatted = formatDate(sale.dateSold);
-    const shippingDisplay = sale.shippingCost ? ` (+ ${formatCurrency(sale.shippingCost)} ship)` : '';
-    const returnedBadge = sale.returned ? `<span style="color: var(--accent-danger); font-size: 0.75rem; margin-left: 8px;">(RETURNED)</span>` : '';
+    const platformName = sale.platform === 'ebay' ? 'eBay' : 'Facebook';
+    const shippingDisplay = sale.shippingCost ? `${formatCurrency(sale.shippingCost)} ship` : '';
+    const returnedBadge = sale.returned ? `<span class="sale-badge returned">RETURNED</span>` : '';
+    const isPositive = sale.profit >= 0;
+    const profitClass = sale.returned ? 'profit-negative' : (isPositive ? 'profit-positive' : 'profit-negative');
     const profitDisplay = sale.returned
-      ? `<span style="color: var(--accent-danger); text-decoration: line-through;">${formatCurrency(sale.profit, true)}</span>`
-      : `<span class="${sale.profit >= 0 ? 'text-success' : 'text-danger'}" style="font-weight: 600;">${formatCurrency(sale.profit, true)}</span>`;
+      ? `<span class="sale-profit ${profitClass} crossed">${formatCurrency(sale.profit, true)}</span>`
+      : `<span class="sale-profit ${profitClass}">${formatCurrency(sale.profit, true)}</span>`;
+    
     return `
-        <div class="sale-item ${sale.returned ? 'returned' : ''}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 0.875rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
-          <div>
-            <div style="font-weight: 500;">Sold ${sale.unitsSold} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}${returnedBadge}</div>
-            <div class="text-muted" style="font-size: 0.75rem;">
-              ${saleDateFormatted} • @ ${formatCurrency(sale.pricePerUnit)}${shippingDisplay}
+        <div class="sale-item ${sale.returned ? 'returned' : ''}">
+          <div class="sale-item-left">
+            <div class="sale-platform">${platformName}</div>
+            <div class="sale-date">${saleDateFormatted}</div>
+            ${returnedBadge}
+          </div>
+          <div class="sale-item-right">
+            ${profitDisplay}
+            <div class="sale-details">
+              ${sale.unitsSold > 1 ? `${sale.unitsSold} × ` : ''}${formatCurrency(sale.pricePerUnit)}${shippingDisplay ? ` + ${shippingDisplay}` : ''}
             </div>
           </div>
-          <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
-            ${profitDisplay}
+          <div class="sale-actions">
             ${!sale.returned ? `
-            <button class="return-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--accent-warning); cursor: pointer; padding: 4px;" title="Mark as Returned">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="sale-action-btn return-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" title="Mark as Returned">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 10h18"></path>
                 <path d="M3 14h18"></path>
                 <path d="M10 3v18"></path>
@@ -230,18 +295,16 @@ function renderSalesList(lot) {
               </svg>
             </button>
             ` : ''}
-            <button class="edit-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;" title="Edit Sale">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="sale-action-btn edit-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" title="Edit Sale">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
-            <button class="delete-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;" title="Delete Sale">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="sale-action-btn delete-sale-btn" data-lot-id="${lot.id}" data-sale-id="${sale.id}" title="Delete Sale">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
               </svg>
             </button>
           </div>
@@ -255,9 +318,15 @@ function renderSalesList(lot) {
 function renderEmptyState() {
   return `
     <div class="empty-state">
-      <div class="empty-icon">📦</div>
-      <div class="empty-title">No items yet</div>
-      <div class="empty-text">Add your first inventory lot by taking a screenshot of your Amazon order</div>
+      <div class="empty-state-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div class="empty-state-title">Your first win is coming.</div>
+      <div class="empty-state-text">Add inventory by scanning a receipt or entering manually</div>
     </div>
   `;
 }
@@ -309,6 +378,61 @@ function renderEditSaleModal() {
         </div>
         
         <button class="btn btn-success btn-full" id="save-edit-sale">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderEditLotModal() {
+  if (!editLotData) return '';
+
+  const { lot } = editLotData;
+  const nameValue = editLotName !== '' ? editLotName : lot.name;
+  const totalCostValue = editLotUnitCost !== '' ? editLotUnitCost : ((lot.unitCost * lot.quantity) / 100).toFixed(2);
+  const quantityValue = editLotQuantity !== '' ? editLotQuantity : lot.quantity;
+  const purchaseDateValue = editLotPurchaseDate !== '' ? editLotPurchaseDate : (lot.purchaseDate ? lot.purchaseDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+
+  return `
+    <div class="modal-overlay" id="edit-lot-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Edit Lot</h2>
+          <button class="modal-close" id="close-edit-lot-modal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Item Name</label>
+          <input type="text" class="form-input" id="edit-lot-name" placeholder="Enter item name" value="${nameValue}" />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Cost (USD)</label>
+            <input type="number" class="form-input" id="edit-lot-unit-cost" placeholder="0.00" step="0.01" min="0" value="${totalCostValue}" inputmode="decimal" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Qty</label>
+            <div class="quantity-stepper">
+              <button type="button" class="stepper-btn" id="edit-decrease-qty">-</button>
+              <input type="number" class="form-input stepper-input" id="edit-lot-quantity" placeholder="1" min="1" value="${quantityValue}" inputmode="numeric" readonly />
+              <button type="button" class="stepper-btn" id="edit-increase-qty">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group date-group">
+          <label class="form-label">Purchase Date</label>
+          <input type="date" class="form-input" id="edit-lot-purchase-date" value="${purchaseDateValue}" />
+        </div>
+
+        <button class="btn btn-primary btn-full" id="save-edit-lot" style="margin-top: var(--spacing-md);">
           Save Changes
         </button>
       </div>
@@ -724,6 +848,18 @@ function closeEditSaleModal() {
 
 // Event handlers specific to lot cards (called after lot list updates)
 function initLotCardEvents() {
+  // Animate progress bars on load
+  setTimeout(() => {
+    document.querySelectorAll('.lot-progress-bar').forEach(bar => {
+      const width = bar.dataset.width;
+      if (width) {
+        setTimeout(() => {
+          bar.style.width = width + '%';
+        }, 100);
+      }
+    });
+  }, 50);
+
   // Toggle sales list - accordion animation without page refresh
   document.querySelectorAll('.toggle-sales').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -731,9 +867,6 @@ function initLotCardEvents() {
       const lotId = btn.dataset.lotId;
       const accordion = document.getElementById(`sales-list-${lotId}`);
       const isCurrentlyExpanded = accordion?.classList.contains('expanded');
-
-      // Toggle button text
-      btn.textContent = isCurrentlyExpanded ? 'View Sales' : 'Hide Sales';
 
       // Toggle accordion with animation
       if (accordion) {
@@ -1063,13 +1196,177 @@ function resetCardPosition(card) {
   }, 300);
 }
 
-// Placeholder for edit lot modal (you can implement this later)
+// Open edit lot modal
 function openEditLotModal(lotId) {
-  // For now, just alert that edit is coming
-  alert('Edit functionality coming soon for lot: ' + lotId);
+  const lot = getLots().find(l => l.id === lotId);
+  if (!lot) return;
+
+  editLotData = { lot };
+  editLotName = '';
+  editLotUnitCost = '';
+  editLotQuantity = '';
+  editLotPurchaseDate = '';
+  window.dispatchEvent(new CustomEvent('viewchange'));
 }
 
-// Attach events for dynamically injected edit sale modal
+// Close edit lot modal
+function closeEditLotModal() {
+  const modal = document.getElementById('edit-lot-modal');
+  if (modal) {
+    modal.classList.add('closing');
+    setTimeout(() => {
+      modal.remove();
+      editLotData = null;
+      editLotName = '';
+      editLotUnitCost = '';
+      editLotQuantity = '';
+      editLotPurchaseDate = '';
+    }, 200);
+  } else {
+    editLotData = null;
+    editLotName = '';
+    editLotUnitCost = '';
+    editLotQuantity = '';
+    editLotPurchaseDate = '';
+  }
+}
+
+// Handle save edit lot
+function handleSaveEditLot() {
+  if (!editLotData) return;
+
+  const { lot } = editLotData;
+  
+  // Parse values - editLotUnitCost is now TOTAL cost (like Add Manually screen)
+  const newName = editLotName !== '' ? editLotName.trim() : lot.name;
+  const newTotalCostDollars = editLotUnitCost !== '' ? parseFloat(editLotUnitCost) : (lot.unitCost * lot.quantity) / 100;
+  const newQuantity = editLotQuantity !== '' ? parseInt(editLotQuantity) : lot.quantity;
+  const newPurchaseDate = editLotPurchaseDate ? new Date(editLotPurchaseDate + 'T12:00:00').toISOString() : lot.purchaseDate;
+
+  // Validate
+  if (!newName) {
+    alert('Please enter an item name');
+    return;
+  }
+  if (isNaN(newTotalCostDollars) || newTotalCostDollars < 0) {
+    alert('Please enter a valid cost');
+    return;
+  }
+  if (isNaN(newQuantity) || newQuantity < 1) {
+    alert('Please enter a valid quantity');
+    return;
+  }
+
+  // Calculate unit cost from total (backend calculation)
+  const newTotalCostCents = Math.round(newTotalCostDollars * 100);
+  const newUnitCost = Math.round(newTotalCostCents / newQuantity);
+
+  // Check if reducing quantity below already sold
+  const unitsSold = lot.quantity - lot.remaining;
+  if (newQuantity < unitsSold) {
+    alert(`Cannot reduce quantity below ${unitsSold} (already sold). Please delete sales first.`);
+    return;
+  }
+
+  // Calculate new remaining
+  const newRemaining = lot.remaining + (newQuantity - lot.quantity);
+
+  // Update lot
+  updateLot(lot.id, {
+    name: newName,
+    unitCost: newUnitCost,
+    quantity: newQuantity,
+    remaining: newRemaining,
+    totalCost: newTotalCostCents,
+    purchaseDate: newPurchaseDate
+  });
+
+  // Close modal and refresh view to show updated data
+  const modal = document.getElementById('edit-lot-modal');
+  if (modal) {
+    modal.classList.add('closing');
+    setTimeout(() => {
+      modal.remove();
+      editLotData = null;
+      editLotName = '';
+      editLotUnitCost = '';
+      editLotQuantity = '';
+      editLotPurchaseDate = '';
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }, 200);
+  } else {
+    editLotData = null;
+    editLotName = '';
+    editLotUnitCost = '';
+    editLotQuantity = '';
+    editLotPurchaseDate = '';
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  }
+}
+
+// Attach events for dynamically injected edit lot modal
+function attachEditLotModalEvents() {
+  document.getElementById('close-edit-lot-modal')?.addEventListener('click', closeEditLotModal);
+  document.getElementById('edit-lot-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'edit-lot-modal') closeEditLotModal();
+  });
+
+  document.getElementById('edit-lot-name')?.addEventListener('input', (e) => {
+    editLotName = e.target.value;
+  });
+  document.getElementById('edit-lot-unit-cost')?.addEventListener('input', (e) => {
+    editLotUnitCost = e.target.value;
+  });
+  document.getElementById('edit-lot-quantity')?.addEventListener('input', (e) => {
+    editLotQuantity = e.target.value;
+  });
+  document.getElementById('edit-lot-purchase-date')?.addEventListener('input', (e) => {
+    editLotPurchaseDate = e.target.value;
+  });
+
+  // Quantity stepper buttons
+  const decreaseBtn = document.getElementById('edit-decrease-qty');
+  const increaseBtn = document.getElementById('edit-increase-qty');
+
+  function handleEditDecrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const input = document.getElementById('edit-lot-quantity');
+    if (input) {
+      const currentQty = parseInt(input.value) || 1;
+      if (currentQty > 1) {
+        input.value = currentQty - 1;
+        editLotQuantity = String(currentQty - 1);
+      }
+    }
+  }
+
+  function handleEditIncrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const input = document.getElementById('edit-lot-quantity');
+    if (input) {
+      const currentQty = parseInt(input.value) || 1;
+      input.value = currentQty + 1;
+      editLotQuantity = String(currentQty + 1);
+    }
+  }
+
+  if (decreaseBtn) {
+    decreaseBtn.addEventListener('click', handleEditDecrease);
+    decreaseBtn.addEventListener('touchstart', handleEditDecrease, { passive: true });
+  }
+  if (increaseBtn) {
+    increaseBtn.addEventListener('click', handleEditIncrease);
+    increaseBtn.addEventListener('touchstart', handleEditIncrease, { passive: true });
+  }
+
+  document.getElementById('save-edit-lot')?.addEventListener('click', handleSaveEditLot);
+}
 function attachEditSaleModalEvents() {
   // Close edit sale modal
   document.getElementById('close-edit-sale-modal')?.addEventListener('click', closeEditSaleModal);
@@ -1190,6 +1487,9 @@ export function initInventoryEvents() {
   document.getElementById('sale-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'sale-modal') closeSaleModal();
   });
+
+  // Edit lot modal events
+  attachEditLotModalEvents();
 
   // Units sold input - targeted update only
   document.getElementById('units-sold')?.addEventListener('input', (e) => {
