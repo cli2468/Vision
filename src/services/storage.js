@@ -244,6 +244,12 @@ export function updateSale(lotId, saleId, updates) {
 
     lot.sales[saleIndex] = { ...lot.sales[saleIndex], ...updates };
     saveStorageData(data);
+
+    // Cloud sync
+    if (auth.currentUser) {
+        saveLotToCloud(lot);
+    }
+
     return lot;
 }
 

@@ -1124,22 +1124,37 @@ body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 5vh;
   z-index: 2000;
   animation: fadeIn 0.2s ease;
+  pointer-events: auto;
 }
 
 .modal-content {
   background: var(--bg-secondary);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: var(--spacing-xl);
-  padding-bottom: calc(var(--spacing-xl) + var(--safe-area-bottom));
-  width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
+  border-radius: 16px;
+  padding: 24px;
+  padding-bottom: calc(24px + var(--safe-area-bottom));
+  width: 90%;
+  max-width: 420px;
+  max-height: 85vh;
   overflow-y: auto;
-  animation: slideUp 0.3s ease;
+  animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 20px;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-header {
@@ -1173,12 +1188,24 @@ body {
 }
 
 .modal-overlay.closing {
-  animation: fadeOut 0.25s ease forwards;
+  animation: fadeOut 0.2s ease forwards;
   pointer-events: none;
 }
 
 .modal-overlay.closing .modal-content {
-  animation: slideDownExit 0.25s ease forwards;
+  animation: modalSlideOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-15px) scale(0.96);
+  }
 }
 
 @keyframes fadeOut {
@@ -1188,18 +1215,6 @@ body {
 
   to {
     opacity: 0;
-  }
-}
-
-@keyframes slideDownExit {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateY(40px);
   }
 }
 
@@ -2414,6 +2429,14 @@ body {
   justify-content: center;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-focus-ring-color: none;
+  outline: none;
+}
+
+.stepper-btn:focus {
+  outline: none;
 }
 
 .stepper-btn:hover {

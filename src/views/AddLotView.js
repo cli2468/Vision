@@ -376,10 +376,8 @@ export function initAddLotEvents() {
 
   if (decreaseBtn) {
     decreaseBtn.addEventListener('click', handleDecrease);
-    decreaseBtn.addEventListener('touchstart', handleDecrease, { passive: true });
   }
   if (increaseBtn) {
     increaseBtn.addEventListener('click', handleIncrease);
-    increaseBtn.addEventListener('touchstart', handleIncrease, { passive: true });
   }
 }

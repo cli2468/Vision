@@ -28,6 +28,7 @@ let editLotName = '';
 let editLotUnitCost = '';
 let editLotQuantity = '';
 let editLotPurchaseDate = '';
+let editLotEventsAttached = false;
 
 export function setActiveTab(tab) {
   activeTab = tab;
@@ -808,12 +809,12 @@ export function closeSaleModal() {
   if (modal) {
     modal.classList.add('closing');
     setTimeout(() => {
+      modal.remove();
       selectedLotId = null;
       salePrice = '';
       unitsSold = '1';
       shippingCost = '';
       saleDate = new Date().toISOString().split('T')[0];
-      window.dispatchEvent(new CustomEvent('viewchange'));
     }, 200);
   } else {
     selectedLotId = null;
@@ -821,7 +822,6 @@ export function closeSaleModal() {
     unitsSold = '1';
     shippingCost = '';
     saleDate = new Date().toISOString().split('T')[0];
-    window.dispatchEvent(new CustomEvent('viewchange'));
   }
 }
 
@@ -830,18 +830,17 @@ function closeEditSaleModal() {
   if (modal) {
     modal.classList.add('closing');
     setTimeout(() => {
+      modal.remove();
       editSaleData = null;
       editSalePrice = '';
       editShippingCost = '';
       editSaleDate = '';
-      window.dispatchEvent(new CustomEvent('viewchange'));
     }, 200);
   } else {
     editSaleData = null;
     editSalePrice = '';
     editShippingCost = '';
     editSaleDate = '';
-    window.dispatchEvent(new CustomEvent('viewchange'));
   }
 }
 
@@ -917,6 +916,11 @@ function initLotCardEvents() {
   document.querySelectorAll('.edit-sale-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      
+      // Remove any existing edit sale modal first
+      const existingModal = document.getElementById('edit-sale-modal');
+      if (existingModal) existingModal.remove();
+      
       const { lotId, saleId } = btn.dataset;
       const lot = getLots().find(l => l.id === lotId);
       const sale = lot?.sales.find(s => s.id === saleId);
@@ -1201,12 +1205,25 @@ function openEditLotModal(lotId) {
   const lot = getLots().find(l => l.id === lotId);
   if (!lot) return;
 
+  // Remove existing modal if any
+  const existingModal = document.getElementById('edit-lot-modal');
+  if (existingModal) existingModal.remove();
+
   editLotData = { lot };
   editLotName = '';
   editLotUnitCost = '';
   editLotQuantity = '';
   editLotPurchaseDate = '';
+  
+  // Reset events flag when opening fresh
+  editLotEventsAttached = false;
+  
   window.dispatchEvent(new CustomEvent('viewchange'));
+  
+  // Attach events after DOM update
+  setTimeout(() => {
+    attachEditLotModalEvents();
+  }, 0);
 }
 
 // Close edit lot modal
@@ -1232,7 +1249,12 @@ function closeEditLotModal() {
 }
 
 // Handle save edit lot
-function handleSaveEditLot() {
+function handleSaveEditLot(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  
   if (!editLotData) return;
 
   const { lot } = editLotData;
@@ -1306,6 +1328,10 @@ function handleSaveEditLot() {
 
 // Attach events for dynamically injected edit lot modal
 function attachEditLotModalEvents() {
+  // Prevent duplicate event attachment
+  if (editLotEventsAttached) return;
+  editLotEventsAttached = true;
+  
   document.getElementById('close-edit-lot-modal')?.addEventListener('click', closeEditLotModal);
   document.getElementById('edit-lot-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'edit-lot-modal') closeEditLotModal();
@@ -1358,11 +1384,9 @@ function attachEditLotModalEvents() {
 
   if (decreaseBtn) {
     decreaseBtn.addEventListener('click', handleEditDecrease);
-    decreaseBtn.addEventListener('touchstart', handleEditDecrease, { passive: true });
   }
   if (increaseBtn) {
     increaseBtn.addEventListener('click', handleEditIncrease);
-    increaseBtn.addEventListener('touchstart', handleEditIncrease, { passive: true });
   }
 
   document.getElementById('save-edit-lot')?.addEventListener('click', handleSaveEditLot);
@@ -1488,9 +1512,6 @@ export function initInventoryEvents() {
     if (e.target.id === 'sale-modal') closeSaleModal();
   });
 
-  // Edit lot modal events
-  attachEditLotModalEvents();
-
   // Units sold input - targeted update only
   document.getElementById('units-sold')?.addEventListener('input', (e) => {
     unitsSold = e.target.value;
@@ -1561,12 +1582,10 @@ export function initInventoryEvents() {
 
   if (decreaseBtn) {
     decreaseBtn.addEventListener('click', handleDecrease);
-    decreaseBtn.addEventListener('touchstart', handleDecrease, { passive: false });
   }
 
   if (increaseBtn) {
     increaseBtn.addEventListener('click', handleIncrease);
-    increaseBtn.addEventListener('touchstart', handleIncrease, { passive: false });
   }
 
   // Breakdown toggle with accordion animation
@@ -1610,6 +1629,7 @@ export function initInventoryEvents() {
       setTimeout(() => {
         recordSale(selectedLotId, price, units, selectedPlatform, totalShipping, saleDate);
         closeSaleModal();
+        window.dispatchEvent(new CustomEvent('viewchange'));
       }, 1200);
     }
   });
@@ -1619,6 +1639,7 @@ export function initInventoryEvents() {
     if (selectedLotId && confirm('Are you sure you want to delete this ENTIRE lot and all its sales?')) {
       deleteLot(selectedLotId);
       closeSaleModal();
+      window.dispatchEvent(new CustomEvent('viewchange'));
     }
   });
 
