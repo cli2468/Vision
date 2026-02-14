@@ -386,17 +386,22 @@ function renderEditLotModal() {
           <input type="text" class="form-input" id="edit-lot-name" placeholder="Enter item name" value="${nameValue}" />
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Cost (USD)</label>
-          <input type="number" class="form-input" id="edit-lot-unit-cost" placeholder="0.00" step="0.01" min="0" value="${totalCostValue}" inputmode="decimal" />
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Cost (USD)</label>
+            <input type="number" class="form-input" id="edit-lot-unit-cost" placeholder="0.00" step="0.01" min="0" value="${totalCostValue}" inputmode="decimal" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Qty</label>
+            <div class="quantity-stepper">
+              <button type="button" class="stepper-btn" id="edit-decrease-qty">-</button>
+              <input type="number" class="form-input stepper-input" id="edit-lot-quantity" placeholder="1" min="1" value="${quantityValue}" inputmode="numeric" readonly />
+              <button type="button" class="stepper-btn" id="edit-increase-qty">+</button>
+            </div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Quantity</label>
-          <input type="number" class="form-input" id="edit-lot-quantity" placeholder="1" min="1" value="${quantityValue}" inputmode="numeric" />
-        </div>
-
-        <div class="form-group">
+        <div class="form-group date-group">
           <label class="form-label">Purchase Date</label>
           <input type="date" class="form-input" id="edit-lot-purchase-date" value="${purchaseDateValue}" />
         </div>
@@ -764,18 +769,17 @@ function closeEditSaleModal() {
   if (modal) {
     modal.classList.add('closing');
     setTimeout(() => {
+      modal.remove();
       editSaleData = null;
       editSalePrice = '';
       editShippingCost = '';
       editSaleDate = '';
-      window.dispatchEvent(new CustomEvent('viewchange'));
     }, 200);
   } else {
     editSaleData = null;
     editSalePrice = '';
     editShippingCost = '';
     editSaleDate = '';
-    window.dispatchEvent(new CustomEvent('viewchange'));
   }
 }
 
@@ -842,6 +846,11 @@ function initLotCardEvents() {
   document.querySelectorAll('.edit-sale-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      
+      // Remove any existing edit sale modal first (cleanup)
+      const existingModal = document.getElementById('edit-sale-modal');
+      if (existingModal) existingModal.remove();
+      
       const { lotId, saleId } = btn.dataset;
       const lot = getLots().find(l => l.id === lotId);
       const sale = lot?.sales.find(s => s.id === saleId);
@@ -1140,13 +1149,12 @@ function closeEditLotModal() {
   if (modal) {
     modal.classList.add('closing');
     setTimeout(() => {
+      modal.remove();
       editLotData = null;
       editLotName = '';
       editLotUnitCost = '';
       editLotQuantity = '';
       editLotPurchaseDate = '';
-      editLotReturnDays = '';
-      window.dispatchEvent(new CustomEvent('viewchange'));
     }, 200);
   } else {
     editLotData = null;
@@ -1154,8 +1162,6 @@ function closeEditLotModal() {
     editLotUnitCost = '';
     editLotQuantity = '';
     editLotPurchaseDate = '';
-    editLotReturnDays = '';
-    window.dispatchEvent(new CustomEvent('viewchange'));
   }
 }
 
@@ -1209,7 +1215,27 @@ function handleSaveEditLot() {
     purchaseDate: newPurchaseDate
   });
 
-  closeEditLotModal();
+  // Close modal and refresh view to show updated data
+  const modal = document.getElementById('edit-lot-modal');
+  if (modal) {
+    modal.classList.add('closing');
+    setTimeout(() => {
+      modal.remove();
+      editLotData = null;
+      editLotName = '';
+      editLotUnitCost = '';
+      editLotQuantity = '';
+      editLotPurchaseDate = '';
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }, 200);
+  } else {
+    editLotData = null;
+    editLotName = '';
+    editLotUnitCost = '';
+    editLotQuantity = '';
+    editLotPurchaseDate = '';
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  }
 }
 
 // Attach events for dynamically injected edit lot modal
@@ -1231,6 +1257,47 @@ function attachEditLotModalEvents() {
   document.getElementById('edit-lot-purchase-date')?.addEventListener('input', (e) => {
     editLotPurchaseDate = e.target.value;
   });
+
+  // Quantity stepper buttons
+  const decreaseBtn = document.getElementById('edit-decrease-qty');
+  const increaseBtn = document.getElementById('edit-increase-qty');
+
+  function handleEditDecrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const input = document.getElementById('edit-lot-quantity');
+    if (input) {
+      const currentQty = parseInt(input.value) || 1;
+      if (currentQty > 1) {
+        input.value = currentQty - 1;
+        editLotQuantity = String(currentQty - 1);
+      }
+    }
+  }
+
+  function handleEditIncrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const input = document.getElementById('edit-lot-quantity');
+    if (input) {
+      const currentQty = parseInt(input.value) || 1;
+      input.value = currentQty + 1;
+      editLotQuantity = String(currentQty + 1);
+    }
+  }
+
+  if (decreaseBtn) {
+    decreaseBtn.addEventListener('click', handleEditDecrease);
+    decreaseBtn.addEventListener('touchstart', handleEditDecrease, { passive: true });
+  }
+  if (increaseBtn) {
+    increaseBtn.addEventListener('click', handleEditIncrease);
+    increaseBtn.addEventListener('touchstart', handleEditIncrease, { passive: true });
+  }
 
   document.getElementById('save-edit-lot')?.addEventListener('click', handleSaveEditLot);
 }

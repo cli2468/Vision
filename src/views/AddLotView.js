@@ -115,17 +115,22 @@ function renderPreviewState() {
             </div>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">Cost (USD)</label>
-            <input type="number" class="form-input" id="lot-cost" value="${extractedData.cost || ''}" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Cost (USD)</label>
+              <input type="number" class="form-input" id="lot-cost" value="${extractedData.cost || ''}" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Qty</label>
+              <div class="quantity-stepper">
+                <button type="button" class="stepper-btn" id="decrease-qty">-</button>
+                <input type="number" class="form-input stepper-input" id="lot-quantity" value="${extractedData.quantity}" placeholder="1" min="1" inputmode="numeric" readonly />
+                <button type="button" class="stepper-btn" id="increase-qty">+</button>
+              </div>
+            </div>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">Quantity</label>
-            <input type="number" class="form-input" id="lot-quantity" value="${extractedData.quantity}" placeholder="1" min="1" inputmode="numeric" />
-          </div>
-          
-          <div class="form-group">
+          <div class="form-group date-group">
             <label class="form-label">Purchase Date</label>
             <input type="date" class="form-input" id="lot-purchase-date" value="${new Date().toISOString().split('T')[0]}" />
           </div>
@@ -339,4 +344,42 @@ export function initAddLotEvents() {
     resetAddLotState();
     window.dispatchEvent(new CustomEvent('viewchange'));
   });
+
+  // Quantity stepper buttons
+  const decreaseBtn = document.getElementById('decrease-qty');
+  const increaseBtn = document.getElementById('increase-qty');
+  const qtyInput = document.getElementById('lot-quantity');
+
+  function handleDecrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (qtyInput) {
+      const currentQty = parseInt(qtyInput.value) || 1;
+      if (currentQty > 1) {
+        qtyInput.value = currentQty - 1;
+      }
+    }
+  }
+
+  function handleIncrease(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (qtyInput) {
+      const currentQty = parseInt(qtyInput.value) || 1;
+      qtyInput.value = currentQty + 1;
+    }
+  }
+
+  if (decreaseBtn) {
+    decreaseBtn.addEventListener('click', handleDecrease);
+    decreaseBtn.addEventListener('touchstart', handleDecrease, { passive: true });
+  }
+  if (increaseBtn) {
+    increaseBtn.addEventListener('click', handleIncrease);
+    increaseBtn.addEventListener('touchstart', handleIncrease, { passive: true });
+  }
 }

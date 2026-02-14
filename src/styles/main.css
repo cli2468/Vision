@@ -126,6 +126,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--spacing-lg) 0;
+  padding-bottom: calc(var(--nav-height) + var(--spacing-lg));
   animation: fadeIn 0.3s ease;
 }
 
@@ -837,6 +838,7 @@ body {
 
 .modal-overlay.closing {
   animation: fadeOut 0.25s ease forwards;
+  pointer-events: none;
 }
 
 .modal-overlay.closing .modal-content {
@@ -2056,6 +2058,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .stepper-btn:hover {
@@ -2337,6 +2341,7 @@ body {
   width: 100%;
   min-height: 100vh;
   will-change: transform, opacity;
+  z-index: 1;
 }
 
 /* ===== Page Transitions ===== */
