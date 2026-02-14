@@ -1299,17 +1299,22 @@ body {
   background: var(--bg-card);
   border: var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+  padding: 20px;
+  margin-bottom: 16px;
   animation: fadeIn 0.3s ease;
+  transition: box-shadow 0.2s ease;
+}
+
+.chart-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: var(--spacing-lg);
-  gap: var(--spacing-md);
+  margin-bottom: 16px;
+  gap: 12px;
 }
 
 .chart-title-section {
@@ -1317,34 +1322,56 @@ body {
   min-width: 0;
 }
 
-.chart-main-title {
-  font-size: var(--font-size-xs);
+.chart-context-label {
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--spacing-xs);
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
 }
 
 .chart-revenue-value {
-  font-size: var(--font-size-3xl);
+  font-size: 36px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.2;
-  margin-bottom: var(--spacing-xs);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
 }
 
-.chart-profit-subtitle {
-  font-size: var(--font-size-sm);
+.chart-sub-metrics {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 500;
 }
 
-.chart-profit-subtitle.text-success {
-  color: var(--accent);
+.chart-profit-inline {
+  font-variant-numeric: tabular-nums;
 }
 
-.chart-profit-subtitle.text-danger {
-  color: var(--accent-danger);
+.chart-profit-inline.text-success {
+  color: #4caf50;
+}
+
+.chart-profit-inline.text-danger {
+  color: var(--danger);
+}
+
+.chart-metric-sep {
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+
+.chart-margin-inline {
+  color: var(--text-secondary);
+}
+
+.chart-margin-inline.text-danger {
+  color: var(--danger);
 }
 
 .chart-pill-selector {
@@ -1484,13 +1511,18 @@ body {
   background: var(--bg-card);
   border: var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 24px;
-  margin-bottom: var(--spacing-xl);
+  padding: 20px;
+  margin-bottom: 16px;
   animation: fadeIn 0.3s ease;
+  transition: box-shadow 0.2s ease;
+}
+
+.mpp-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .mpp-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .mpp-title {
@@ -1519,40 +1551,45 @@ body {
 .mpp-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mpp-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
+  gap: 14px;
+  padding: 10px 14px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.015);
   border: 1px solid transparent;
-  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .mpp-row:hover {
   background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-/* Top-1 product gets a subtle accent left border */
+/* #1 product — subtle glow + accent border */
 .mpp-row-top {
+  background: rgba(76, 175, 80, 0.03);
   border-left: 3px solid var(--accent);
-  padding-left: 13px;
-  /* compensate for border */
+  padding-left: 11px;
+}
+
+.mpp-row-top:hover {
+  background: rgba(76, 175, 80, 0.06);
+  box-shadow: 0 2px 12px rgba(76, 175, 80, 0.08);
 }
 
 .mpp-rank {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-muted);
-  width: 20px;
+  width: 18px;
   flex-shrink: 0;
   text-align: center;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .mpp-row-top .mpp-rank {
@@ -1566,7 +1603,7 @@ body {
 }
 
 .mpp-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -1578,14 +1615,14 @@ body {
 .mpp-units {
   font-size: 11px;
   color: var(--text-muted);
-  margin-top: 2px;
-  opacity: 0.6;
+  margin-top: 1px;
+  opacity: 0.5;
 }
 
 .mpp-metrics {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -1597,25 +1634,26 @@ body {
   border-radius: 6px;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .mpp-roi-low {
-  background: rgba(76, 175, 80, 0.08);
-  color: rgba(76, 175, 80, 0.7);
+  background: rgba(76, 175, 80, 0.06);
+  color: rgba(76, 175, 80, 0.6);
 }
 
 .mpp-roi-mid {
-  background: rgba(76, 175, 80, 0.12);
-  color: rgba(76, 175, 80, 0.85);
+  background: rgba(76, 175, 80, 0.1);
+  color: rgba(76, 175, 80, 0.8);
 }
 
 .mpp-roi-high {
-  background: rgba(76, 175, 80, 0.18);
+  background: rgba(76, 175, 80, 0.16);
   color: #4caf50;
 }
 
 .mpp-roi-infinite {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(56, 142, 60, 0.1));
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.12), rgba(56, 142, 60, 0.08));
   color: #4caf50;
   font-style: italic;
   font-size: 13px;
@@ -1640,120 +1678,101 @@ body {
 }
 
 .mpp-profit-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 2px;
-  opacity: 0.5;
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+  opacity: 0.4;
 }
 
 /* Footer */
 .mpp-footer {
   font-size: 10px;
   color: var(--text-muted);
-  opacity: 0.4;
+  opacity: 0.35;
   text-align: right;
-  margin-top: 16px;
+  margin-top: 14px;
   letter-spacing: 0.02em;
 }
 
-/* ===== Inventory Card ===== */
-.inventory-card {
+/* ===== Inventory Card (Operational) ===== */
+.inv-card {
   background: var(--bg-card);
   border: var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+  padding: 20px;
+  margin-bottom: 16px;
   animation: fadeIn 0.3s ease;
+  transition: box-shadow 0.2s ease;
 }
 
-.inventory-card-header {
-  font-size: var(--font-size-xs);
+.inv-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.inv-header {
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--spacing-md);
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
 }
 
-.inventory-value-row {
-  margin-bottom: var(--spacing-md);
+.inv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
 }
 
-.inventory-bar {
-  display: flex;
-  height: 8px;
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  background: rgba(180, 177, 171, 0.1);
-  gap: 2px;
-}
-
-.inventory-half-pie {
-  width: 100%;
-  height: 100%;
-}
-
-.inventory-center-value {
-  position: absolute;
-  top: 65%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.inv-metric {
   text-align: center;
 }
 
-.inventory-total {
-  font-size: var(--font-size-xl);
+.inv-metric-value {
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
-.inventory-total-label {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  margin-top: 2px;
+.inv-metric-value.inv-positive {
+  color: #4caf50;
 }
 
-.inventory-side-list {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+.inv-metric-value.inv-negative {
+  color: var(--danger);
 }
 
-.inventory-side-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.inventory-item-color {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.inventory-item-info {
-  min-width: 0;
-}
-
-.inventory-item-name {
-  font-size: var(--font-size-sm);
+.inv-metric-unit {
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  opacity: 0.6;
 }
 
-.inventory-item-value {
-  font-size: var(--font-size-xs);
+.inv-metric-label {
+  font-size: 10px;
+  font-weight: 500;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+  opacity: 0.5;
 }
+
+.inv-footer {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.35;
+  text-align: center;
+  margin-top: 14px;
+  letter-spacing: 0.02em;
+}
+
 
 /* ===== Day Breakdown Modal ===== */
 .day-sale-item {

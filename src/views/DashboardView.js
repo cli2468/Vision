@@ -1,7 +1,7 @@
 // Dashboard View - Revenue/Profit chart with time-range filtering and Return Alerts
 
 import { getAllSales, getSalesByDateRange, getLots, getLotTotalProfit, getLotsNearingReturnDeadline, getReturnDeadline, markReturned, dismissReturnAlert } from '../services/storage.js';
-import { calculateMonthlyStats, formatCurrency } from '../services/calculations.js';
+import { calculateMonthlyStats, formatCurrency, getMonthName } from '../services/calculations.js';
 import { aggregateSalesByDay, getSalesForDay } from '../services/chartData.js';
 import { animateCountUp } from '../utils/animations.js';
 
@@ -93,6 +93,20 @@ function renderReturnAlerts() {
   `;
 }
 
+/**
+ * Get contextual header label based on selected time range
+ */
+function getContextualHeader() {
+  const now = new Date();
+  switch (selectedRange) {
+    case '7d': return 'This Week';
+    case '30d': return `${getMonthName(now.getMonth())} Performance`;
+    case '90d': return 'Quarterly Overview';
+    case 'all': return 'All-Time Performance';
+    default: return 'Performance';
+  }
+}
+
 export function DashboardView() {
   const salesData = getSalesForSelectedRange();
   const allLots = getLots();
@@ -100,6 +114,10 @@ export function DashboardView() {
   const unsoldCostBasis = allLots.reduce((sum, lot) => sum + (lot.unitCost || 0) * (lot.remaining || 0), 0);
   const stats = calculateMonthlyStats(salesData);
   const returnAlertsHtml = renderReturnAlerts();
+
+  // Calculate margin
+  const margin = stats.totalRevenue > 0 ? Math.round((stats.totalProfit / stats.totalRevenue) * 100) : 0;
+  const profitSign = stats.totalProfit >= 0 ? '+' : '-';
 
   return `
     <div class="page">
@@ -109,15 +127,17 @@ export function DashboardView() {
         <div class="chart-card">
           <div class="chart-header">
             <div class="chart-title-section">
-              <div class="chart-main-title">Total Revenue</div>
+              <div class="chart-context-label">${getContextualHeader()}</div>
               <div class="chart-revenue-value">${formatCurrency(stats.totalRevenue)}</div>
-              <div class="chart-profit-subtitle ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">
-                ${formatCurrency(Math.abs(stats.totalProfit))} profit this ${selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime'}
+              <div class="chart-sub-metrics">
+                <span class="chart-profit-inline ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">${profitSign}${formatCurrency(Math.abs(stats.totalProfit))} net</span>
+                <span class="chart-metric-sep">·</span>
+                <span class="chart-margin-inline ${margin >= 0 ? '' : 'text-danger'}">${margin}% margin</span>
               </div>
             </div>
             <div class="time-selector-accordion" id="time-selector">
               <button class="time-selector-trigger">
-                <span class="time-selector-current">${selectedRange === '7d' ? '7D' : selectedRange === '30d' ? '30D' : selectedRange === '90d' ? '90D' : 'All Time'}</span>
+                <span class="time-selector-current">${selectedRange === '7d' ? '7D' : selectedRange === '30d' ? '30D' : selectedRange === '90d' ? '90D' : 'All'}</span>
                 <svg class="time-selector-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
@@ -137,7 +157,7 @@ export function DashboardView() {
         
         ${renderTopPerformers(allLots)}
         
-        ${renderInventoryCard(allLots, unsoldCostBasis)}
+        ${renderInventoryCard(allLots, unsoldCostBasis, unsoldUnits)}
         
         <!-- Day breakdown modal -->
         <div class="modal-overlay day-breakdown-modal" id="day-breakdown-modal" style="display: none;">
@@ -226,19 +246,26 @@ function renderTopPerformers(allLots) {
   else if (minsAgo < 1440) updatedText = `${Math.round(minsAgo / 60)}h ago`;
   else updatedText = `${Math.round(minsAgo / 1440)}d ago`;
 
+  // Find highest ROI item for performance cue
+  const highestRoiIdx = lotStats.reduce((best, item, i) => {
+    const bestRoi = lotStats[best].roi;
+    return item.roi > bestRoi ? i : best;
+  }, 0);
+
   const itemsHtml = lotStats.map((item, i) => {
     const isTop = i === 0;
     const roiIsInfinite = !isFinite(item.roi);
+    const isHighestRoi = i === highestRoiIdx;
 
     // ROI display and intensity class
     let roiHtml;
     if (roiIsInfinite) {
-      roiHtml = `<span class="mpp-roi-badge mpp-roi-infinite" title="Cost basis was $0 — pure profit">∞</span>`;
+      roiHtml = `<span class="mpp-roi-badge mpp-roi-infinite" title="Cost basis was $0 — pure profit">${isHighestRoi ? '🔥 ' : ''}∞</span>`;
     } else {
       const absRoi = Math.abs(item.roi);
       const roiTier = absRoi >= 100 ? 'high' : absRoi >= 40 ? 'mid' : 'low';
       const sign = item.roi >= 0 ? '+' : '';
-      roiHtml = `<span class="mpp-roi-badge mpp-roi-${roiTier}">${sign}${item.roi.toFixed(0)}%</span>`;
+      roiHtml = `<span class="mpp-roi-badge mpp-roi-${roiTier}">${isHighestRoi ? '🔥 ' : ''}${sign}${item.roi.toFixed(0)}%</span>`;
     }
 
     return `
@@ -273,49 +300,46 @@ function renderTopPerformers(allLots) {
   `;
 }
 
-function renderInventoryCard(allLots, unsoldCostBasis) {
-  const topInventoryLots = allLots
-    .filter(lot => lot.remaining > 0)
-    .map(lot => ({
-      ...lot,
-      inventoryValue: (lot.remaining || 0) * (lot.unitCost || 0)
-    }))
-    .sort((a, b) => b.inventoryValue - a.inventoryValue)
-    .slice(0, 3);
+function renderInventoryCard(allLots, unsoldCostBasis, unsoldUnits) {
+  const unsoldLots = allLots.filter(lot => lot.remaining > 0);
+  const itemCount = unsoldLots.length;
 
-  const totalInventoryValue = topInventoryLots.reduce((sum, lot) => sum + lot.inventoryValue, 0);
-  const colors = ['var(--accent)', '#4A90A4', '#8B7B6B'];
+  // Projected remaining profit: avg profit per unit × remaining units
+  const allSalesData = allLots.flatMap(lot => (lot.sales || []).filter(s => !s.returned));
+  const totalSoldUnits = allSalesData.reduce((sum, s) => sum + (s.unitsSold || 0), 0);
+  const totalProfit = allSalesData.reduce((sum, s) => sum + (s.profit || 0), 0);
+  const avgProfitPerUnit = totalSoldUnits > 0 ? totalProfit / totalSoldUnits : 0;
+  const projectedProfit = Math.round(avgProfitPerUnit * unsoldUnits);
 
-  // Build stacked bar segments
-  const barSegmentsHtml = topInventoryLots.map((lot, i) => {
-    const pct = totalInventoryValue > 0 ? (lot.inventoryValue / totalInventoryValue) * 100 : 0;
-    return `<div style="width: ${pct}%; height: 100%; background: ${colors[i]}; transition: width 0.3s ease;"></div>`;
-  }).join('');
-
-  // Build side items
-  const sideItemsHtml = topInventoryLots.map((lot, i) => `
-    <div class="inventory-side-item">
-      <div class="inventory-item-color" style="background: ${colors[i]}"></div>
-      <div class="inventory-item-info">
-        <div class="inventory-item-name">${lot.name}</div>
-        <div class="inventory-item-value">${formatCurrency(lot.inventoryValue)}</div>
-      </div>
-    </div>
-  `).join('');
+  // Oldest unsold item (days since purchase)
+  let oldestDays = 0;
+  if (unsoldLots.length > 0) {
+    const now = new Date();
+    const oldestDate = unsoldLots.reduce((oldest, lot) => {
+      const d = new Date(lot.dateAdded || lot.createdAt);
+      return d < oldest ? d : oldest;
+    }, now);
+    oldestDays = Math.max(0, Math.floor((now - oldestDate) / (1000 * 60 * 60 * 24)));
+  }
 
   return `
-    <div class="inventory-card">
-      <div class="inventory-card-header">Inventory Remaining</div>
-      <div class="inventory-value-row">
-        <div class="inventory-total">${formatCurrency(unsoldCostBasis)}</div>
-        <div class="inventory-total-label">${topInventoryLots.length} item${topInventoryLots.length !== 1 ? 's' : ''} unsold</div>
+    <div class="inv-card">
+      <div class="inv-header">Inventory Status</div>
+      <div class="inv-grid">
+        <div class="inv-metric">
+          <div class="inv-metric-value">${formatCurrency(unsoldCostBasis)}</div>
+          <div class="inv-metric-label">Capital Deployed</div>
+        </div>
+        <div class="inv-metric">
+          <div class="inv-metric-value ${projectedProfit >= 0 ? 'inv-positive' : 'inv-negative'}">${projectedProfit >= 0 ? '+' : '-'}${formatCurrency(Math.abs(projectedProfit))}</div>
+          <div class="inv-metric-label">Projected Profit</div>
+        </div>
+        <div class="inv-metric">
+          <div class="inv-metric-value">${oldestDays}<span class="inv-metric-unit">d</span></div>
+          <div class="inv-metric-label">Oldest Item</div>
+        </div>
       </div>
-      <div class="inventory-bar">
-        ${barSegmentsHtml || '<div style="width: 100%; height: 100%; background: rgba(180, 177, 171, 0.2);"></div>'}
-      </div>
-      <div class="inventory-side-list" style="margin-top: var(--spacing-md);">
-        ${sideItemsHtml || '<div class="inventory-side-item"><div class="inventory-item-info"><div class="inventory-item-name">No inventory</div></div></div>'}
-      </div>
+      <div class="inv-footer">${unsoldUnits} unit${unsoldUnits !== 1 ? 's' : ''} across ${itemCount} product${itemCount !== 1 ? 's' : ''}</div>
     </div>
   `;
 }
@@ -556,21 +580,29 @@ function closeDayModal() {
 /**
  * Animate revenue and profit count-up
  */
-function animateDashboardTotals(stats, timeLabel) {
+function animateDashboardTotals(stats) {
   const revenueEl = document.querySelector('.chart-revenue-value');
-  const profitSubtitleEl = document.querySelector('.chart-profit-subtitle');
-  const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
+  const profitInlineEl = document.querySelector('.chart-profit-inline');
+  const marginInlineEl = document.querySelector('.chart-margin-inline');
 
   if (revenueEl) {
     animateCountUp(revenueEl, 0, stats.totalRevenue, 800, (val) => formatCurrency(val));
   }
 
-  if (profitSubtitleEl) {
-    profitSubtitleEl.className = `chart-profit-subtitle ${profitClass}`;
-    const prefix = stats.totalProfit < 0 ? '-' : '';
-    animateCountUp(profitSubtitleEl, 0, Math.abs(stats.totalProfit), 800, (val) => {
-      return `${prefix}${formatCurrency(val)} profit this ${timeLabel}`;
+  if (profitInlineEl) {
+    const profitClass = stats.totalProfit >= 0 ? 'text-success' : 'text-danger';
+    profitInlineEl.className = `chart-profit-inline ${profitClass}`;
+    const sign = stats.totalProfit >= 0 ? '+' : '-';
+    animateCountUp(profitInlineEl, 0, Math.abs(stats.totalProfit), 800, (val) => {
+      return `${sign}${formatCurrency(val)} net`;
     });
+  }
+
+  if (marginInlineEl) {
+    const margin = stats.totalRevenue > 0 ? Math.round((stats.totalProfit / stats.totalRevenue) * 100) : 0;
+    marginInlineEl.textContent = `${margin}% margin`;
+    if (margin < 0) marginInlineEl.classList.add('text-danger');
+    else marginInlineEl.classList.remove('text-danger');
   }
 }
 
@@ -591,16 +623,21 @@ function updateDashboard() {
 
   const currentLabelEl = document.querySelector('.time-selector-current');
   if (currentLabelEl) {
-    const labelMap = { '7d': '7D', '30d': '30D', '90d': '90D', 'all': 'All Time' };
+    const labelMap = { '7d': '7D', '30d': '30D', '90d': '90D', 'all': 'All' };
     currentLabelEl.textContent = labelMap[selectedRange];
+  }
+
+  // Update contextual header
+  const contextLabel = document.querySelector('.chart-context-label');
+  if (contextLabel) {
+    contextLabel.textContent = getContextualHeader();
   }
 
   // Re-render chart
   initChart();
 
   // Update totals in header with animation
-  const timeLabel = selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime';
-  animateDashboardTotals(stats, timeLabel);
+  animateDashboardTotals(stats);
 }
 
 export function initDashboardEvents(isInitialLoad = false) {
@@ -614,8 +651,7 @@ export function initDashboardEvents(isInitialLoad = false) {
 
     const salesData = getSalesForSelectedRange();
     const stats = calculateMonthlyStats(salesData);
-    const timeLabel = selectedRange === '7d' ? 'week' : selectedRange === '30d' ? 'month' : selectedRange === '90d' ? 'quarter' : 'lifetime';
-    animateDashboardTotals(stats, timeLabel);
+    animateDashboardTotals(stats);
   }, animationDelay);
 
   // Time selector accordion toggle
