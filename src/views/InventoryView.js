@@ -505,22 +505,22 @@ function renderSaleModal() {
   // Platform icons as SVG
   const platformIcons = {
     facebook: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>`,
-    ebay: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line><path d="M6 7h12M6 11h12"></path></svg>`
+    ebay: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+    other: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>`
   };
 
   const shippingFieldHtml = isEbay ? `
-    <div class="form-group">
-      <label class="form-label">Shipping Cost ($)</label>
-      <input type="number" class="form-input" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
+    <div class="form-group shipping-field" style="margin-bottom: 20px;">
+      <label class="form-label">Shipping per unit ($)</label>
+      <input type="number" class="form-input form-input-compact" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
     </div>
   ` : '';
 
-  // Validation
   const isValid = price > 0 && units > 0 && (!isEbay || shippingPerUnit >= 0);
 
   return `
     <div class="modal-overlay" id="sale-modal">
-      <div class="modal-content">
+      <div class="modal-content transactional">
         <div class="modal-header">
           <h2 class="modal-title">Record Sale</h2>
           <button class="modal-close" id="close-modal">
@@ -531,87 +531,79 @@ function renderSaleModal() {
           </button>
         </div>
         
-        <p class="text-secondary" style="margin-bottom: var(--spacing-sm);">${lot.name}</p>
-        <p class="text-muted" style="margin-bottom: var(--spacing-lg);">
-          ${lot.remaining} of ${lot.quantity} available • ${formatCurrency(lot.unitCost)}/unit cost
-        </p>
-        
-        <!-- Inputs in a row - equal width -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Qty</label>
-            <div class="quantity-stepper">
-              <button type="button" class="stepper-btn" id="decrease-qty">-</button>
-              <input type="number" class="form-input stepper-input" id="units-sold" placeholder="1" min="1" max="${lot.remaining}" value="${unitsSold}" inputmode="numeric" readonly />
-              <button type="button" class="stepper-btn" id="increase-qty">+</button>
-            </div>
+        <div class="modal-body">
+          <!-- Zone 1: Context -->
+          <div class="transaction-context">
+            <div class="item-name">${lot.name}</div>
+            <div class="item-meta">${lot.remaining} in stock • ${formatCurrency(lot.unitCost)} cost</div>
           </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Selling Price ($)</label>
-            <input type="number" class="form-input" id="sale-price" placeholder="0.00" step="0.01" min="0" value="${salePrice}" inputmode="decimal" />
-          </div>
-        </div>
-        
-        ${shippingFieldHtml}
-        
-        <div class="form-group">
-          <label class="form-label">Platform</label>
-          <div class="platform-grid compact">
-            ${Object.entries(PLATFORM_FEES).map(([key, platform]) => `
-              <div class="platform-option compact ${selectedPlatform === key ? 'selected' : ''}" data-platform="${key}">
-                <div class="platform-icon">${platformIcons[key]}</div>
-                <div class="platform-name">${platform.name}</div>
+          
+          <!-- Zone 2: Core Transaction -->
+          <div class="transaction-grid">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Quantity</label>
+              <div class="quantity-stepper">
+                <button type="button" class="stepper-btn" id="decrease-qty">-</button>
+                <input type="number" class="form-input form-input-compact stepper-input" id="units-sold" placeholder="1" min="1" max="${lot.remaining}" value="${unitsSold}" inputmode="numeric" readonly />
+                <button type="button" class="stepper-btn" id="increase-qty">+</button>
               </div>
-            `).join('')}
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Unit Price ($)</label>
+              <input type="number" class="form-input form-input-compact" id="sale-price" placeholder="0.00" step="0.01" min="0" value="${salePrice}" inputmode="decimal" />
+            </div>
+          </div>
+          
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Platform</label>
+            <div class="platform-segmented">
+              ${Object.entries(PLATFORM_FEES).map(([key, platform]) => `
+                <div class="segmented-option ${selectedPlatform === key ? 'selected' : ''}" data-platform="${key}">
+                  <div class="platform-icon">${platformIcons[key] || platformIcons.other}</div>
+                  <span>${platform.name}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          
+          ${shippingFieldHtml}
+          
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Sale Date</label>
+            <input type="date" class="form-input form-input-compact" id="sale-date" value="${saleDate}" style="min-height: 44px;" />
+          </div>
+          
+          <div class="dynamic-profit-container">
+            <div class="dynamic-profit-label">Net Profit</div>
+            <div class="dynamic-profit-value ${profit >= 0 ? 'profit' : 'loss'}" id="profit-display">
+              ${formatCurrency(profit)}
+            </div>
+          </div>
+          
+          <div class="breakdown-toggle" id="breakdown-toggle" style="justify-content: center; font-size: 12px; color: var(--text-muted); opacity: 0.7;">
+            <span>View detailed breakdown</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="breakdown-arrow" style="margin-left: 4px;">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          
+          <div class="breakdown-wrapper" id="breakdown-wrapper">
+            <div class="breakdown-content" id="breakdown-content">
+              <!-- Content populated by updateSummaryBox -->
+            </div>
           </div>
         </div>
         
-        <div class="form-group date-group">
-          <label class="form-label">Sale Date</label>
-          <input type="date" class="form-input" id="sale-date" value="${saleDate}" />
-        </div>
-        
-        <!-- View Breakdown Toggle -->
-        <div class="breakdown-toggle" id="breakdown-toggle">
-          <span>View Breakdown</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="breakdown-arrow">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </div>
-        
-        <!-- Breakdown Content with accordion -->
-        <div class="breakdown-wrapper" id="breakdown-wrapper">
-          <div class="breakdown-content" id="breakdown-content">
-            <div class="breakdown-row">
-              <span class="text-secondary">Revenue</span>
-              <span>${formatCurrency(totalSalePrice)}</span>
-            </div>
-            <div class="breakdown-row">
-              <span class="text-secondary">Platform Fees</span>
-              <span>-${formatCurrency(fees)}</span>
-            </div>
-            ${isEbay ? `
-              <div class="breakdown-row">
-                <span class="text-secondary">Shipping</span>
-                <span>-${formatCurrency(shippingCalc)}</span>
-              </div>
-            ` : ''}
-            <div class="breakdown-row">
-              <span class="text-secondary">Cost Basis</span>
-              <span>-${formatCurrency(costBasis)}</span>
-            </div>
+        <!-- Zone 3: Sticky Footer -->
+        <div class="modal-footer">
+          <div class="footer-summary">
+            <span class="footer-sum-label">Net Profit</span>
+            <span class="footer-sum-value ${profit >= 0 ? 'profit' : 'loss'}" id="footer-profit-display">${formatCurrency(profit)}</span>
           </div>
+          <button class="btn btn-success btn-full" id="confirm-sale" ${!isValid ? 'disabled' : ''} style="height: 52px; font-size: 16px;">
+            Record Sale
+          </button>
         </div>
-        
-        <!-- Profit Display -->
-        <div class="profit-display ${profit >= 0 ? 'profit' : 'loss'}" style="text-align: center; padding: var(--spacing-md); background: var(--bg-glass); border-radius: var(--radius-md); margin: var(--spacing-md) 0;">
-          <div style="font-size: var(--font-size-sm); color: var(--text-secondary); margin-bottom: 4px;">Net Profit</div>
-          <div style="font-size: var(--font-size-2xl); font-weight: 700;" id="profit-display">${formatCurrency(profit)}</div>
-        </div>
-        
-        <button class="btn btn-success btn-full" id="confirm-sale" ${!isValid ? 'disabled' : ''}>
-          Confirm Sale
-        </button>
       </div>
     </div>
   `;
@@ -661,8 +653,8 @@ function updatePlatformSelection(newPlatform) {
   const oldPlatform = selectedPlatform;
   selectedPlatform = newPlatform;
 
-  // Update platform option visual states
-  document.querySelectorAll('.platform-option').forEach(opt => {
+  // Update platform option visual states (segmented style)
+  document.querySelectorAll('.segmented-option').forEach(opt => {
     if (opt.dataset.platform === newPlatform) {
       opt.classList.add('selected');
     } else {
@@ -671,21 +663,21 @@ function updatePlatformSelection(newPlatform) {
   });
 
   // Handle shipping field visibility
-  const modalContent = document.querySelector('.modal-content');
+  const modalBody = document.querySelector('.modal-body');
   const existingShippingField = document.querySelector('.shipping-field');
-  const summaryBox = document.querySelector('.modal-content .summary-box');
 
   if (newPlatform === 'ebay' && !existingShippingField) {
-    // Add shipping field after the sale price input (before platform selection)
-    const platformGroup = document.querySelector('.platform-grid')?.closest('.form-group');
-    if (platformGroup) {
+    // Add shipping field before the date picker
+    const dateGroup = document.getElementById('sale-date')?.closest('.form-group');
+    if (dateGroup) {
       const shippingDiv = document.createElement('div');
       shippingDiv.className = 'form-group shipping-field';
+      shippingDiv.style.marginBottom = '20px';
       shippingDiv.innerHTML = `
-        <label class="form-label">Shipping Cost Per Unit ($)</label>
-        <input type="number" class="form-input" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
+        <label class="form-label">Shipping per unit ($)</label>
+        <input type="number" class="form-input form-input-compact" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
       `;
-      platformGroup.before(shippingDiv);
+      dateGroup.before(shippingDiv);
 
       // Attach event listener to new shipping input
       document.getElementById('shipping-cost')?.addEventListener('input', (e) => {
@@ -726,67 +718,40 @@ function updateSummaryBox() {
 
   const isValid = price > 0 && units > 0 && (!isEbay || shipping >= 0);
 
-  // Update summary box
-  const summaryBox = document.querySelector('.modal-content .summary-box');
-  if (summaryBox) {
-    summaryBox.innerHTML = `
-      <div class="summary-row">
-        <span class="text-secondary">Revenue (${units} × ${formatCurrency(priceInCents)})</span>
-        <span>${formatCurrency(totalSalePrice)}</span>
-      </div>
-      <div class="summary-row">
-        <span class="text-secondary">Platform Fees</span>
-        <span>-${formatCurrency(fees)}</span>
-      </div>
-      ${isEbay ? `
-        <div class="summary-row">
-          <span class="text-secondary">Shipping (${units} × ${formatCurrency(shippingPerUnitCents)})</span>
-          <span>-${formatCurrency(shippingCalc)}</span>
-        </div>
-      ` : ''}
-      <div class="summary-row">
-        <span class="text-secondary">Cost Basis</span>
-        <span>-${formatCurrency(costBasis)}</span>
-      </div>
-      <div class="summary-row ${profit >= 0 ? 'profit' : 'loss'}">
-        <span>Net Profit</span>
-        <span class="summary-value">${formatCurrency(profit)}</span>
-      </div>
-    `;
-  }
-
-  // Update profit display (for new modal style)
+  // Update dynamic profit displays
   const profitDisplay = document.getElementById('profit-display');
+  const footerProfitDisplay = document.getElementById('footer-profit-display');
+
   if (profitDisplay) {
     profitDisplay.textContent = formatCurrency(profit);
-    profitDisplay.parentElement.className = `profit-display ${profit >= 0 ? 'profit' : 'loss'}`;
-    profitDisplay.parentElement.style.textAlign = 'center';
-    profitDisplay.parentElement.style.padding = 'var(--spacing-md)';
-    profitDisplay.parentElement.style.background = 'var(--bg-glass)';
-    profitDisplay.parentElement.style.borderRadius = 'var(--radius-md)';
-    profitDisplay.parentElement.style.margin = 'var(--spacing-md) 0';
+    profitDisplay.className = `dynamic-profit-value ${profit >= 0 ? 'profit' : 'loss'}`;
+  }
+
+  if (footerProfitDisplay) {
+    footerProfitDisplay.textContent = formatCurrency(profit);
+    footerProfitDisplay.className = `footer-sum-value ${profit >= 0 ? 'profit' : 'loss'}`;
   }
 
   // Update breakdown content
   const breakdownContent = document.getElementById('breakdown-content');
   if (breakdownContent) {
     breakdownContent.innerHTML = `
-      <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <span class="text-secondary" style="font-size: var(--font-size-sm);">Revenue</span>
+      <div class="breakdown-row">
+        <span class="text-secondary">Revenue (${units} × ${formatCurrency(priceInCents)})</span>
         <span>${formatCurrency(totalSalePrice)}</span>
       </div>
-      <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <span class="text-secondary" style="font-size: var(--font-size-sm);">Platform Fees</span>
+      <div class="breakdown-row">
+        <span class="text-secondary">Platform Fees</span>
         <span>-${formatCurrency(fees)}</span>
       </div>
       ${isEbay ? `
-        <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-          <span class="text-secondary" style="font-size: var(--font-size-sm);">Shipping</span>
+        <div class="breakdown-row">
+          <span class="text-secondary">Shipping (${units} × ${formatCurrency(shippingPerUnitCents)})</span>
           <span>-${formatCurrency(shippingCalc)}</span>
         </div>
       ` : ''}
-      <div class="summary-row" style="display: flex; justify-content: space-between; padding: var(--spacing-xs) 0;">
-        <span class="text-secondary" style="font-size: var(--font-size-sm);">Cost Basis</span>
+      <div class="breakdown-row">
+        <span class="text-secondary">Cost Basis</span>
         <span>-${formatCurrency(costBasis)}</span>
       </div>
     `;
@@ -798,6 +763,7 @@ function updateSummaryBox() {
     confirmBtn.disabled = !isValid;
   }
 }
+
 
 export function openSaleModal(lotId) {
   selectedLotId = lotId;
@@ -1541,7 +1507,7 @@ export function initInventoryEvents() {
   });
 
   // Platform selection - targeted update only
-  document.querySelectorAll('.platform-option').forEach(option => {
+  document.querySelectorAll('.segmented-option').forEach(option => {
     option.addEventListener('click', () => {
       updatePlatformSelection(option.dataset.platform);
     });

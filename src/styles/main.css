@@ -1218,6 +1218,177 @@ body {
   }
 }
 
+/* ===== Transactional Modal (Compact & Sticky) ===== */
+.modal-content.transactional {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.modal-content.transactional .modal-header {
+  padding: 20px 24px 16px;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  padding-bottom: calc(16px + var(--safe-area-bottom));
+  background: rgba(30, 27, 24, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 10;
+}
+
+/* Zone 1 - Context */
+.transaction-context {
+  margin-bottom: var(--spacing-lg);
+}
+
+.transaction-context .item-name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.transaction-context .item-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* Zone 2 - Core Transaction */
+.transaction-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Segmented Platform Control */
+.platform-segmented {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.segmented-option {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-radius: 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.segmented-option.selected {
+  background: rgba(204, 255, 0, 0.1);
+  color: var(--accent);
+}
+
+.segmented-option .platform-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Dynamic Profit Display */
+.dynamic-profit-container {
+  text-align: center;
+  margin: 24px 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+}
+
+.dynamic-profit-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.dynamic-profit-value {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.dynamic-profit-value.profit {
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(204, 255, 0, 0.25);
+}
+
+.dynamic-profit-value.loss {
+  color: var(--accent-danger);
+  text-shadow: 0 0 20px rgba(255, 68, 68, 0.2);
+}
+
+/* Collapsible Breakdown in transactional modal */
+.modal-content.transactional .breakdown-toggle {
+  margin-bottom: 8px;
+}
+
+.modal-content.transactional .breakdown-content {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 16px;
+}
+
+/* Zone 3 - Footer Summary */
+.footer-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.footer-sum-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.footer-sum-value {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.footer-sum-value.profit {
+  color: var(--accent);
+}
+
+.footer-sum-value.loss {
+  color: var(--accent-danger);
+}
+
+/* Compact inputs for mobile */
+.form-input-compact {
+  padding: 10px 14px;
+  min-height: 44px;
+}
+
 /* ===== Upload Area ===== */
 .upload-area {
   border: 2px dashed rgba(204, 255, 0, 0.3);
