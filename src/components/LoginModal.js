@@ -14,7 +14,7 @@ function getModalHtml() {
   const user = auth.currentUser;
 
   return `
-    <div class="modal-overlay" id="login-modal-overlay">
+    <div class="modal-overlay bottom-sheet" id="login-modal-overlay">
       <div class="modal-content login-modal">
         <div class="modal-header">
           <h2 class="modal-title">${user ? 'Account' : 'Cloud Sync'}</h2>
