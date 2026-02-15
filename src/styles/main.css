@@ -1207,23 +1207,28 @@ body {
 }
 
 /* Bottom Sheet Animations */
-@keyframes slideUpFromBottom {
+/* Regular Centered Card Animations */
+@keyframes slideUpFromCenter {
   from {
-    transform: translateY(100%);
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
   }
 
   to {
-    transform: translateY(0);
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes slideDownToBottom {
+@keyframes slideDownToCenter {
   from {
-    transform: translateY(0);
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 
   to {
-    transform: translateY(100%);
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
   }
 }
 
@@ -1237,28 +1242,31 @@ body {
   }
 }
 
-/* Centered Card Overlay (Formerly Bottom Sheet) */
+/* Centered Card Overlay */
 .modal-overlay.bottom-sheet {
   align-items: center;
-  /* Center vertically */
+  justify-content: center;
   padding: 20px;
-  overflow-y: auto;
+  padding-top: 0;
+  /* Clear base overlay padding-top */
+  overflow-y: hidden;
+  /* Overlay doesn't scroll, content does */
 }
 
 .modal-overlay.bottom-sheet .modal-content {
   width: 100%;
   max-width: 440px;
-  /* Slightly more compact for a centered card */
-  margin: auto;
+  margin: 0 auto;
   border-radius: 28px;
-  /* Balanced rounded corners all around */
-  max-height: 90vh;
-  animation: slideUpFromBottom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-height: 85vh;
+  animation: slideUpFromCenter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: flex !important;
+  flex-direction: column;
 }
 
 .modal-overlay.bottom-sheet.closing .modal-content {
-  animation: slideDownToBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideDownToCenter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ===== Transactional Modal (Compact & Centered Card) ===== */

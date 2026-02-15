@@ -642,8 +642,8 @@ function updateDashboard() {
 }
 
 export function initDashboardEvents(isInitialLoad = false) {
-  // Snappier reveal: start animations as preloader begins to fade out (approx 1000ms)
-  const animationDelay = isInitialLoad ? 1000 : 0;
+  // Ultra-snappier reveal: start animations as preloader begins to fade out (approx 750ms)
+  const animationDelay = isInitialLoad ? 750 : 0;
 
   setTimeout(() => {
     isFirstRender = false; // Next renders will not show placeholders
