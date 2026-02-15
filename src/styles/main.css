@@ -106,11 +106,21 @@ body {
 }
 
 #app {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+  overflow: hidden;
+  /* Parent doesn't scroll, children do */
+}
+
+#page-content,
+.page-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ===== Utility Classes ===== */
@@ -3078,8 +3088,10 @@ body {
 #page-content {
   position: relative;
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
-  flex: 1 1 auto;
 }
 
 /* Each page view */
@@ -3088,9 +3100,11 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  min-height: 100vh;
-  will-change: transform, opacity;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   z-index: 1;
+  /* Remove will-change: transform as it breaks position: fixed context */
 }
 
 /* ===== Page Transitions ===== */
