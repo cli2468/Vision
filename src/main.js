@@ -11,7 +11,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase.js';
 import { initRippleEffects } from './utils/animations.js';
 
-// Track if this is the initial load
+// Track if we have performed the initial view render
+let initialViewRendered = false;
 let isInitialLoad = true;
 
 // Initialize event handlers for current view
@@ -37,7 +38,9 @@ function initEvents() {
   }
 
   // After first call, it's no longer initial load
-  isInitialLoad = false;
+  if (isInitialLoad) {
+    isInitialLoad = false;
+  }
 }
 
 // Register routes - these return just the view content (no chrome)
@@ -48,79 +51,67 @@ route('/add', () => AddLotView());
 // Initialize router with event callback
 initRouter(initEvents);
 
-// Debounce helper to prevent multiple rapid re-renders
+// Debounce helper for view changes (auth, navigation, etc)
 let viewChangeTimeout = null;
 function scheduleViewChange() {
   if (viewChangeTimeout) clearTimeout(viewChangeTimeout);
   viewChangeTimeout = setTimeout(() => {
     const currentRoute = getCurrentRoute();
     const pageContent = document.getElementById('page-content');
+    if (!pageContent) return;
 
-    if (pageContent) {
-      // Only update the view content, not the chrome
-      let content;
-      switch (currentRoute) {
-        case '/':
-          content = DashboardView();
-          break;
-        case '/inventory':
-          content = InventoryView();
-          break;
-        case '/add':
-          content = AddLotView();
-          break;
-        default:
-          content = DashboardView();
-      }
-      // Wrap content in page-view div
-      pageContent.innerHTML = `<div class="page-view">${content}</div>`;
-      initEvents();
+    let content;
+    switch (currentRoute) {
+      case '/': content = DashboardView(); break;
+      case '/inventory': content = InventoryView(); break;
+      case '/add': content = AddLotView(); break;
+      default: content = DashboardView();
     }
-  }, 150); // 150ms debounce
+    pageContent.innerHTML = `<div class="page-view">${content}</div>`;
+    initEvents();
+  }, 150);
 }
 
-// Handle Firebase Auth state changes globally to re-render
+// Listen for the first auth state to trigger initial animations
 onAuthStateChanged(auth, () => {
-  scheduleViewChange();
+  if (!initialViewRendered) {
+    // Initial view content is already in DOM from initApp, 
+    // now we just trigger the events/animations once
+    initialViewRendered = true;
+    initEvents();
+
+    // Safety: ensure app is visible if preloader timings were off
+    const app = document.getElementById('app');
+    if (app && !app.classList.contains('ready')) app.classList.add('ready');
+  } else {
+    scheduleViewChange();
+  }
 });
 
-// Initial render - set up the app structure
+// Initial render - set up the app structure and initial static content
 function initApp() {
   const app = document.getElementById('app');
   if (!app) return;
 
   const currentRoute = getCurrentRoute();
 
-  // Create the initial app structure
+  // Create shell structure
   app.innerHTML = `
     <div id="page-content"></div>
     ${BottomNav(currentRoute)}
     <div id="modal-container">${LoginModal()}</div>
   `;
 
-  // Initialize view content
+  // Pre-render content (HTML only, animations will wait for auth in onAuthStateChanged)
+  const pageContent = document.getElementById('page-content');
   let content;
   switch (currentRoute) {
-    case '/':
-      content = DashboardView();
-      break;
-    case '/inventory':
-      content = InventoryView();
-      break;
-    case '/add':
-      content = AddLotView();
-      break;
-    default:
-      content = DashboardView();
+    case '/': content = DashboardView(); break;
+    case '/inventory': content = InventoryView(); break;
+    case '/add': content = AddLotView(); break;
+    default: content = DashboardView();
   }
-
-  // Wrap initial content in page-view div
-  const pageContent = document.getElementById('page-content');
   pageContent.innerHTML = `<div class="page-view">${content}</div>`;
-  initEvents();
-
-  // Mark app as ready
-  app.classList.add('ready');
 }
 
 // Handle viewchange events from inventory/dashboard/addlot (e.g. after recording a sale)

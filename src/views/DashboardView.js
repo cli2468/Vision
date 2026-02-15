@@ -10,6 +10,7 @@ let selectedRange = '30d'; // '7d' | '30d' | '90d' | 'all'
 let chartMode = 'revenue'; // 'revenue' | 'profit'
 let chartInstance = null;
 let currentChartData = null;
+let isFirstRender = true; // Track first render for placeholders
 
 export function setTimeRange(range) {
   selectedRange = range;
@@ -128,11 +129,11 @@ export function DashboardView() {
           <div class="chart-header">
             <div class="chart-title-section">
               <div class="chart-context-label">${getContextualHeader()}</div>
-              <div class="chart-revenue-value">${formatCurrency(stats.totalRevenue)}</div>
+              <div class="chart-revenue-value">${isFirstRender ? '$0.00' : formatCurrency(stats.totalRevenue)}</div>
               <div class="chart-sub-metrics">
-                <span class="chart-profit-inline ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">${profitSign}${formatCurrency(Math.abs(stats.totalProfit))} net</span>
+                <span class="chart-profit-inline ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">${isFirstRender ? '+0.00' : (profitSign + formatCurrency(Math.abs(stats.totalProfit)))} net</span>
                 <span class="chart-metric-sep">·</span>
-                <span class="chart-margin-inline ${margin >= 0 ? '' : 'text-danger'}">${margin}% margin</span>
+                <span class="chart-margin-inline ${margin >= 0 ? '' : 'text-danger'}">${isFirstRender ? '0' : margin}% margin</span>
               </div>
             </div>
             <div class="time-selector-accordion" id="time-selector">
@@ -641,11 +642,11 @@ function updateDashboard() {
 }
 
 export function initDashboardEvents(isInitialLoad = false) {
-  // On initial load, delay animations so preloader finishes first
-  // Preloader takes ~1800ms total (200ms start + 15 scrambles * 50ms + 800ms fade out)
-  const animationDelay = isInitialLoad ? 1400 : 0;
+  // Snappier reveal: start animations as preloader begins to fade out (approx 1000ms)
+  const animationDelay = isInitialLoad ? 1000 : 0;
 
   setTimeout(() => {
+    isFirstRender = false; // Next renders will not show placeholders
     // Initialize chart and animate count-up together
     initChart();
 
