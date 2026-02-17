@@ -346,7 +346,7 @@ function renderEditSaleModal() {
 
   return `
     <div class="modal-overlay bottom-sheet" id="edit-sale-modal">
-      <div class="modal-content">
+      <div class="modal-content transactional">
         <div class="modal-header">
           <h2 class="modal-title">Edit Sale</h2>
           <button class="modal-close" id="close-edit-sale-modal">
@@ -357,35 +357,45 @@ function renderEditSaleModal() {
           </button>
         </div>
         
-        <p class="text-secondary" style="margin-bottom: var(--spacing-sm);">
-          Sold ${sale.unitsSold} unit${sale.unitsSold > 1 ? 's' : ''} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}
-        </p>
-        <p class="text-muted" style="margin-bottom: var(--spacing-lg);">
-          Original sale date: ${formatDate(sale.dateSold)}
-        </p>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Price / Unit ($)</label>
-            <input type="number" class="form-input" id="edit-sale-price" placeholder="0.00" step="0.01" min="0" value="${priceValue}" inputmode="decimal" />
+        <div class="modal-body">
+          <div class="transaction-context">
+            <div class="item-name">Sold ${sale.unitsSold} unit${sale.unitsSold > 1 ? 's' : ''} on ${sale.platform === 'ebay' ? 'eBay' : 'Facebook'}</div>
+            <div class="item-meta">Original sale date: ${formatDate(sale.dateSold)}</div>
+          </div>
+          
+          <div class="transaction-grid">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="transactional-label">Quantity</label>
+              <div class="quantity-stepper">
+                <button type="button" class="stepper-btn" id="edit-sale-decrease-qty" disabled>-</button>
+                <input type="number" class="form-input form-input-compact stepper-input transactional-input-emphasized" id="edit-sale-units" value="${sale.unitsSold}" readonly />
+                <button type="button" class="stepper-btn" id="edit-sale-increase-qty" disabled>+</button>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="transactional-label">Unit Price ($)</label>
+              <input type="number" class="form-input form-input-compact transactional-input-emphasized" id="edit-sale-price" placeholder="0.00" step="0.01" min="0" value="${priceValue}" inputmode="decimal" />
+            </div>
           </div>
           
           ${sale.platform === 'ebay' ? `
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Ship / Unit ($)</label>
-              <input type="number" class="form-input" id="edit-shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingValue}" inputmode="decimal" />
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="transactional-label">Shipping per unit ($)</label>
+              <input type="number" class="form-input form-input-compact transactional-input-emphasized" id="edit-shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingValue}" inputmode="decimal" />
             </div>
-          ` : '<div class="form-group" style="margin-bottom: 0;"></div>'}
+          ` : ''}
+          
+          <div class="form-group date-group">
+            <label class="transactional-label">Sale Date</label>
+            <input type="date" class="form-input form-input-compact" id="edit-sale-date" value="${dateValue}" />
+          </div>
         </div>
         
-        <div class="form-group date-group">
-          <label class="form-label">Sale Date</label>
-          <input type="date" class="form-input" id="edit-sale-date" value="${dateValue}" />
+        <div class="modal-footer" style="padding-top: 0;">
+          <button class="btn btn-transactional-primary btn-full" id="save-edit-sale">
+            Save Changes
+          </button>
         </div>
-        
-        <button class="btn btn-success btn-full" id="save-edit-sale">
-          Save Changes
-        </button>
       </div>
     </div>
   `;
@@ -396,13 +406,14 @@ function renderEditLotModal() {
 
   const { lot } = editLotData;
   const nameValue = editLotName !== '' ? editLotName : lot.name;
+  // Use total cost (unitCost * quantity) as the default value
   const totalCostValue = editLotUnitCost !== '' ? editLotUnitCost : ((lot.unitCost * lot.quantity) / 100).toFixed(2);
   const quantityValue = editLotQuantity !== '' ? editLotQuantity : lot.quantity;
   const purchaseDateValue = editLotPurchaseDate !== '' ? editLotPurchaseDate : (lot.purchaseDate ? lot.purchaseDate.split('T')[0] : new Date().toISOString().split('T')[0]);
 
   return `
     <div class="modal-overlay bottom-sheet" id="edit-lot-modal">
-      <div class="modal-content">
+      <div class="modal-content transactional">
         <div class="modal-header">
           <h2 class="modal-title">Edit Lot</h2>
           <button class="modal-close" id="close-edit-lot-modal">
@@ -413,34 +424,38 @@ function renderEditLotModal() {
           </button>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Item Name</label>
-          <input type="text" class="form-input" id="edit-lot-name" placeholder="Enter item name" value="${nameValue}" />
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Cost (USD)</label>
-            <input type="number" class="form-input" id="edit-lot-unit-cost" placeholder="0.00" step="0.01" min="0" value="${totalCostValue}" inputmode="decimal" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="transactional-label">Item Name</label>
+            <input type="text" class="form-input form-input-compact" id="edit-lot-name" placeholder="Enter item name" value="${nameValue}" />
           </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Qty</label>
-            <div class="quantity-stepper">
-              <button type="button" class="stepper-btn" id="edit-decrease-qty">-</button>
-              <input type="number" class="form-input stepper-input" id="edit-lot-quantity" placeholder="1" min="1" value="${quantityValue}" inputmode="numeric" readonly />
-              <button type="button" class="stepper-btn" id="edit-increase-qty">+</button>
+
+          <div class="transaction-grid">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="transactional-label">Total Quantity</label>
+              <div class="quantity-stepper">
+                <button type="button" class="stepper-btn" id="edit-decrease-qty">-</button>
+                <input type="number" class="form-input form-input-compact stepper-input transactional-input-emphasized" id="edit-lot-quantity" placeholder="1" min="1" value="${quantityValue}" inputmode="numeric" readonly />
+                <button type="button" class="stepper-btn" id="edit-increase-qty">+</button>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="transactional-label">Total Cost ($)</label>
+              <input type="number" class="form-input form-input-compact transactional-input-emphasized" id="edit-lot-unit-cost" placeholder="0.00" step="0.01" min="0" value="${totalCostValue}" inputmode="decimal" />
             </div>
           </div>
+
+          <div class="form-group date-group">
+            <label class="transactional-label">Purchase Date</label>
+            <input type="date" class="form-input form-input-compact" id="edit-lot-purchase-date" value="${purchaseDateValue}" />
+          </div>
         </div>
 
-        <div class="form-group date-group">
-          <label class="form-label">Purchase Date</label>
-          <input type="date" class="form-input" id="edit-lot-purchase-date" value="${purchaseDateValue}" />
+        <div class="modal-footer" style="padding-top: 0;">
+          <button class="btn btn-transactional-primary btn-full" id="save-edit-lot">
+            Save Changes
+          </button>
         </div>
-
-        <button class="btn btn-primary btn-full" id="save-edit-lot" style="margin-top: var(--spacing-md);">
-          Save Changes
-        </button>
       </div>
     </div>
   `;
@@ -511,7 +526,7 @@ function renderSaleModal() {
 
   const shippingFieldHtml = isEbay ? `
     <div class="form-group shipping-field" style="margin-bottom: 16px;">
-      <label class="form-label">Shipping per unit ($)</label>
+      <label class="transactional-label">Shipping per unit ($)</label>
       <input type="number" class="form-input form-input-compact" id="shipping-cost" placeholder="0.00" step="0.01" min="0" value="${shippingCost}" inputmode="decimal" />
     </div>
   ` : '';
@@ -542,21 +557,21 @@ function renderSaleModal() {
           <!-- Zone 2: Core Transaction -->
           <div class="transaction-grid">
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Quantity</label>
+              <label class="transactional-label">Quantity</label>
               <div class="quantity-stepper">
                 <button type="button" class="stepper-btn" id="decrease-qty">-</button>
-                <input type="number" class="form-input form-input-compact stepper-input" id="units-sold" placeholder="1" min="1" max="${lot.remaining}" value="${unitsSold}" inputmode="numeric" readonly />
+                <input type="number" class="form-input form-input-compact stepper-input transactional-input-emphasized" id="units-sold" placeholder="1" min="1" max="${lot.remaining}" value="${unitsSold}" inputmode="numeric" readonly />
                 <button type="button" class="stepper-btn" id="increase-qty">+</button>
               </div>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Unit Price ($)</label>
-              <input type="number" class="form-input form-input-compact" id="sale-price" placeholder="0.00" step="0.01" min="0" value="${salePrice}" inputmode="decimal" />
+              <label class="transactional-label">Unit Price ($)</label>
+              <input type="number" class="form-input form-input-compact transactional-input-emphasized" id="sale-price" placeholder="0.00" step="0.01" min="0" value="${salePrice}" inputmode="decimal" />
             </div>
           </div>
           
           <div class="form-group" style="margin-bottom: 12px;">
-            <label class="form-label text-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">Platform</label>
+            <label class="transactional-label">Platform</label>
             <div class="platform-segmented">
               ${Object.entries(PLATFORM_FEES).map(([key, platform]) => `
                 <div class="segmented-option ${selectedPlatform === key ? 'selected' : ''}" data-platform="${key}">
@@ -571,8 +586,8 @@ function renderSaleModal() {
           
           <!-- Sale Date: Matches Edit Lot Date Code -->
           <div class="form-group date-group">
-            <label class="form-label">Sale Date</label>
-            <input type="date" class="form-input" id="sale-date" value="${saleDate}" />
+            <label class="transactional-label">Sale Date</label>
+            <input type="date" class="form-input form-input-compact" id="sale-date" value="${saleDate}" />
           </div>
           
           <div class="breakdown-toggle" id="breakdown-toggle" style="justify-content: center; font-size: 12px; color: var(--text-muted); padding: 4px; opacity: 0.8; margin-top: 8px;">
@@ -612,7 +627,7 @@ function renderSaleModal() {
             <span class="footer-sum-label">NET PROFIT</span>
             <span class="footer-sum-value ${profit >= 0 ? 'profit' : 'loss'}" id="footer-profit-display">${formatCurrency(profit)}</span>
           </div>
-          <button class="btn btn-success btn-full" id="confirm-sale" ${!isValid ? 'disabled' : ''} style="height: 48px; font-size: 16px; font-weight: 700;">
+          <button class="btn btn-transactional-primary btn-full" id="confirm-sale" ${!isValid ? 'disabled' : ''}>
             Record Sale
           </button>
         </div>
@@ -951,13 +966,15 @@ function initLotCardEvents() {
 
 }
 
-// Swipe handling functions
+// Swipe handling functions - iOS Mail Style
 function initSwipeHandlers() {
   const swipeWrappers = document.querySelectorAll('.lot-card-swipe-wrapper');
 
   swipeWrappers.forEach(wrapper => {
     const card = wrapper.querySelector('.lot-card');
     const lotId = wrapper.dataset.lotId;
+    const editBg = wrapper.querySelector('.edit-bg');
+    const deleteBg = wrapper.querySelector('.delete-bg');
 
     if (!card) return;
 
@@ -966,189 +983,94 @@ function initSwipeHandlers() {
     let isDragging = false;
     let startY = 0;
     let isHorizontal = false;
+    let cardWidth = 0;
 
-    // Touch start
-    card.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
+    const startHandler = (clientX, clientY) => {
+      startX = clientX;
+      startY = clientY;
       isDragging = true;
       isHorizontal = false;
-      card.classList.add('swiping');
-    }, { passive: true });
+      cardWidth = card.offsetWidth;
+      card.classList.remove('snapping', 'restore');
+      wrapper.classList.add('swiping');
+    };
 
-    // Touch move
-    card.addEventListener('touchmove', (e) => {
+    const moveHandler = (clientX, clientY, e) => {
       if (!isDragging) return;
 
-      const touchX = e.touches[0].clientX;
-      const touchY = e.touches[0].clientY;
-      const deltaX = touchX - startX;
-      const deltaY = touchY - startY;
+      const deltaX = clientX - startX;
+      const deltaY = clientY - startY;
 
       // Determine if horizontal swipe on first significant movement
       if (!isHorizontal && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
         isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
         if (isHorizontal) {
-          wrapper.classList.add('swiping');
+          card.classList.add('swiping');
+        } else {
+          isDragging = false;
+          wrapper.classList.remove('swiping');
         }
       }
 
       if (isHorizontal) {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         currentX = deltaX;
 
-        // Limit the swipe distance
-        const maxSwipe = 120;
-        const clampedX = Math.max(-maxSwipe, Math.min(maxSwipe, currentX));
-        card.style.transform = `translateX(${clampedX}px)`;
+        // Apply resistance after reveal position
+        const revealPos = 80;
+        let displayX = currentX;
+        if (Math.abs(currentX) > revealPos) {
+          const extra = Math.abs(currentX) - revealPos;
+          displayX = (revealPos + extra * 0.3) * (currentX > 0 ? 1 : -1);
+        }
 
-        // Show action indicators
-        if (currentX < -40) {
-          wrapper.classList.add('swiping-left');
-          wrapper.classList.remove('swiping-right');
-        } else if (currentX > 40) {
+        card.style.transform = `translateX(${displayX}px)`;
+
+        // Show action indicators & Commit state (70% threshold)
+        const commitThreshold = cardWidth * 0.7;
+        const isCommitting = Math.abs(currentX) > commitThreshold;
+
+        if (currentX > 20) {
           wrapper.classList.add('swiping-right');
           wrapper.classList.remove('swiping-left');
-        } else {
-          wrapper.classList.remove('swiping-left', 'swiping-right');
-        }
-      }
-    }, { passive: false });
-
-    // Touch end
-    card.addEventListener('touchend', () => {
-      if (!isDragging) return;
-      isDragging = false;
-      card.classList.remove('swiping');
-      wrapper.classList.remove('swiping');
-
-      const threshold = 80;
-
-      if (currentX > threshold) {
-        // Full right swipe - EDIT (now appears on left side)
-        card.style.transform = 'translateX(80px)';
-        card.classList.add('swiped-right');
-        setTimeout(() => {
-          openEditLotModal(lotId);
-          resetCardPosition(card);
-        }, 300);
-      } else if (currentX < -threshold) {
-        // Full left swipe - DELETE (now appears on right side)
-        card.style.transform = 'translateX(-80px)';
-        card.classList.add('swiped-left');
-        setTimeout(() => {
-          if (confirm('Delete this lot and all its sales history?')) {
-            deleteLot(lotId);
-            window.dispatchEvent(new CustomEvent('viewchange'));
-          } else {
-            resetCardPosition(card);
-          }
-        }, 300);
-      } else if (currentX > 40) {
-        // Partial right swipe - show EDIT button (on left)
-        card.style.transform = 'translateX(80px)';
-        card.classList.add('swiped-right');
-        const clickHandler = () => {
-          openEditLotModal(lotId);
-          resetCardPosition(card);
-          card.removeEventListener('click', clickHandler);
-        };
-        card.addEventListener('click', clickHandler);
-        setTimeout(() => {
-          if (card.classList.contains('swiped-right')) {
-            resetCardPosition(card);
-            card.removeEventListener('click', clickHandler);
-          }
-        }, 3000);
-      } else if (currentX < -40) {
-        // Partial left swipe - show DELETE button (on right)
-        card.style.transform = 'translateX(-80px)';
-        card.classList.add('swiped-left');
-        const clickHandler = () => {
-          if (confirm('Delete this lot and all its sales history?')) {
-            deleteLot(lotId);
-            window.dispatchEvent(new CustomEvent('viewchange'));
-          } else {
-            resetCardPosition(card);
-          }
-          card.removeEventListener('click', clickHandler);
-        };
-        card.addEventListener('click', clickHandler);
-        setTimeout(() => {
-          if (card.classList.contains('swiped-left')) {
-            resetCardPosition(card);
-            card.removeEventListener('click', clickHandler);
-          }
-        }, 3000);
-      } else {
-        resetCardPosition(card);
-      }
-
-      wrapper.classList.remove('swiping-left', 'swiping-right');
-    });
-
-    // Mouse events for desktop
-    card.addEventListener('mousedown', (e) => {
-      startX = e.clientX;
-      startY = e.clientY;
-      isDragging = true;
-      isHorizontal = false;
-      card.classList.add('swiping');
-    });
-
-    card.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
-
-      if (!isHorizontal && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
-        isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
-        if (isHorizontal) {
-          wrapper.classList.add('swiping');
-        }
-      }
-
-      if (isHorizontal) {
-        e.preventDefault();
-        currentX = deltaX;
-
-        const maxSwipe = 120;
-        const clampedX = Math.max(-maxSwipe, Math.min(maxSwipe, currentX));
-        card.style.transform = `translateX(${clampedX}px)`;
-
-        if (currentX < -40) {
+          if (editBg) editBg.classList.toggle('is-committing', isCommitting);
+        } else if (currentX < -20) {
           wrapper.classList.add('swiping-left');
           wrapper.classList.remove('swiping-right');
-        } else if (currentX > 40) {
-          wrapper.classList.add('swiping-right');
-          wrapper.classList.remove('swiping-left');
+          if (deleteBg) deleteBg.classList.toggle('is-committing', isCommitting);
         } else {
           wrapper.classList.remove('swiping-left', 'swiping-right');
+          if (editBg) editBg.classList.remove('is-committing');
+          if (deleteBg) deleteBg.classList.remove('is-committing');
         }
       }
-    });
+    };
 
-    card.addEventListener('mouseup', () => {
+    const endHandler = () => {
       if (!isDragging) return;
       isDragging = false;
+
       card.classList.remove('swiping');
-      wrapper.classList.remove('swiping');
+      wrapper.classList.remove('swiping', 'swiping-left', 'swiping-right');
+      if (editBg) editBg.classList.remove('is-committing');
+      if (deleteBg) deleteBg.classList.remove('is-committing');
 
-      const threshold = 80;
+      const revealThreshold = cardWidth * 0.25;
+      const commitThreshold = cardWidth * 0.7;
+      const revealPos = 80;
 
-      if (currentX > threshold) {
-        // Full right swipe - EDIT
-        card.style.transform = 'translateX(80px)';
-        card.classList.add('swiped-right');
+      card.classList.add('snapping');
+
+      if (currentX > commitThreshold) {
+        // COMMIT RIGHT -> EDIT
+        card.style.transform = `translateX(${cardWidth}px)`;
         setTimeout(() => {
           openEditLotModal(lotId);
           resetCardPosition(card);
         }, 300);
-      } else if (currentX < -threshold) {
-        // Full left swipe - DELETE
-        card.style.transform = 'translateX(-80px)';
-        card.classList.add('swiped-left');
+      } else if (currentX < -commitThreshold) {
+        // COMMIT LEFT -> DELETE
+        card.style.transform = `translateX(-${cardWidth}px)`;
         setTimeout(() => {
           if (confirm('Delete this lot and all its sales history?')) {
             deleteLot(lotId);
@@ -1157,27 +1079,83 @@ function initSwipeHandlers() {
             resetCardPosition(card);
           }
         }, 300);
-      } else if (currentX > 40 || currentX < -40) {
-        resetCardPosition(card);
+      } else if (currentX > revealThreshold) {
+        // REVEAL RIGHT -> Snap to Edit button
+        card.style.transform = `translateX(${revealPos}px)`;
+        card.classList.add('swiped-right');
+
+        // One-time click to trigger action or click away to reset
+        const clickReset = () => {
+          resetCardPosition(card);
+          document.removeEventListener('click', clickReset);
+        };
+        setTimeout(() => document.addEventListener('click', clickReset), 10);
+      } else if (currentX < -revealThreshold) {
+        // REVEAL LEFT -> Snap to Delete button
+        card.style.transform = `translateX(-${revealPos}px)`;
+        card.classList.add('swiped-left');
+
+        const clickReset = () => {
+          resetCardPosition(card);
+          document.removeEventListener('click', clickReset);
+        };
+        setTimeout(() => document.addEventListener('click', clickReset), 10);
       } else {
+        // RESET
         resetCardPosition(card);
       }
 
-      wrapper.classList.remove('swiping-left', 'swiping-right');
-    });
+      currentX = 0;
+    };
 
-    card.addEventListener('mouseleave', () => {
+    // Touch events
+    card.addEventListener('touchstart', (e) => startHandler(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    card.addEventListener('touchmove', (e) => moveHandler(e.touches[0].clientX, e.touches[0].clientY, e), { passive: false });
+    card.addEventListener('touchend', endHandler);
+
+    // Mouse events - optimized to only track window during active drag
+    const onMouseMove = (e) => {
+      if (isDragging) moveHandler(e.clientX, e.clientY, e);
+    };
+
+    const onMouseUp = () => {
       if (isDragging) {
-        isDragging = false;
-        resetCardPosition(card);
-        wrapper.classList.remove('swiping', 'swiping-left', 'swiping-right');
+        endHandler();
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
       }
+    };
+
+    card.addEventListener('mousedown', (e) => {
+      startHandler(e.clientX, e.clientY);
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
     });
+
+    // Special handlers for background action clicks (fallback)
+    if (editBg) {
+      editBg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditLotModal(lotId);
+        resetCardPosition(card);
+      });
+    }
+    if (deleteBg) {
+      deleteBg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Delete this lot and all its sales history?')) {
+          deleteLot(lotId);
+          window.dispatchEvent(new CustomEvent('viewchange'));
+        } else {
+          resetCardPosition(card);
+        }
+      });
+    }
   });
 }
 
 function resetCardPosition(card) {
-  card.classList.remove('swiped-left', 'swiped-right');
+  card.classList.remove('swiped-left', 'swiped-right', 'snapping');
   card.classList.add('restore');
   card.style.transform = '';
   setTimeout(() => {
@@ -1244,7 +1222,7 @@ function handleSaveEditLot(e) {
 
   const { lot } = editLotData;
 
-  // Parse values - editLotUnitCost is now TOTAL cost (like Add Manually screen)
+  // Parse values - now treating editLotUnitCost as TOTAL cost
   const newName = editLotName !== '' ? editLotName.trim() : lot.name;
   const newTotalCostDollars = editLotUnitCost !== '' ? parseFloat(editLotUnitCost) : (lot.unitCost * lot.quantity) / 100;
   const newQuantity = editLotQuantity !== '' ? parseInt(editLotQuantity) : lot.quantity;
@@ -1256,7 +1234,7 @@ function handleSaveEditLot(e) {
     return;
   }
   if (isNaN(newTotalCostDollars) || newTotalCostDollars < 0) {
-    alert('Please enter a valid cost');
+    alert('Please enter a valid total cost');
     return;
   }
   if (isNaN(newQuantity) || newQuantity < 1) {
@@ -1264,9 +1242,9 @@ function handleSaveEditLot(e) {
     return;
   }
 
-  // Calculate unit cost from total (backend calculation)
+  // Calculate costs in cents
   const newTotalCostCents = Math.round(newTotalCostDollars * 100);
-  const newUnitCost = Math.round(newTotalCostCents / newQuantity);
+  const newUnitCostCents = Math.round(newTotalCostCents / newQuantity);
 
   // Check if reducing quantity below already sold
   const unitsSold = lot.quantity - lot.remaining;
@@ -1281,7 +1259,7 @@ function handleSaveEditLot(e) {
   // Update lot
   updateLot(lot.id, {
     name: newName,
-    unitCost: newUnitCost,
+    unitCost: newUnitCostCents,
     quantity: newQuantity,
     remaining: newRemaining,
     totalCost: newTotalCostCents,

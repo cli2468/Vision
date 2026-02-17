@@ -1293,11 +1293,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.modal-content.transactional .modal-header {
+.modal-content.transactional .modal-header,
+.card.transactional .modal-header {
   padding: 16px 24px 12px;
   /* Slightly tighter */
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .modal-body {
@@ -1333,6 +1334,17 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* Standardized Label Style */
+.transactional-label {
+  display: block;
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 700 !important;
+  color: var(--text-muted) !important;
+  margin-bottom: 6px !important;
+}
+
 /* Zone 2 - Core Transaction */
 .transaction-grid {
   display: grid;
@@ -1341,18 +1353,29 @@ body {
   margin-bottom: 16px;
 }
 
-#sale-price {
-  font-size: 18px;
-  /* Larger price input */
-  font-weight: 600;
-  height: 44px;
-  /* Explicit height to match stepper */
+.transactional-input-emphasized {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
 }
 
 .form-input-compact {
   padding: 8px 12px;
-  min-height: 44px;
+  height: 48px;
   font-size: 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.form-input-compact:focus {
+  border-color: var(--accent);
+  background: rgba(204, 255, 0, 0.05);
+  box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.1);
+  outline: none;
 }
 
 /* Quantity Stepper Harmony */
@@ -1360,11 +1383,12 @@ body {
   display: flex;
   align-items: center;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 2px;
-  height: 44px;
+  height: 48px;
   /* Matches compact input height */
   border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
 }
 
 .stepper-btn {
@@ -1443,6 +1467,53 @@ body {
 .segmented-option:active {
   transform: scale(0.96);
   /* Micro-interaction */
+}
+
+/* System-wide Transactional Buttons */
+.btn-transactional-primary {
+  height: 48px !important;
+  background: var(--accent) !important;
+  color: #000 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: 14px !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(204, 255, 0, 0.2) !important;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.btn-transactional-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(204, 255, 0, 0.3) !important;
+  filter: brightness(1.05);
+}
+
+.btn-transactional-primary:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn-transactional-primary:disabled {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.btn-transactional-secondary {
+  height: 44px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-secondary) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-transactional-secondary:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Dynamic Profit Display - Phase 2 (Single Row) */
@@ -3038,6 +3109,18 @@ body {
   transform: scale(1);
 }
 
+/* Commit state - visual "pop" when passing 70% threshold */
+.swipe-bg-action.is-committing {
+  transform: scale(1.15) !important;
+  opacity: 1 !important;
+}
+
+.swipe-bg-action.is-committing .swipe-bg-icon {
+  background: currentColor !important;
+  color: #000 !important;
+  box-shadow: 0 0 20px currentColor !important;
+}
+
 /* Swipe hint arrows */
 .swipe-bg-action .swipe-hint {
   font-size: 0.625rem;
@@ -3077,6 +3160,10 @@ body {
 
 .lot-card.swiped-right {
   transform: translateX(80px);
+}
+
+.lot-card.snapping {
+  transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1) !important;
 }
 
 .lot-card.restore {

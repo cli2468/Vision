@@ -77,10 +77,12 @@ function renderProcessingState() {
   return `
     <div class="page">
       <div class="container">
-        <div class="card">
-          <div class="ocr-progress">
-            <div class="progress-spinner"></div>
-            <div class="progress-text">Scanning image... ${ocrProgress}%</div>
+        <div class="card transactional">
+          <div class="modal-body">
+            <div class="ocr-progress">
+              <div class="progress-spinner"></div>
+              <div class="progress-text">Scanning image... ${ocrProgress}%</div>
+            </div>
           </div>
         </div>
       </div>
@@ -101,45 +103,43 @@ function renderPreviewState() {
           </div>
         ` : ''}
         
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Item Name</label>
-            <div class="input-with-clear">
-              <input type="text" class="form-input" id="lot-name" value="${escapeHtml(extractedData.name)}" placeholder="Enter item name" />
-              <button type="button" class="clear-input-btn" id="clear-name-btn" title="Clear">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
+        <div class="card transactional">
+          <div class="modal-header">
+            <h2 class="modal-title">Add Inventory</h2>
           </div>
-          
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Cost (USD)</label>
-              <input type="number" class="form-input" id="lot-cost" value="${extractedData.cost || ''}" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="transactional-label">Item Name</label>
+              <input type="text" class="form-input form-input-compact" id="lot-name" value="${escapeHtml(extractedData.name)}" placeholder="Enter item name" />
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Qty</label>
-              <div class="quantity-stepper">
-                <button type="button" class="stepper-btn" id="decrease-qty">-</button>
-                <input type="number" class="form-input stepper-input" id="lot-quantity" value="${extractedData.quantity}" placeholder="1" min="1" inputmode="numeric" readonly />
-                <button type="button" class="stepper-btn" id="increase-qty">+</button>
+            
+            <div class="transaction-grid" style="margin-bottom: 12px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="transactional-label">Total Quantity</label>
+                <div class="quantity-stepper">
+                  <button type="button" class="stepper-btn" id="decrease-qty">-</button>
+                  <input type="number" class="form-input form-input-compact stepper-input transactional-input-emphasized" id="lot-quantity" value="${extractedData.quantity}" placeholder="1" min="1" inputmode="numeric" readonly />
+                  <button type="button" class="stepper-btn" id="increase-qty">+</button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="transactional-label">Total Cost ($)</label>
+                <input type="number" class="form-input form-input-compact transactional-input-emphasized" id="lot-cost" value="${(extractedData.cost || 0).toFixed(2)}" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
               </div>
             </div>
+            
+            <div class="form-group date-group">
+              <label class="transactional-label">Purchase Date</label>
+              <input type="date" class="form-input form-input-compact" id="lot-purchase-date" value="${new Date().toISOString().split('T')[0]}" />
+            </div>
           </div>
-          
-          <div class="form-group date-group">
-            <label class="form-label">Purchase Date</label>
-            <input type="date" class="form-input" id="lot-purchase-date" value="${new Date().toISOString().split('T')[0]}" />
-          </div>
-          
-          <button class="btn btn-primary btn-full" id="save-lot-btn">
+        
+        <div class="modal-footer">
+          <button class="btn btn-transactional-primary btn-full" id="save-lot-btn">
             Save to Inventory
           </button>
           
-          <button class="btn btn-secondary btn-full" id="cancel-btn" style="margin-top: var(--spacing-md);">
+          <button class="btn btn-transactional-secondary btn-full" id="cancel-btn" style="margin-top: 12px;">
             Cancel
           </button>
         </div>
