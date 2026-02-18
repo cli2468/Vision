@@ -4,6 +4,7 @@ import { getLots, recordSale, deleteLot, updateLot, isFullySold, hasSales, getLo
 import { formatCurrency, formatDate, PLATFORM_FEES, calculateSaleProfit } from '../services/calculations.js';
 import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
 import { celebrateSuccess } from '../utils/animations.js';
+import { DesktopInventoryView, initDesktopInventoryEvents } from './DesktopInventoryView.js';
 
 let activeTab = 'unsold';
 let searchQuery = '';
@@ -32,6 +33,18 @@ let editLotEventsAttached = false;
 
 export function setActiveTab(tab) {
   activeTab = tab;
+}
+
+export function getActiveTab() {
+  return activeTab;
+}
+
+export function setSearchQuery(query) {
+  searchQuery = query;
+}
+
+export function getSearchQuery() {
+  return searchQuery;
 }
 
 function getFilteredAndSortedLots() {
@@ -68,7 +81,16 @@ function getFilteredAndSortedLots() {
   return filteredLots;
 }
 
+function isDesktopViewport() {
+  return window.innerWidth >= 1280;
+}
+
 export function InventoryView() {
+  // Use desktop layout on large screens
+  if (isDesktopViewport()) {
+    return DesktopInventoryView();
+  }
+
   const filteredLots = getFilteredAndSortedLots();
 
   const modalHtml = selectedLotId ? renderSaleModal() : '';
@@ -1446,6 +1468,12 @@ function handleSaveEditSale() {
 }
 
 export function initInventoryEvents() {
+  // Check if we're on desktop and init desktop events
+  if (isDesktopViewport()) {
+    initDesktopInventoryEvents();
+    return;
+  }
+
   // Tab switching - targeted update only
   document.querySelectorAll('.tabs .tab').forEach(tab => {
     tab.addEventListener('click', (e) => {

@@ -158,22 +158,30 @@ export function updateLot(id, updates) {
 export function recordSale(id, pricePerUnit, unitsSold, platform, shippingCost = 0, saleDateStr = null) {
     const lot = getLotById(id);
     if (!lot) return null;
-    if (unitsSold > lot.remaining) return null;
+    
+    // Explicit type casting with defaults
+    const price = Number(pricePerUnit) || 0;
+    const qty = Number(unitsSold) || 0;
+    const shipping = Number(shippingCost) || 0;
+    
+    if (qty > lot.remaining) return null;
+    if (price <= 0) return null;
 
-    const pricePerUnitCents = Math.round(pricePerUnit * 100);
-    const totalSalePrice = pricePerUnitCents * unitsSold;
+    const pricePerUnitCents = Math.round(price * 100);
+    const totalSalePrice = pricePerUnitCents * qty;
     const feeRate = platform === 'ebay' ? 0.135 : 0;
     const fees = Math.round(totalSalePrice * feeRate);
-    const shippingCostCents = Math.round(shippingCost * 100);
-    const costBasis = lot.unitCost * unitsSold;
+    const shippingCostCents = Math.round(shipping * 100);
+    const costBasis = (Number(lot.unitCost) || 0) * qty;
     const profit = totalSalePrice - costBasis - fees - shippingCostCents;
 
     const saleRecord = {
         id: generateId(),
-        unitsSold,
+        lotId: id,
+        unitsSold: qty,
         pricePerUnit: pricePerUnitCents,
         totalPrice: totalSalePrice,
-        platform,
+        platform: platform || 'unknown',
         fees,
         shippingCost: shippingCostCents,
         costBasis,
@@ -421,8 +429,11 @@ export function hasSales(lot) {
  * @returns {number} Total profit in cents
  */
 export function getLotTotalProfit(lot) {
-    if (!lot.sales) return 0;
-    return lot.sales.reduce((sum, sale) => sum + sale.profit, 0);
+    if (!lot || !lot.sales || !Array.isArray(lot.sales)) return 0;
+    return lot.sales.reduce((sum, sale) => {
+        const profit = Number(sale?.profit) || 0;
+        return sum + profit;
+    }, 0);
 }
 
 /**

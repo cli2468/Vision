@@ -53,22 +53,33 @@ export function aggregateSalesByDay(salesData, range) {
 
   // Aggregate sales into days
   for (const { lot, sale } of salesData) {
+    // Defensive: skip invalid sales
+    if (!sale || !sale.dateSold) continue;
+    
     // Parse date as local time by appending T00:00:00 to avoid UTC shift
     const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
     const saleDate = new Date(saleDateStr);
+    
+    // Skip invalid dates
+    if (isNaN(saleDate.getTime())) continue;
+    
     const dateKey = formatDateKey(saleDate);
 
     if (salesByDay.has(dateKey)) {
       const dayData = salesByDay.get(dateKey);
       dayData.sales.push({ lot, sale });
 
+      // Ensure numeric values
+      const totalPrice = Number(sale.totalPrice) || 0;
+      const profit = Number(sale.profit) || 0;
+
       if (sale.returned) {
         // Track returns separately (negative impact)
-        dayData.returns += sale.profit;
+        dayData.returns += profit;
       } else {
         // Normal sale
-        dayData.revenue += sale.totalPrice;
-        dayData.profit += sale.profit;
+        dayData.revenue += totalPrice;
+        dayData.profit += profit;
       }
     }
   }

@@ -29,12 +29,18 @@ export function calculateFees(priceInCents, platform) {
  * @returns {Object} { costBasis, totalSalePrice, fees, shippingCost, profit } in cents
  */
 export function calculateSaleProfit(unitCostCents, unitsSold, pricePerUnitCents, platform, shippingCostCents = 0) {
-    const costBasis = unitCostCents * unitsSold;
-    const totalSalePrice = pricePerUnitCents * unitsSold;
+    // Explicit type casting with defaults
+    const unitCost = Number(unitCostCents) || 0;
+    const qty = Number(unitsSold) || 0;
+    const pricePerUnit = Number(pricePerUnitCents) || 0;
+    const shipping = Number(shippingCostCents) || 0;
+    
+    const costBasis = unitCost * qty;
+    const totalSalePrice = pricePerUnit * qty;
     const fees = calculateFees(totalSalePrice, platform);
-    const profit = totalSalePrice - costBasis - fees - shippingCostCents;
+    const profit = totalSalePrice - costBasis - fees - shipping;
 
-    return { costBasis, totalSalePrice, fees, shippingCost: shippingCostCents, profit };
+    return { costBasis, totalSalePrice, fees, shippingCost: shipping, profit };
 }
 
 
@@ -51,6 +57,7 @@ export function calculateMonthlyStats(salesData) {
         totalProfit: 0,
         unitsSold: 0,
         transactionCount: 0,
+        totalSales: 0,
         avgProfitPerUnit: 0,
         // Returned/refunded tracking
         totalReturned: 0,
@@ -58,22 +65,36 @@ export function calculateMonthlyStats(salesData) {
         returnedRevenue: 0
     };
 
+    if (!Array.isArray(salesData)) return stats;
+
     for (const { sale } of salesData) {
+        // Defensive: skip invalid sales
+        if (!sale) continue;
+        
+        // Ensure numeric values
+        const totalPrice = Number(sale.totalPrice) || 0;
+        const costBasis = Number(sale.costBasis) || 0;
+        const fees = Number(sale.fees) || 0;
+        const profit = Number(sale.profit) || 0;
+        const units = Number(sale.unitsSold) || 0;
+        
         if (sale.returned) {
             // Track returned sales separately
-            stats.totalReturned += sale.profit;
+            stats.totalReturned += profit;
             stats.returnedCount++;
-            stats.returnedRevenue += sale.totalPrice;
+            stats.returnedRevenue += totalPrice;
             continue;
         }
         
-        stats.totalRevenue += sale.totalPrice;
-        stats.totalCosts += sale.costBasis;
-        stats.totalFees += sale.fees;
-        stats.totalProfit += sale.profit;
-        stats.unitsSold += sale.unitsSold;
+        stats.totalRevenue += totalPrice;
+        stats.totalCosts += costBasis;
+        stats.totalFees += fees;
+        stats.totalProfit += profit;
+        stats.unitsSold += units;
         stats.transactionCount++;
     }
+    
+    stats.totalSales = stats.transactionCount;
 
     stats.avgProfitPerUnit = stats.unitsSold > 0
         ? Math.round(stats.totalProfit / stats.unitsSold)
@@ -89,17 +110,23 @@ export function calculateMonthlyStats(salesData) {
  * @returns {string} Formatted dollar amount
  */
 export function formatCurrency(cents, showSign = false) {
-    const dollars = cents / 100;
+    // Defensive: handle NaN, undefined, null, or non-numeric values
+    const value = Number(cents);
+    if (isNaN(value) || cents === undefined || cents === null) {
+        return '—';
+    }
+    
+    const dollars = value / 100;
     const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD'
     }).format(Math.abs(dollars));
 
-    if (showSign && cents !== 0) {
-        return cents > 0 ? `+${formatted}` : `-${formatted}`;
+    if (showSign && value !== 0) {
+        return value > 0 ? `+${formatted}` : `-${formatted}`;
     }
 
-    return cents < 0 ? `-${formatted}` : formatted;
+    return value < 0 ? `-${formatted}` : formatted;
 }
 
 /**
@@ -109,7 +136,17 @@ export function formatCurrency(cents, showSign = false) {
  * @returns {string} Formatted date
  */
 export function formatDate(isoDate, format = 'short') {
+    // Defensive: handle invalid or missing dates
+    if (!isoDate || isoDate === 'Invalid Date') {
+        return '—';
+    }
+    
     const date = new Date(isoDate);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        return '—';
+    }
 
     if (format === 'relative') {
         const now = new Date();

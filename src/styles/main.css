@@ -106,12 +106,11 @@ body {
 }
 
 #app {
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  /* Parent doesn't scroll, children do */
+  /* Allow scrolling by default, desktop handles sidebar/content layout */
 }
 
 #page-content,
