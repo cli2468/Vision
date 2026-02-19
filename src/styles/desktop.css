@@ -90,7 +90,7 @@
   /* Sidebar Header */
   .sidebar-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     margin-bottom: 32px;
     min-height: 44px;
@@ -119,10 +119,10 @@
   }
 
   .brand-name {
-    font-size: 1.0625rem;
-    font-weight: 600;
+    font-size: 1.35rem;
+    font-weight: 800;
     color: var(--text-primary);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
     line-height: 1.2;
   }
 
@@ -302,8 +302,12 @@
   }
 
   .sidebar-nav-item.active {
-    background: rgba(163, 230, 53, 0.1);
+    background: #212121;
     color: var(--text-primary);
+  }
+
+  .sidebar-nav-item.active .sidebar-nav-label {
+    font-weight: 700;
   }
 
   .sidebar-nav-item.active::before {
@@ -314,7 +318,7 @@
     transform: translateY(-50%);
     width: 3px;
     height: 20px;
-    background: rgba(163, 230, 53, 0.9);
+    background: rgba(255, 255, 255, 0.4);
     border-radius: 0 6px 6px 0;
   }
 
@@ -2269,6 +2273,20 @@
   .sales-empty-state p {
     margin: 0;
     font-size: 0.9375rem;
+  }
+
+  /* Remove Neon Green Flash - Overrides for Desktop */
+  .ripple {
+    background: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .sidebar-nav-item:active {
+    background: #2a2a2a;
+    transform: none;
+  }
+
+  .sidebar-toggle:active {
+    background: rgba(255, 255, 255, 0.05);
   }
 }
 
