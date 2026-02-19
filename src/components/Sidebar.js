@@ -2,43 +2,31 @@
 
 import { navigate } from '../router.js';
 import { resetAddLotState } from '../views/AddLotView.js';
+import { logout } from '../services/firebase.js';
 
 let isCollapsed = false;
 
 export function Sidebar(activeRoute = '/') {
   const menuItems = [
     { route: '/', label: 'Dashboard', icon: 'dashboard' },
+    { route: '/add', label: 'Add', icon: 'add' },
     { route: '/inventory', label: 'Inventory', icon: 'inventory' },
     { route: '/sales', label: 'Sales', icon: 'sales' },
-    { route: '/analytics', label: 'Analytics', icon: 'analytics' }
-  ];
-
-  const settingsItems = [
-    { route: '/add', label: 'Add Item', icon: 'add' }
+    { route: '/settings', label: 'Help', icon: 'help' }
   ];
 
   const iconSvgs = {
-    dashboard: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>`,
-    inventory: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline></svg>`,
-    sales: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
-    analytics: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
-    add: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-    collapse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>`,
-    expand: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>`
+    dashboard: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>`,
+    inventory: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline></svg>`,
+    sales: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
+    help: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+    logout: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
+    add: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+    collapse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`,
+    expand: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`
   };
 
   const menuHtml = menuItems.map(item => `
-    <button 
-      class="sidebar-nav-item ${activeRoute === item.route ? 'active' : ''}" 
-      data-route="${item.route}"
-      title="${item.label}"
-    >
-      <span class="sidebar-nav-icon">${iconSvgs[item.icon]}</span>
-      <span class="sidebar-nav-label">${item.label}</span>
-    </button>
-  `).join('');
-
-  const settingsHtml = settingsItems.map(item => `
     <button 
       class="sidebar-nav-item ${activeRoute === item.route ? 'active' : ''}" 
       data-route="${item.route}"
@@ -55,30 +43,35 @@ export function Sidebar(activeRoute = '/') {
     <aside class="desktop-sidebar ${isCollapsed ? 'collapsed' : ''}" data-collapsed="${isCollapsed}">
       <div class="sidebar-header">
         <div class="sidebar-brand">
-          <div class="brand-name">ResellTracker</div>
-          <div class="brand-tagline">Reselling simplified</div>
+          <div class="brand-name">Vision</div>
         </div>
-        <button class="sidebar-toggle" title="${isCollapsed ? 'Expand' : 'Collapse'} sidebar">
+        <button
+          class="sidebar-toggle"
+          title="${isCollapsed ? 'Expand' : 'Collapse'} sidebar"
+          aria-label="${isCollapsed ? 'Expand' : 'Collapse'} sidebar"
+          aria-expanded="${(!isCollapsed).toString()}"
+        >
           ${toggleIcon}
         </button>
       </div>
       
-      <div class="sidebar-divider"></div>
-      
       <div class="sidebar-section">
-        <div class="sidebar-section-label">Menu</div>
+        <div class="sidebar-section-label">MENU</div>
         <nav class="sidebar-nav">
           ${menuHtml}
         </nav>
-      </div>
-      
-      <div class="sidebar-divider"></div>
-      
-      <div class="sidebar-section">
-        <div class="sidebar-section-label">Settings</div>
-        <nav class="sidebar-nav">
-          ${settingsHtml}
-        </nav>
+        <div class="sidebar-divider"></div>
+        <button class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout-btn" title="Log out">
+          <span class="sidebar-nav-icon">${iconSvgs.logout}</span>
+          <span class="sidebar-nav-label">Log out</span>
+        </button>
+        <div class="sidebar-logout-confirm" id="sidebar-logout-confirm">
+          <p class="logout-confirm-text">Sign out of your account?</p>
+          <div class="logout-confirm-actions">
+            <button class="logout-confirm-btn cancel" id="sidebar-logout-cancel">Cancel</button>
+            <button class="logout-confirm-btn confirm" id="sidebar-logout-confirm-btn">Log out</button>
+          </div>
+        </div>
       </div>
     </aside>
   `;
@@ -86,16 +79,28 @@ export function Sidebar(activeRoute = '/') {
 
 export function toggleSidebar() {
   isCollapsed = !isCollapsed;
+  const app = document.getElementById('app');
   const sidebar = document.querySelector('.desktop-sidebar');
+
+  if (app) {
+    app.classList.toggle('sidebar-collapsed', isCollapsed);
+  }
+
   if (sidebar) {
     sidebar.classList.toggle('collapsed', isCollapsed);
     sidebar.setAttribute('data-collapsed', isCollapsed);
-    
-    // Update main content margin
-    const pageContent = document.getElementById('page-content');
-    if (pageContent) {
-      pageContent.style.marginLeft = isCollapsed ? '72px' : '240px';
-      pageContent.style.maxWidth = isCollapsed ? 'calc(100% - 72px)' : 'calc(100% - 240px)';
+
+    // Update toggle icon
+    const toggleBtn = sidebar.querySelector('.sidebar-toggle');
+    if (toggleBtn) {
+      const iconSvgs = {
+        expand: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`,
+        collapse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`
+      };
+      toggleBtn.innerHTML = isCollapsed ? iconSvgs.expand : iconSvgs.collapse;
+      toggleBtn.title = (isCollapsed ? 'Expand' : 'Collapse') + ' sidebar';
+      toggleBtn.setAttribute('aria-label', (isCollapsed ? 'Expand' : 'Collapse') + ' sidebar');
+      toggleBtn.setAttribute('aria-expanded', (!isCollapsed).toString());
     }
   }
 }
@@ -118,7 +123,19 @@ export function initSidebarEvents() {
       if (route === '/add') {
         resetAddLotState();
       }
+
+      document.querySelectorAll('.sidebar-nav-item[data-route]').forEach(navItem => {
+        navItem.classList.toggle('active', navItem.dataset.route === route);
+      });
       navigate(route);
+    });
+  });
+
+  // Keep sidebar active state in sync with hash navigation from other controls
+  window.addEventListener('hashchange', () => {
+    const currentRoute = window.location.hash.slice(1) || '/';
+    document.querySelectorAll('.sidebar-nav-item[data-route]').forEach(item => {
+      item.classList.toggle('active', item.dataset.route === currentRoute);
     });
   });
 
@@ -128,6 +145,31 @@ export function initSidebarEvents() {
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleSidebar();
+    });
+  }
+
+  // Sidebar logout control with inline confirmation
+  const logoutBtn = document.getElementById('sidebar-logout-btn');
+  const logoutConfirm = document.getElementById('sidebar-logout-confirm');
+  const logoutCancel = document.getElementById('sidebar-logout-cancel');
+  const logoutConfirmBtn = document.getElementById('sidebar-logout-confirm-btn');
+
+  if (logoutBtn && logoutConfirm) {
+    logoutBtn.addEventListener('click', () => {
+      logoutConfirm.classList.add('visible');
+    });
+  }
+
+  if (logoutCancel && logoutConfirm) {
+    logoutCancel.addEventListener('click', () => {
+      logoutConfirm.classList.remove('visible');
+    });
+  }
+
+  if (logoutConfirmBtn && logoutConfirm) {
+    logoutConfirmBtn.addEventListener('click', async () => {
+      await logout();
+      logoutConfirm.classList.remove('visible');
     });
   }
 
@@ -159,7 +201,7 @@ function showTooltip(element) {
     tooltip.textContent = label;
     element.appendChild(tooltip);
   }
-  
+
   tooltip.classList.add('visible');
 }
 

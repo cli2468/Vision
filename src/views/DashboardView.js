@@ -139,7 +139,7 @@ export function DashboardView() {
             <div class="time-selector-accordion" id="time-selector">
               <button class="time-selector-trigger">
                 <span class="time-selector-current">${selectedRange === '7d' ? '7D' : selectedRange === '30d' ? '30D' : selectedRange === '90d' ? '90D' : 'All'}</span>
-                <svg class="time-selector-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="time-selector-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
               </button>
@@ -166,7 +166,7 @@ export function DashboardView() {
             <div class="modal-header">
               <h2 class="modal-title" id="day-breakdown-title">Sales</h2>
               <button class="modal-close" id="close-day-modal">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>

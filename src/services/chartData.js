@@ -112,6 +112,78 @@ export function aggregateSalesByDay(salesData, range) {
 }
 
 /**
+ * Re-bucket daily chart data into weekly or monthly groups for a fuller bar chart.
+ * 7D  -> daily  (7 bars)
+ * 30D -> weekly (4-5 bars)
+ * 90D -> weekly (12-13 bars)
+ * ALL -> monthly (variable)
+ */
+export function aggregateSalesForChart(salesData, range) {
+  const daily = aggregateSalesByDay(salesData, range);
+
+  if (range === '7d') {
+    return { labels: daily.labels, revenues: daily.revenues };
+  }
+
+  const entries = Array.from(daily.salesByDay.entries()).sort();
+
+  if (range === '30d' || range === '90d') {
+    return bucketByWeek(entries);
+  }
+
+  return bucketByMonth(entries);
+}
+
+function bucketByWeek(dayEntries) {
+  const buckets = [];
+  let currentBucket = null;
+
+  for (const [dateKey, data] of dayEntries) {
+    const date = new Date(dateKey + 'T12:00:00');
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay());
+    const weekKey = formatDateKey(weekStart);
+
+    if (!currentBucket || currentBucket.key !== weekKey) {
+      currentBucket = { key: weekKey, startDate: new Date(weekStart), revenue: 0 };
+      buckets.push(currentBucket);
+    }
+    currentBucket.revenue += data.revenue;
+    currentBucket.endDate = new Date(date);
+  }
+
+  const labels = buckets.map(b => {
+    const m = b.startDate.getMonth() + 1;
+    const d = b.startDate.getDate();
+    return `${m}/${d}`;
+  });
+  const revenues = buckets.map(b => b.revenue / 100);
+
+  return { labels, revenues };
+}
+
+function bucketByMonth(dayEntries) {
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const buckets = new Map();
+
+  for (const [dateKey, data] of dayEntries) {
+    const date = new Date(dateKey + 'T12:00:00');
+    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+
+    if (!buckets.has(monthKey)) {
+      buckets.set(monthKey, { month: date.getMonth(), year: date.getFullYear(), revenue: 0 });
+    }
+    buckets.get(monthKey).revenue += data.revenue;
+  }
+
+  const sorted = Array.from(buckets.values());
+  const labels = sorted.map(b => monthNames[b.month]);
+  const revenues = sorted.map(b => b.revenue / 100);
+
+  return { labels, revenues };
+}
+
+/**
  * Format date as YYYY-MM-DD key
  */
 function formatDateKey(date) {

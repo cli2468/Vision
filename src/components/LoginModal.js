@@ -19,7 +19,7 @@ function getModalHtml() {
         <div class="modal-header">
           <h2 class="modal-title">${user ? 'Account' : 'Cloud Sync'}</h2>
           <button class="modal-close" id="close-login-modal">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -42,7 +42,7 @@ function renderLoginPrompt() {
       <p>Sign in with Google to sync your inventory and sales data between your computer and phone automatically.</p>
       
       <button class="btn btn-primary btn-full" id="google-signin-btn" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
           <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 3.653 29.315 2 24 2 11.85 2 2 11.85 2 24s9.85 22 22 22c11.045 0 20-8.955 20-20 0-1.303-.115-2.583-.389-3.917z"/>
           <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 3.653 29.315 2 24 2 16.202 2 9.394 6.06 5.483 12.208z"/>
           <path fill="#4CAF50" d="M24 46c5.441 0 10.183-1.747 13.911-4.706l-6.398-5.33C29.28 37.103 26.743 38 24 38c-5.188 0-9.617-3.231-11.353-7.791l-6.502 5.03C10.08 40.913 16.517 46 24 46z"/>
