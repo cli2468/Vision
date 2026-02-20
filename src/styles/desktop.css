@@ -469,6 +469,8 @@
   /* --- Mono font for numbers --- */
   .kpi-pill-value,
   .kpi-pill-trend,
+  .revenue-hero-value,
+  .pie-center-value,
   .seg-hero-value,
   .seg-channel-number,
   .seg-channel-total,
@@ -543,6 +545,34 @@
   }
 
   /* --- Mid Row: Chart + Segmentation --- */
+  .chart-revenue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .chart-revenue-header .section-title {
+    font-size: 0.86rem;
+    color: var(--desktop-text-muted);
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+
+  .revenue-hero-value {
+    font-size: 1.65rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
   .dashboard-mid-row {
     display: grid;
     grid-template-columns: 1.8fr 1fr;
@@ -581,58 +611,60 @@
     color: var(--desktop-text-muted);
   }
 
-  .seg-bar {
+  .segmentation-container {
     display: flex;
-    height: 14px;
-    border-radius: 99px;
-    overflow: hidden;
-    gap: 5px;
-    margin-bottom: 8px;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 10px;
   }
 
-  .seg-bubble {
-    height: 100%;
-    border-radius: 99px;
-    min-width: 14px;
-  }
-
-  .seg-legend {
+  .pie-container {
     position: relative;
-    height: 22px;
-    margin-bottom: 18px;
-  }
-
-  .seg-legend-item {
-    position: absolute;
-    top: 0;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    white-space: nowrap;
-  }
-
-  .seg-legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: 240px;
+    height: 240px;
+    margin: 0 auto;
     flex-shrink: 0;
   }
 
-  .seg-legend-label {
-    font-size: 0.82rem;
+  .pie-center-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    margin-top: -2px;
+    width: 65%;
+    text-align: center;
+  }
+
+  .pie-center-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-primary);
+  }
+
+  .pie-center-label {
+    font-size: 0.75rem;
     color: var(--desktop-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 6px;
   }
 
   .seg-channels-header {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 16px;
-    padding: 0 2px 6px;
-    font-size: 0.79rem;
+    grid-template-columns: 1fr 50px 80px;
+    gap: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--desktop-border-soft);
+    font-size: 0.75rem;
     color: var(--desktop-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    border-bottom: 1px solid var(--desktop-border-soft);
+    letter-spacing: 0.05em;
   }
 
   .seg-channels {
@@ -642,11 +674,11 @@
 
   .seg-channel-row {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 16px;
+    grid-template-columns: 1fr 50px 80px;
+    gap: 24px;
     align-items: center;
-    padding: 10px 2px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   }
 
   .seg-channel-row:last-child {
@@ -889,8 +921,8 @@
 
   .rs-row {
     display: grid;
-    grid-template-columns: 60px 1fr auto auto auto;
-    gap: 12px;
+    grid-template-columns: 60px 1fr 85px 85px 95px;
+    gap: 16px;
     align-items: center;
     padding: 9px 4px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -1323,6 +1355,8 @@
   .platform-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    justify-self: center;
     padding: 4px 10px;
     border-radius: 6px;
     font-size: 0.86rem;
@@ -2334,7 +2368,7 @@
   }
 
   .sidebar-toggle:active {
-    background: rgba(255, 255, 255, 0.05);
+    transform: scale(0.96);
   }
 }
 

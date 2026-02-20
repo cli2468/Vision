@@ -5,10 +5,37 @@ import { renderPlatformBadge } from '../services/uiHelpers.js';
 import { navigate } from '../router.js';
 import { auth } from '../services/firebase.js';
 
-let selectedRange = null;
+let selectedRange = localStorage.getItem('dashboardCurrentRange') || 'all';
 let desktopChartInstance = null;
 let desktopChartData = null;
 let selectedBarIndex = null;
+let segmentationChartInstance = null;
+let currentCenterVal = 0;
+let centerAnimFrame = null;
+
+// Helper function to animate numbers (count up/down)
+function animateValue(obj, start, end, duration) {
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+
+    // easeOutExpo for a snappy, modern counting effect
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+
+    currentCenterVal = Math.floor(ease * (end - start) + start);
+    obj.innerHTML = currentCenterVal.toLocaleString();
+
+    if (progress < 1) {
+      centerAnimFrame = window.requestAnimationFrame(step);
+    } else {
+      currentCenterVal = end;
+      obj.innerHTML = end.toLocaleString();
+    }
+  };
+  if (centerAnimFrame) window.cancelAnimationFrame(centerAnimFrame);
+  centerAnimFrame = window.requestAnimationFrame(step);
+}
 
 function getCssVar(name, fallback) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -16,6 +43,16 @@ function getCssVar(name, fallback) {
 }
 
 export function DesktopDashboardView() {
+  // Clean up stale chart references when the view re-renders after navigation
+  if (desktopChartInstance) {
+    desktopChartInstance.destroy();
+    desktopChartInstance = null;
+  }
+  if (segmentationChartInstance) {
+    segmentationChartInstance.destroy();
+    segmentationChartInstance = null;
+  }
+
   if (!selectedRange) {
     selectedRange = localStorage.getItem('dashboardCurrentRange') || '30d';
   }
@@ -58,9 +95,9 @@ export function DesktopDashboardView() {
 
   const kpiMetrics = [
     {
-      label: 'Total Revenue',
-      value: formatCurrency(currentStats.totalRevenue),
-      trend: calculateTrend(currentStats.totalRevenue, previousStats.totalRevenue),
+      label: 'Monthly Profit',
+      value: formatCurrency(currentStats.totalProfit, false),
+      trend: calculateTrend(currentStats.totalProfit, previousStats.totalProfit),
     },
     {
       label: 'Profit Margin',
@@ -112,8 +149,12 @@ export function DesktopDashboardView() {
 
       <div class="dashboard-mid-row">
         <div class="chart-section-large revenue-panel">
-          <div class="section-header">
-            <h3 class="section-title">Revenue</h3>
+          <div class="section-header chart-revenue-header">
+            <div class="header-titles">
+              <h3 class="section-title">Sales Revenue</h3>
+              <div id="revenue-dynamic-value" class="revenue-hero-value">$0.00</div>
+              <div id="revenue-dynamic-trend" class="kpi-pill-trend" style="margin-top: 8px;"></div>
+            </div>
             <div class="date-range-filter">
               <button class="filter-btn ${selectedRange === '7d' ? 'active' : ''}" data-range="7d">7D</button>
               <button class="filter-btn ${selectedRange === '30d' ? 'active' : ''}" data-range="30d">30D</button>
@@ -193,7 +234,7 @@ function calculateInventoryQtyAtDate(lots, atDate) {
   }, 0);
 }
 
-function renderSegmentation(salesData, prevSalesData) {
+function generateSegmentationLegendHTML(salesData, prevSalesData) {
   const currentStats = {};
   let totalRevenue = 0;
 
@@ -241,59 +282,23 @@ function renderSegmentation(salesData, prevSalesData) {
   let sortedPlatforms = Object.keys(currentStats).sort((a, b) => currentStats[b].revenue - currentStats[a].revenue);
 
   if (sortedPlatforms.length === 0 || totalRevenue === 0) {
-    return `<p class="seg-empty">No sales data yet.</p>`;
+    return {
+      totalSales: 0,
+      channelRowsHTML: `<p class="seg-empty">No sales data yet.</p>`,
+      chartStats: []
+    };
   }
 
-  const chartStats = [];
-  const top2 = sortedPlatforms.slice(0, 2);
-  const remaining = sortedPlatforms.slice(2);
-
-  top2.forEach(p => {
-    chartStats.push({ platform: p, ...currentStats[p] });
-  });
-
-  if (remaining.length > 0) {
-    let otherCount = 0;
-    let otherRevenue = 0;
-    remaining.forEach(p => {
-      otherCount += currentStats[p].count;
-      otherRevenue += currentStats[p].revenue;
-    });
-
-    // In case a literal 'other' platform made top 3, meld it.
-    const existingOther = chartStats.find(s => s.platform === 'other');
-    if (existingOther) {
-      existingOther.count += otherCount;
-      existingOther.revenue += otherRevenue;
-    } else {
-      chartStats.push({ platform: 'other', count: otherCount, revenue: otherRevenue });
-    }
-  }
+  const chartStats = sortedPlatforms.map(p => ({
+    platform: p,
+    ...currentStats[p]
+  }));
 
   const totalSales = sortedPlatforms.reduce((sum, p) => sum + currentStats[p].count, 0);
-  const pcts = chartStats.map(stats => Math.round((stats.revenue / totalRevenue) * 100));
 
-  const segmentBar = chartStats.map((stats, i) => {
-    return `<div class="seg-bubble" style="width: ${pcts[i]}%; background: ${colors[stats.platform] || colors.other};"></div>`;
-  }).join('');
-
-  let cumulativeOffset = 0;
-  const legendItems = chartStats.map((stats, i) => {
-    const left = cumulativeOffset;
-    cumulativeOffset += pcts[i];
-    return `
-      <div class="seg-legend-item" style="left: ${left}%; position: absolute; min-width: max-content; margin-bottom: 24px;">
-        <span class="seg-legend-dot" style="background: ${colors[stats.platform] || colors.other};"></span>
-        <span class="seg-legend-label" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${getLabel(stats.platform)}</span>
-      </div>
-    `;
-  }).join('');
-
-  const channelRows = sortedPlatforms.map((platform) => {
+  const channelRowsHTML = sortedPlatforms.map((platform, index) => {
     const stats = currentStats[platform];
     const prevRev = prevStats[platform] ? prevStats[platform].revenue : 0;
-
-    // Growth vs Last 30D. Using the global calculateTrend function from calculations.js
     const realTrendObj = calculateTrend(stats.revenue, prevRev);
 
     const arrow = realTrendObj.direction === 'up' ? '↑' : realTrendObj.direction === 'down' ? '↓' : '';
@@ -303,30 +308,39 @@ function renderSegmentation(salesData, prevSalesData) {
     const arrowHtml = arrow ? ` ${arrow}` : '';
 
     return `
-      <div class="seg-channel-row" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; min-width: 0;">
-        <span class="seg-channel-name" style="flex: 1 1 80px; min-width: 80px; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-          <span class="seg-channel-icon" style="color: ${colors[platform] || colors.other}; display: flex;">${icons[platform] || icons.other}</span>
+      <div class="seg-channel-row" data-chart-index="${index}" style="transition: background 0.2s; border-radius: 6px; padding: 12px 8px; margin: 0 -8px;">
+        <span class="seg-channel-name">
+          <span class="seg-channel-icon" style="color: ${colors[platform] || colors.other};">${icons[platform] || icons.other}</span>
           ${getLabel(platform)}
         </span>
-        <span class="seg-channel-number" style="flex: 0 0 40px; text-align: right; min-width: 40px;">${stats.count}</span>
-        <span class="seg-channel-total ${trendCls}" style="flex: 0 0 60px; text-align: right; min-width: 60px;">${sign}${trendText}${arrowHtml}</span>
+        <span class="seg-channel-number">${stats.count}</span>
+        <span class="seg-channel-total ${trendCls}">${sign}${trendText}${arrowHtml}</span>
       </div>
     `;
   }).join('');
 
+  return { totalSales, channelRowsHTML, chartStats };
+}
+
+function renderSegmentation(salesData, prevSalesData) {
+  const { totalSales, channelRowsHTML } = generateSegmentationLegendHTML(salesData, prevSalesData);
+
   return `
-    <div class="seg-hero">
-      <span class="seg-hero-value">${totalSales.toLocaleString()}</span>
-      <span class="seg-hero-label">total sales</span>
+    <div class="segmentation-container">
+      <div class="pie-container">
+        <canvas id="segmentation-pie-chart"></canvas>
+        <div class="pie-center-text">
+          <span class="pie-center-value">${totalSales.toLocaleString()}</span>
+          <span class="pie-center-label">total sales</span>
+        </div>
+      </div>
+      <div class="seg-channels-header">
+        <span>Channels</span>
+        <span class="text-right">Units</span>
+        <span class="text-right">Growth</span>
+      </div>
+      <div class="seg-channels" id="seg-channels-list">${channelRowsHTML}</div>
     </div>
-    <div class="seg-bar" style="display: flex; width: 100%; border-radius: 4px; overflow: hidden; margin-bottom: 24px;">${segmentBar}</div>
-    <div class="seg-legend" style="position: relative; width: 100%; height: 32px; overflow: hidden; margin-bottom: 8px;">${legendItems}</div>
-    <div class="seg-channels-header" style="display: flex; justify-content: space-between; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 12px; gap: 8px;">
-      <span style="flex: 1 1 80px; min-width: 80px;">Channels</span>
-      <span style="flex: 0 0 40px; text-align: right; min-width: 40px;">Number</span>
-      <span style="flex: 0 0 60px; text-align: right; min-width: 60px;">Growth</span>
-    </div>
-    <div class="seg-channels" style="display: flex; flex-direction: column; gap: 12px; overflow-x: hidden;">${channelRows}</div>
   `;
 }
 
@@ -439,6 +453,7 @@ function initDesktopRevenueChart() {
   if (!canvas || typeof Chart === 'undefined') return;
 
   let salesData;
+  let prevSalesData = [];
   const now = new Date();
   now.setHours(23, 59, 59, 999);
 
@@ -447,12 +462,29 @@ function initDesktopRevenueChart() {
     startDate.setDate(startDate.getDate() - 364); // 365 days including today
     startDate.setHours(0, 0, 0, 0);
     salesData = getSalesByDateRange(startDate, now);
+
+    // For 'all', previous period is the year before that
+    const prevStart = new Date(startDate);
+    prevStart.setDate(prevStart.getDate() - 365);
+    const prevEnd = new Date(startDate);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    prevEnd.setHours(23, 59, 59, 999);
+    prevSalesData = getSalesByDateRange(prevStart, prevEnd);
+
   } else {
-    const startDate = new Date(now);
     const days = selectedRange === '7d' ? 6 : selectedRange === '90d' ? 89 : 29;
+    const startDate = new Date(now);
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
     salesData = getSalesByDateRange(startDate, now);
+
+    // Calculate strict previous period for strict trend matching
+    const prevStartDate = new Date(startDate);
+    prevStartDate.setDate(prevStartDate.getDate() - (days + 1));
+    const prevEndDate = new Date(startDate);
+    prevEndDate.setDate(prevEndDate.getDate() - 1);
+    prevEndDate.setHours(23, 59, 59, 999);
+    prevSalesData = getSalesByDateRange(prevStartDate, prevEndDate);
   }
 
   desktopChartData = aggregateSalesByDay(salesData, selectedRange);
@@ -480,34 +512,153 @@ function initDesktopRevenueChart() {
   const barColors = revenues.map(v => v > 0 ? gradient : 'rgba(255,255,255,0.04)');
   const barHoverColors = revenues.map(v => v > 0 ? hoverGradient : 'rgba(255,255,255,0.06)');
 
+  // Create faded colors for when a different bar is hovered
+  const barFadedColors = revenues.map(v => v > 0 ? 'rgba(53, 184, 230, 0.3)' : 'rgba(255,255,255,0.02)');
+
   if (selectedBarIndex === null || selectedBarIndex >= labels.length) {
     selectedBarIndex = labels.length - 1;
   }
 
+  // Update dynamic revenue readout to match time range total, completely decoupled from bar hover/click
+  const dynamicValEl = document.getElementById('revenue-dynamic-value');
+  const dynamicTrendEl = document.getElementById('revenue-dynamic-trend');
+
+  if (dynamicValEl) {
+    const totalRevenueRange = salesData.reduce((sum, { sale }) => sum + (Number(sale.totalPrice) || 0), 0);
+    dynamicValEl.textContent = '$' + (totalRevenueRange / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Calculate and exact inject trend string using KPI pill format logic
+    if (dynamicTrendEl) {
+      const prevTotalRevenue = prevSalesData.reduce((sum, { sale }) => sum + (Number(sale.totalPrice) || 0), 0);
+      const trendData = calculateTrend(totalRevenueRange, prevTotalRevenue);
+
+      const arrow = trendData.direction === 'up' ? '↑' : trendData.direction === 'down' ? '↓' : '';
+      const cls = trendData.direction === 'up' ? 'trend-up' : trendData.direction === 'down' ? 'trend-down' : 'trend-neutral';
+      const arrowHtml = arrow ? ` ${arrow}` : '';
+
+      const periodLabel = selectedRange === '7d' ? 'Last 7D' : selectedRange === '30d' ? 'Last 30D' : selectedRange === '90d' ? 'Last 90D' : 'Previous Year';
+
+      dynamicTrendEl.innerHTML = `<span class="${cls}">${trendData.value}%${arrowHtml}</span> vs ${periodLabel}`;
+    }
+  }
+
   const barCount = labels.length;
+  // Bklit rounded line caps are uniform.
   const radius = barCount <= 5 ? 14 : barCount <= 8 ? 11 : barCount <= 15 ? 9 : 7;
-  const unselectedBg = '#292929';
-  const unselectedBorder = '#424242';
+
+  const crosshairPlugin = {
+    id: 'bklitCrosshair',
+    afterDraw: (chart) => {
+      if (chart.tooltip?._active && chart.tooltip._active.length) {
+        const activePoint = chart.tooltip._active[0];
+        const ctx = chart.ctx;
+        const x = activePoint.element.x;
+        const topY = chart.scales.y.top;
+        const bottomY = chart.scales.y.bottom;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, topY);
+        ctx.lineTo(x, bottomY);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.setLineDash([]);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  };
+
+  const externalTooltipHandler = (context) => {
+    const { chart, tooltip } = context;
+    let tooltipEl = chart.canvas.parentNode.querySelector('div.bklit-custom-tooltip');
+
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.classList.add('bklit-custom-tooltip');
+      tooltipEl.style.cssText = `
+        position: absolute;
+        background: rgba(24, 24, 27, 0.65);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 14px 16px;
+        pointer-events: none;
+        transition: opacity 0.2s ease, left 0.15s ease, top 0.15s ease;
+        transform: translate(-50%, -100%);
+        margin-top: -12px;
+        min-width: 140px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        z-index: 100;
+        opacity: 0;
+      `;
+      chart.canvas.parentNode.appendChild(tooltipEl);
+    }
+
+    if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = '0';
+      return;
+    }
+
+    if (tooltip.body) {
+      const dataPoint = tooltip.dataPoints[0];
+      const dateLabel = chart.data.labels[dataPoint.dataIndex];
+      const val = '$' + dataPoint.raw.toLocaleString('en-US');
+
+      tooltipEl.innerHTML = `
+        <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 12px; font-family: var(--font-mono);">${dateLabel}</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; font-family: var(--font-mono);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #38BDF8; flex-shrink: 0;"></div>
+            <span style="color: #A1A1AA; font-size: 13px;">revenue</span>
+          </div>
+          <span style="color: #fff; font-size: 14px; font-weight: 500;">${val}</span>
+        </div>
+      `;
+    }
+
+    tooltipEl.style.opacity = '1';
+    tooltipEl.style.left = tooltip.caretX + 'px';
+    tooltipEl.style.top = tooltip.caretY + 'px';
+  };
+
+  // Create the HTML-based X-axis pill element for smooth animated transitions
+  let xAxisPill = canvas.parentNode.querySelector('.bklit-xaxis-pill');
+  if (!xAxisPill) {
+    xAxisPill = document.createElement('div');
+    xAxisPill.classList.add('bklit-xaxis-pill');
+    xAxisPill.style.cssText = `
+      position: absolute;
+      bottom: 0;
+      background: #fff;
+      color: #000;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: var(--font-mono);
+      padding: 4px 12px;
+      border-radius: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-50%) translateY(4px);
+      transition: opacity 0.2s ease, left 0.2s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10;
+      white-space: nowrap;
+    `;
+    canvas.parentNode.appendChild(xAxisPill);
+  }
 
   desktopChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
       datasets: [{
-        label: 'Revenue',
+        label: 'Revenue', // Restoring the label so Chart.js has an internal reference
         data: revenues,
-        backgroundColor: (ctx) => {
-          return ctx.dataIndex === selectedBarIndex ? gradient : unselectedBg;
-        },
-        hoverBackgroundColor: (ctx) => {
-          return ctx.dataIndex === selectedBarIndex ? hoverGradient : unselectedBg;
-        },
-        borderColor: (ctx) => {
-          return ctx.dataIndex === selectedBarIndex ? 'transparent' : unselectedBorder;
-        },
-        borderWidth: (ctx) => {
-          return ctx.dataIndex === selectedBarIndex ? 0 : 1;
-        },
+        backgroundColor: barColors,
+        hoverBackgroundColor: barHoverColors,
+        borderColor: 'transparent',
+        borderWidth: 0,
         minBarLength: 10,
         borderRadius: radius,
         borderSkipped: false,
@@ -518,40 +669,97 @@ function initDesktopRevenueChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 200, easing: 'easeOutQuart' },
-      interaction: { intersect: true, mode: 'index' },
-      onClick: (e, elements) => {
-        if (elements.length > 0) {
-          selectedBarIndex = elements[0].index;
-          if (desktopChartInstance) desktopChartInstance.update();
+      animation: {
+        duration: 0, // Disable the generic animation
+      },
+      animations: {
+        y: {
+          easing: 'easeOutQuart',
+          duration: 1200,
+          from: (ctx) => {
+            if (ctx.type === 'data' && ctx.mode === 'default' && ctx.chart.scales?.y) {
+              return ctx.chart.scales.y.getPixelForValue(0);
+            }
+          },
+          delay: (ctx) => {
+            if (ctx.type === 'data' && ctx.mode === 'default') {
+              // Auto-calculate stagger so all bars complete within ~1.2s total
+              const stagger = 1200 / barCount / 2;
+              return ctx.dataIndex * stagger;
+            }
+            return 0;
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
+      onHover: (e, elements) => {
+        if (desktopChartInstance) {
+          if (elements.length > 0) {
+            const hoveredIndex = elements[0].index;
+            if (desktopChartInstance.lastHoveredIndex !== hoveredIndex) {
+              desktopChartInstance.lastHoveredIndex = hoveredIndex;
+              desktopChartInstance.data.datasets[0].backgroundColor = barColors.map((color, i) => i === hoveredIndex ? barHoverColors[i] : barFadedColors[i]);
+              desktopChartInstance.update('none');
+
+              // Position the HTML X-axis pill over the active tick
+              const xScale = desktopChartInstance.scales.x;
+              const tickX = xScale.getPixelForValue(hoveredIndex);
+              const label = desktopChartInstance.data.labels[hoveredIndex];
+              xAxisPill.textContent = label;
+              xAxisPill.style.left = tickX + 'px';
+              xAxisPill.style.opacity = '1';
+              xAxisPill.style.transform = 'translateX(-50%) translateY(0px)';
+            }
+          } else {
+            if (desktopChartInstance.lastHoveredIndex !== null) {
+              desktopChartInstance.lastHoveredIndex = null;
+              desktopChartInstance.data.datasets[0].backgroundColor = barColors;
+              desktopChartInstance.setActiveElements([]);
+              desktopChartInstance.update('none');
+
+              const tEl = desktopChartInstance.canvas.parentNode.querySelector('div.bklit-custom-tooltip');
+              if (tEl) tEl.style.opacity = '0';
+              xAxisPill.style.opacity = '0';
+              xAxisPill.style.transform = 'translateX(-50%) translateY(4px)';
+            }
+          }
+        }
+      },
+      onLeave: (e) => {
+        if (desktopChartInstance && desktopChartInstance.lastHoveredIndex !== null) {
+          desktopChartInstance.lastHoveredIndex = null;
+          desktopChartInstance.data.datasets[0].backgroundColor = barColors;
+          desktopChartInstance.setActiveElements([]);
+          desktopChartInstance.update('none');
+
+          const tEl = desktopChartInstance.canvas.parentNode.querySelector('div.bklit-custom-tooltip');
+          if (tEl) tEl.style.opacity = '0';
+          xAxisPill.style.opacity = '0';
+          xAxisPill.style.transform = 'translateX(-50%) translateY(4px)';
         }
       },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: false,
+        },
         tooltip: {
-          enabled: true,
-          backgroundColor: '#1B1B1B',
-          titleColor: '#ABABAB',
-          bodyColor: '#fff',
-          borderColor: 'rgba(255,255,255,0.08)',
-          borderWidth: 1,
-          padding: 10,
-          cornerRadius: 8,
-          displayColors: false,
-          callbacks: {
-            title: ctx => ctx[0].label,
-            label: ctx => {
-              const v = ctx.raw;
-              return v > 0 ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'No sales';
-            },
-          }
+          // Disable native tooltip completely and hook custom HTML renderer
+          enabled: false,
+          external: externalTooltipHandler
         }
       },
       scales: {
         x: {
           grid: { display: false },
           ticks: {
-            color: axisTicks,
+            color: (context) => {
+              // Hide the original text specifically when hovered so it doesn't bleed under the white pill
+              if (desktopChartInstance && desktopChartInstance.lastHoveredIndex === context.index) return 'transparent';
+              return axisTicks;
+            },
             font: { size: 10, weight: '500' },
             maxRotation: 0,
             autoSkip: false,
@@ -561,22 +769,252 @@ function initDesktopRevenueChart() {
           border: { display: false }
         },
         y: {
-          display: false,
-          grid: { display: false },
-          border: { display: false }
+          display: true,
+          border: { display: false },
+          ticks: { display: false },
+          grid: {
+            display: true,
+            color: 'rgba(255, 255, 255, 0.1)', // strictly uniform dotted line instead of gradient mask. Slightly brighter.
+            drawTicks: false,
+            tickLength: 0,
+            lineWidth: 1,
+            borderDash: [4, 4], // dotted lines matching screenshot natively
+          }
         }
       }
+    },
+    // Global plugin array for crosshair
+    plugins: [crosshairPlugin]
+  });
+
+  // Native boundary override to strictly catch rapid mouse-exits that drop frames in Chart.js
+  canvas.addEventListener('mouseleave', () => {
+    if (desktopChartInstance && desktopChartInstance.lastHoveredIndex !== null) {
+      desktopChartInstance.lastHoveredIndex = null;
+      desktopChartInstance.data.datasets[0].backgroundColor = barColors;
+      desktopChartInstance.setActiveElements([]);
+      desktopChartInstance.update('none');
+
+      const tEl = desktopChartInstance.canvas.parentNode.querySelector('div.bklit-custom-tooltip');
+      if (tEl) tEl.style.opacity = '0';
+      xAxisPill.style.opacity = '0';
+      xAxisPill.style.transform = 'translateX(-50%) translateY(4px)';
     }
   });
 }
 
+function attachLegendHoverEvents(chartInstance, counts, labels, bgColors, totalSales) {
+  const pieCenterValEl = document.querySelector('.pie-center-value');
+  const pieCenterLabelEl = document.querySelector('.pie-center-label');
+
+  document.querySelectorAll('.seg-channel-row').forEach(row => {
+    // Clone node to safely remove old event listeners when updating
+    const newRow = row.cloneNode(true);
+    row.parentNode.replaceChild(newRow, row);
+
+    newRow.addEventListener('mouseenter', () => {
+      const index = parseInt(newRow.dataset.chartIndex, 10);
+      if (!isNaN(index) && chartInstance) {
+        chartInstance.data.datasets[0].backgroundColor = bgColors.map((color, i) => i === index ? color : (color.length === 7 ? color + '4D' : color));
+        chartInstance.setActiveElements([{ datasetIndex: 0, index }]);
+        chartInstance.update();
+        newRow.style.background = 'rgba(255,255,255,0.06)';
+
+        if (pieCenterValEl && pieCenterLabelEl) {
+          const targetCount = counts[index];
+          if (currentCenterVal !== targetCount) {
+            animateValue(pieCenterValEl, currentCenterVal, targetCount, 300);
+            pieCenterLabelEl.textContent = labels[index];
+          }
+        }
+      }
+    });
+
+    newRow.addEventListener('mouseleave', () => {
+      if (chartInstance) {
+        chartInstance.data.datasets[0].backgroundColor = bgColors;
+        chartInstance.setActiveElements([]);
+        chartInstance.update();
+      }
+      newRow.style.background = '';
+
+      if (pieCenterValEl && pieCenterLabelEl && currentCenterVal !== totalSales) {
+        animateValue(pieCenterValEl, currentCenterVal, totalSales, 300);
+        pieCenterLabelEl.textContent = 'total sales';
+      }
+    });
+  });
+}
+
+function initSegmentationChart(salesData, prevSalesData) {
+  const canvas = document.getElementById('segmentation-pie-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const { totalSales, channelRowsHTML, chartStats } = generateSegmentationLegendHTML(salesData, prevSalesData);
+
+  const segListEl = document.getElementById('seg-channels-list');
+  if (segListEl && segmentationChartInstance) {
+    segListEl.innerHTML = channelRowsHTML; // Inject dynamically if it exists
+  }
+
+  currentCenterVal = totalSales;
+  const pieCenterValEl = document.querySelector('.pie-center-value');
+  const pieCenterLabelEl = document.querySelector('.pie-center-label');
+
+  if (pieCenterValEl) pieCenterValEl.textContent = totalSales.toLocaleString();
+  if (pieCenterLabelEl) pieCenterLabelEl.textContent = 'total sales';
+
+  const labels = chartStats.map(s => s.platform.charAt(0).toUpperCase() + s.platform.slice(1));
+  const data = chartStats.map(s => s.revenue);
+  const counts = chartStats.map(s => s.count);
+  const colors = { amazon: '#FF9900', shopify: '#96BF48', facebook: '#1877F2', ebay: '#E53238', whatnot: '#F5D01E', other: '#888888' };
+  const bgColors = chartStats.map(s => colors[s.platform] || colors.other);
+
+  if (segmentationChartInstance) {
+    segmentationChartInstance.data.labels = labels;
+    segmentationChartInstance.data.datasets[0].data = data;
+    segmentationChartInstance.data.datasets[0].backgroundColor = bgColors;
+
+    segmentationChartInstance.options.onHover = (event, activeElements) => {
+      document.querySelectorAll('.seg-channel-row').forEach(row => row.style.background = '');
+      if (activeElements.length > 0) {
+        const index = activeElements[0].index;
+        document.querySelectorAll(`.seg-channel-row[data-chart-index="${index}"]`).forEach(row => {
+          row.style.background = 'rgba(255,255,255,0.06)';
+        });
+
+        segmentationChartInstance.data.datasets[0].backgroundColor = bgColors.map((color, i) => i === index ? color : (color.length === 7 ? color + '4D' : color));
+        segmentationChartInstance.update();
+
+        if (pieCenterValEl && pieCenterLabelEl) {
+          const targetCount = counts[index];
+          if (currentCenterVal !== targetCount) {
+            animateValue(pieCenterValEl, currentCenterVal, targetCount, 300);
+            pieCenterLabelEl.textContent = labels[index];
+          }
+        }
+      } else {
+        segmentationChartInstance.data.datasets[0].backgroundColor = bgColors;
+        segmentationChartInstance.update();
+
+        if (pieCenterValEl && pieCenterLabelEl && currentCenterVal !== totalSales) {
+          animateValue(pieCenterValEl, currentCenterVal, totalSales, 300);
+          pieCenterLabelEl.textContent = 'total sales';
+        }
+      }
+    };
+
+    segmentationChartInstance.update();
+    attachLegendHoverEvents(segmentationChartInstance, counts, labels, bgColors, totalSales);
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  segmentationChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: bgColors,
+        borderWidth: 0,
+        hoverOffset: 12
+      }]
+    },
+    options: {
+      animation: {
+        animateScale: true,
+        animateRotate: true,
+        duration: 800,
+        easing: 'easeOutQuart'
+      },
+      cutout: '55%',
+      layout: {
+        padding: 16
+      },
+      responsive: true,
+      onHover: (event, activeElements) => {
+        document.querySelectorAll('.seg-channel-row').forEach(row => row.style.background = '');
+        if (activeElements.length > 0) {
+          const index = activeElements[0].index;
+          document.querySelectorAll(`.seg-channel-row[data-chart-index="${index}"]`).forEach(row => {
+            row.style.background = 'rgba(255,255,255,0.06)';
+          });
+
+          segmentationChartInstance.data.datasets[0].backgroundColor = bgColors.map((color, i) => i === index ? color : (color.length === 7 ? color + '4D' : color));
+          segmentationChartInstance.update();
+
+          if (pieCenterValEl && pieCenterLabelEl) {
+            const targetCount = counts[index];
+            if (currentCenterVal !== targetCount) {
+              animateValue(pieCenterValEl, currentCenterVal, targetCount, 300);
+              pieCenterLabelEl.textContent = labels[index];
+            }
+          }
+        } else {
+          segmentationChartInstance.data.datasets[0].backgroundColor = bgColors;
+          segmentationChartInstance.update();
+
+          if (pieCenterValEl && pieCenterLabelEl && currentCenterVal !== totalSales) {
+            animateValue(pieCenterValEl, currentCenterVal, totalSales, 300);
+            pieCenterLabelEl.textContent = 'total sales';
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      }
+    }
+  });
+
+  attachLegendHoverEvents(segmentationChartInstance, counts, labels, bgColors, totalSales);
+}
+
 export function initDesktopDashboardEvents(isInitialLoad = false) {
-  // If this is the initial login load, wait for the app preloader to fade out (~750-800ms)
-  const initialDelay = isInitialLoad ? 800 : 0;
+  // If this is the initial login load, wait for the app preloader to fully clear (~1000ms) + a small buffer
+  const initialDelay = isInitialLoad ? 1200 : 0;
 
   setTimeout(() => {
     initDesktopRevenueChart();
+    updateSegmentationByRange();
   }, initialDelay);
+
+  // Helper function to easily grab identical time range for segmentation 
+  function updateSegmentationByRange() {
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    let salesDataSegment;
+    let prevSalesDataSegment;
+
+    if (selectedRange === 'all') {
+      const startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 364);
+      startDate.setHours(0, 0, 0, 0);
+      salesDataSegment = getSalesByDateRange(startDate, now);
+
+      const prevStart = new Date(startDate);
+      prevStart.setDate(prevStart.getDate() - 365);
+      const prevEnd = new Date(startDate);
+      prevEnd.setDate(prevEnd.getDate() - 1);
+      prevEnd.setHours(23, 59, 59, 999);
+      prevSalesDataSegment = getSalesByDateRange(prevStart, prevEnd);
+    } else {
+      const startDate = new Date(now);
+      const days = selectedRange === '7d' ? 6 : selectedRange === '90d' ? 89 : 29;
+      startDate.setDate(startDate.getDate() - days);
+      startDate.setHours(0, 0, 0, 0);
+      salesDataSegment = getSalesByDateRange(startDate, now);
+
+      const prevStartDate = new Date(startDate);
+      prevStartDate.setDate(prevStartDate.getDate() - (days + 1));
+      const prevEndDate = new Date(startDate);
+      prevEndDate.setDate(prevEndDate.getDate() - 1);
+      prevEndDate.setHours(23, 59, 59, 999);
+      prevSalesDataSegment = getSalesByDateRange(prevStartDate, prevEndDate);
+    }
+    initSegmentationChart(salesDataSegment, prevSalesDataSegment);
+  }
 
   document.querySelectorAll('.filter-btn[data-range]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -586,6 +1024,7 @@ export function initDesktopDashboardEvents(isInitialLoad = false) {
       btn.classList.add('active');
       selectedBarIndex = null; // Reset to latest for new range
       initDesktopRevenueChart();
+      updateSegmentationByRange();
     });
   });
 
