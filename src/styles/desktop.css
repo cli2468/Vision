@@ -582,6 +582,7 @@
 
   .revenue-panel {
     min-height: 220px;
+    max-height: 550px;
   }
 
   .segmentation-panel {
@@ -665,6 +666,11 @@
     color: var(--desktop-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  .seg-channels-header span:nth-child(2),
+  .seg-channels-header span:nth-child(3) {
+    text-align: right;
   }
 
   .seg-channels {

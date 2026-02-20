@@ -61,8 +61,11 @@ export function DesktopDashboardView() {
   const allLots = getLots();
   const unsoldUnits = allLots.reduce((sum, lot) => sum + (lot.remaining || 0), 0);
   const unsoldCostBasis = allLots.reduce((sum, lot) => sum + (lot.unitCost || 0) * (lot.remaining || 0), 0);
+  const isDemo = localStorage.getItem('demoMode') === 'true';
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const rawName = auth.currentUser?.displayName?.split(' ')[0] || '';
-  const userName = rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase() : 'there';
+  const userName = isDemo ? 'Demo User ✨' : (rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase() : 'there');
 
   const now = new Date();
   now.setHours(23, 59, 59, 999);
@@ -132,8 +135,8 @@ export function DesktopDashboardView() {
   return `
     <div class="desktop-dashboard vision-desktop-dashboard">
       <div class="dashboard-intro">
-        <h2 class="dashboard-greeting">Welcome back${userName ? `, ${userName}` : ''}</h2>
-        <p class="dashboard-greeting-subtext">Here's what's happening today.</p>
+        <h2 class="dashboard-greeting">${timeGreeting}, ${userName}</h2>
+        <p class="dashboard-greeting-subtext">${isDemo ? "You're viewing the interactive demo workspace." : "Here's what's happening today."}</p>
       </div>
 
       <div class="kpi-pill">
@@ -193,7 +196,9 @@ function renderPillTrend(trend) {
   const cls = trend.direction === 'up' ? 'trend-up' : trend.direction === 'down' ? 'trend-down' : 'trend-neutral';
   // Use a slight gap if arrow exists
   const arrowHtml = arrow ? ` ${arrow}` : '';
-  return `<span class="kpi-pill-trend"><span class="${cls}">${trend.value}%${arrowHtml}</span> vs Last 30D</span>`;
+  const isInf = trend.value === '∞';
+  const valHtml = isInf ? '<span style="font-size: 1.8em; line-height: 1; vertical-align: -0.05em;">∞</span>&thinsp;%' : `${trend.value}%`;
+  return `<span class="kpi-pill-trend"><span class="${cls}">${valHtml}${arrowHtml}</span> vs Last 30D</span>`;
 }
 
 function calculateInventoryValueAtDate(lots, atDate) {
@@ -289,22 +294,48 @@ function generateSegmentationLegendHTML(salesData, prevSalesData) {
     };
   }
 
-  const chartStats = sortedPlatforms.map(p => ({
+  // Consolidate beyond top 4 into "Other"
+  const MAX_CHANNELS = 3;
+  let displayPlatforms = sortedPlatforms;
+  if (sortedPlatforms.length > MAX_CHANNELS) {
+    const topPlatforms = sortedPlatforms.slice(0, MAX_CHANNELS);
+    const otherPlatforms = sortedPlatforms.slice(MAX_CHANNELS);
+    // Merge 'other' stats
+    const otherStats = { count: 0, revenue: 0 };
+    otherPlatforms.forEach(p => {
+      otherStats.count += currentStats[p].count;
+      otherStats.revenue += currentStats[p].revenue;
+    });
+    // If 'other' already exists in top 4, merge into it
+    if (topPlatforms.includes('other')) {
+      currentStats['other'].count += otherStats.count;
+      currentStats['other'].revenue += otherStats.revenue;
+    } else {
+      currentStats['other'] = otherStats;
+      topPlatforms.push('other');
+    }
+    // Merge prev stats for 'other' too
+    const otherPrevRev = otherPlatforms.reduce((sum, p) => sum + (prevStats[p]?.revenue || 0), 0);
+    if (!prevStats['other']) prevStats['other'] = { count: 0, revenue: 0 };
+    prevStats['other'].revenue += otherPrevRev;
+    displayPlatforms = topPlatforms;
+  }
+
+  const chartStats = displayPlatforms.map(p => ({
     platform: p,
     ...currentStats[p]
   }));
 
-  const totalSales = sortedPlatforms.reduce((sum, p) => sum + currentStats[p].count, 0);
+  const totalSales = displayPlatforms.reduce((sum, p) => sum + currentStats[p].count, 0);
 
-  const channelRowsHTML = sortedPlatforms.map((platform, index) => {
+  const channelRowsHTML = displayPlatforms.map((platform, index) => {
     const stats = currentStats[platform];
     const prevRev = prevStats[platform] ? prevStats[platform].revenue : 0;
     const realTrendObj = calculateTrend(stats.revenue, prevRev);
 
     const arrow = realTrendObj.direction === 'up' ? '↑' : realTrendObj.direction === 'down' ? '↓' : '';
     const trendCls = realTrendObj.direction === 'up' ? 'trend-up' : realTrendObj.direction === 'down' ? 'trend-down' : 'trend-neutral';
-    const trendText = realTrendObj.value === '∞' ? '∞%' : `${realTrendObj.value}%`;
-    const sign = realTrendObj.direction === 'up' ? '+' : realTrendObj.direction === 'down' ? '-' : '';
+    const trendText = realTrendObj.value === '∞' ? '<span style="font-size: 1.8em; line-height: 1; vertical-align: -0.05em;">∞</span>&thinsp;%' : `${realTrendObj.value}%`;
     const arrowHtml = arrow ? ` ${arrow}` : '';
 
     return `
@@ -314,7 +345,7 @@ function generateSegmentationLegendHTML(salesData, prevSalesData) {
           ${getLabel(platform)}
         </span>
         <span class="seg-channel-number">${stats.count}</span>
-        <span class="seg-channel-total ${trendCls}">${sign}${trendText}${arrowHtml}</span>
+        <span class="seg-channel-total ${trendCls}">${trendText}${arrowHtml}</span>
       </div>
     `;
   }).join('');
@@ -501,19 +532,12 @@ function initDesktopRevenueChart() {
   const axisTicks = getCssVar('--chart-axis-text', 'rgba(234, 230, 224, 0.55)');
   const axisGrid = getCssVar('--chart-grid-line', 'rgba(234, 230, 224, 0.08)');
 
-  const gradient = ctx.createLinearGradient(0, canvas.height || 300, 0, 0);
-  gradient.addColorStop(0, '#35b8e6');
-  gradient.addColorStop(1, '#41CDFF');
-
-  const hoverGradient = ctx.createLinearGradient(0, canvas.height || 300, 0, 0);
-  hoverGradient.addColorStop(0, '#4dd4ff');
-  hoverGradient.addColorStop(1, '#6ee0ff');
-
-  const barColors = revenues.map(v => v > 0 ? gradient : 'rgba(255,255,255,0.04)');
-  const barHoverColors = revenues.map(v => v > 0 ? hoverGradient : 'rgba(255,255,255,0.06)');
+  // Use solid color strings (not CanvasGradient) so Chart.js can smoothly interpolate during fade transitions
+  const barColors = revenues.map(v => v > 0 ? 'rgba(59, 195, 240, 1)' : 'rgba(255,255,255,0.04)');
+  const barHoverColors = revenues.map(v => v > 0 ? 'rgba(90, 215, 255, 1)' : 'rgba(255,255,255,0.06)');
 
   // Create faded colors for when a different bar is hovered
-  const barFadedColors = revenues.map(v => v > 0 ? 'rgba(53, 184, 230, 0.3)' : 'rgba(255,255,255,0.02)');
+  const barFadedColors = revenues.map(v => v > 0 ? 'rgba(53, 184, 230, 0.25)' : 'rgba(255,255,255,0.02)');
 
   if (selectedBarIndex === null || selectedBarIndex >= labels.length) {
     selectedBarIndex = labels.length - 1;
@@ -538,7 +562,10 @@ function initDesktopRevenueChart() {
 
       const periodLabel = selectedRange === '7d' ? 'Last 7D' : selectedRange === '30d' ? 'Last 30D' : selectedRange === '90d' ? 'Last 90D' : 'Previous Year';
 
-      dynamicTrendEl.innerHTML = `<span class="${cls}">${trendData.value}%${arrowHtml}</span> vs ${periodLabel}`;
+      const isInf = trendData.value === '∞';
+      const valHtml = isInf ? '<span style="font-size: 1.8em; line-height: 1; vertical-align: -0.05em;">∞</span>&thinsp;%' : `${trendData.value}%`;
+
+      dynamicTrendEl.innerHTML = `<span class="${cls}">${valHtml}${arrowHtml}</span> vs ${periodLabel}`;
     }
   }
 
@@ -683,11 +710,18 @@ function initDesktopRevenueChart() {
           },
           delay: (ctx) => {
             if (ctx.type === 'data' && ctx.mode === 'default') {
-              // Auto-calculate stagger so all bars complete within ~1.2s total
               const stagger = 1200 / barCount / 2;
               return ctx.dataIndex * stagger;
             }
             return 0;
+          }
+        }
+      },
+      transitions: {
+        fade: {
+          animation: {
+            duration: 500,
+            easing: 'easeOutQuart'
           }
         }
       },
@@ -702,7 +736,7 @@ function initDesktopRevenueChart() {
             if (desktopChartInstance.lastHoveredIndex !== hoveredIndex) {
               desktopChartInstance.lastHoveredIndex = hoveredIndex;
               desktopChartInstance.data.datasets[0].backgroundColor = barColors.map((color, i) => i === hoveredIndex ? barHoverColors[i] : barFadedColors[i]);
-              desktopChartInstance.update('none');
+              desktopChartInstance.update('fade');
 
               // Position the HTML X-axis pill over the active tick
               const xScale = desktopChartInstance.scales.x;
@@ -718,7 +752,7 @@ function initDesktopRevenueChart() {
               desktopChartInstance.lastHoveredIndex = null;
               desktopChartInstance.data.datasets[0].backgroundColor = barColors;
               desktopChartInstance.setActiveElements([]);
-              desktopChartInstance.update('none');
+              desktopChartInstance.update('fade');
 
               const tEl = desktopChartInstance.canvas.parentNode.querySelector('div.bklit-custom-tooltip');
               if (tEl) tEl.style.opacity = '0';
@@ -733,7 +767,7 @@ function initDesktopRevenueChart() {
           desktopChartInstance.lastHoveredIndex = null;
           desktopChartInstance.data.datasets[0].backgroundColor = barColors;
           desktopChartInstance.setActiveElements([]);
-          desktopChartInstance.update('none');
+          desktopChartInstance.update('fade');
 
           const tEl = desktopChartInstance.canvas.parentNode.querySelector('div.bklit-custom-tooltip');
           if (tEl) tEl.style.opacity = '0';
@@ -774,11 +808,11 @@ function initDesktopRevenueChart() {
           ticks: { display: false },
           grid: {
             display: true,
-            color: 'rgba(255, 255, 255, 0.1)', // strictly uniform dotted line instead of gradient mask. Slightly brighter.
+            color: 'rgba(255, 255, 255, 0.08)',
             drawTicks: false,
             tickLength: 0,
             lineWidth: 1,
-            borderDash: [4, 4], // dotted lines matching screenshot natively
+            borderDash: [4, 4],
           }
         }
       }
@@ -793,7 +827,7 @@ function initDesktopRevenueChart() {
       desktopChartInstance.lastHoveredIndex = null;
       desktopChartInstance.data.datasets[0].backgroundColor = barColors;
       desktopChartInstance.setActiveElements([]);
-      desktopChartInstance.update('none');
+      desktopChartInstance.update('fade');
 
       const tEl = desktopChartInstance.canvas.parentNode.querySelector('div.bklit-custom-tooltip');
       if (tEl) tEl.style.opacity = '0';
@@ -918,7 +952,7 @@ function initSegmentationChart(salesData, prevSalesData) {
         data,
         backgroundColor: bgColors,
         borderWidth: 0,
-        hoverOffset: 12
+        hoverOffset: 16
       }]
     },
     options: {
@@ -927,6 +961,14 @@ function initSegmentationChart(salesData, prevSalesData) {
         animateRotate: true,
         duration: 800,
         easing: 'easeOutQuart'
+      },
+      transitions: {
+        active: {
+          animation: {
+            duration: 250,
+            easing: 'easeOutBack'
+          }
+        }
       },
       cutout: '55%',
       layout: {
