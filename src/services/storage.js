@@ -5,11 +5,22 @@ const STORAGE_VERSION = 2; // Bumped for per-unit cost changes
 
 import { saveLotToCloud, deleteLotFromCloud } from './firebaseSync.js';
 import { auth } from './firebase.js';
+import { generateDemoData } from './demoData.js';
 
 /**
  * Get the current storage data structure
  */
 function getStorageData() {
+    // Demo Mode Interception
+    if (localStorage.getItem('demoMode') === 'true') {
+        const demoRaw = localStorage.getItem('resell_demo_lots');
+        if (demoRaw) return JSON.parse(demoRaw);
+
+        const demoState = { version: STORAGE_VERSION, lots: generateDemoData() };
+        localStorage.setItem('resell_demo_lots', JSON.stringify(demoState));
+        return demoState;
+    }
+
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
@@ -42,6 +53,11 @@ function getStorageData() {
  * Save the entire storage data structure
  */
 function saveStorageData(data) {
+    if (localStorage.getItem('demoMode') === 'true') {
+        localStorage.setItem('resell_demo_lots', JSON.stringify(data));
+        return true;
+    }
+
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         return true;
@@ -115,7 +131,7 @@ export function saveLot(lotData) {
     saveStorageData(data);
 
     // Cloud sync
-    if (auth.currentUser) {
+    if (auth.currentUser && localStorage.getItem('demoMode') !== 'true') {
         saveLotToCloud(newLot);
     }
 
@@ -138,7 +154,7 @@ export function updateLot(id, updates) {
     saveStorageData(data);
 
     // Cloud sync
-    if (auth.currentUser) {
+    if (auth.currentUser && localStorage.getItem('demoMode') !== 'true') {
         saveLotToCloud(data.lots[index]);
     }
 
@@ -158,12 +174,12 @@ export function updateLot(id, updates) {
 export function recordSale(id, pricePerUnit, unitsSold, platform, shippingCost = 0, saleDateStr = null) {
     const lot = getLotById(id);
     if (!lot) return null;
-    
+
     // Explicit type casting with defaults
     const price = Number(pricePerUnit) || 0;
     const qty = Number(unitsSold) || 0;
     const shipping = Number(shippingCost) || 0;
-    
+
     if (qty > lot.remaining) return null;
     if (price <= 0) return null;
 
@@ -254,7 +270,7 @@ export function updateSale(lotId, saleId, updates) {
     saveStorageData(data);
 
     // Cloud sync
-    if (auth.currentUser) {
+    if (auth.currentUser && localStorage.getItem('demoMode') !== 'true') {
         saveLotToCloud(lot);
     }
 
@@ -278,16 +294,16 @@ export function markSaleReturned(lotId, saleId) {
     if (saleIndex === -1) return null;
 
     const sale = lot.sales[saleIndex];
-    
+
     // Already returned, nothing to do
     if (sale.returned) return lot;
 
     // Mark as returned
     lot.sales[saleIndex] = { ...sale, returned: true };
-    
+
     // Restore units to inventory
     lot.remaining += sale.unitsSold;
-    
+
     saveStorageData(data);
     return lot;
 }
@@ -358,11 +374,11 @@ export function deleteLot(id) {
     console.log('✅ Deleted from localStorage:', id);
 
     // Cloud sync
-    if (auth.currentUser) {
+    if (auth.currentUser && localStorage.getItem('demoMode') !== 'true') {
         console.log('☁️ User logged in, deleting from cloud...');
         deleteLotFromCloud(id).catch(err => console.error('❌ Cloud delete failed:', err));
     } else {
-        console.warn('🚫 No user logged in, skipping cloud delete');
+        console.warn('🚫 No user logged in or demo mode active, skipping cloud delete');
     }
 
     return true;

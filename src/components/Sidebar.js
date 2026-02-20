@@ -2,11 +2,13 @@
 
 import { navigate } from '../router.js';
 import { resetAddLotState } from '../views/AddLotView.js';
-import { logout } from '../services/firebase.js';
+import { auth, logout } from '../services/firebase.js';
 
 let isCollapsed = false;
 
 export function Sidebar(activeRoute = '/') {
+  const user = auth.currentUser;
+
   const menuItems = [
     { route: '/', label: 'Dashboard', icon: 'dashboard' },
     { route: '/add', label: 'Add', icon: 'add' },
@@ -21,6 +23,7 @@ export function Sidebar(activeRoute = '/') {
     sales: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
     help: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
     logout: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
+    login: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>`,
     add: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
     collapse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`,
     expand: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`
@@ -38,6 +41,26 @@ export function Sidebar(activeRoute = '/') {
   `).join('');
 
   const toggleIcon = isCollapsed ? iconSvgs.expand : iconSvgs.collapse;
+
+  // Determine auth button content based on user state
+  const authHtml = user ? `
+    <button class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout-btn" title="Log out">
+      <span class="sidebar-nav-icon">${iconSvgs.logout}</span>
+      <span class="sidebar-nav-label">Log out</span>
+    </button>
+    <div class="sidebar-logout-confirm" id="sidebar-logout-confirm">
+      <p class="logout-confirm-text">Sign out of your account?</p>
+      <div class="logout-confirm-actions">
+        <button class="logout-confirm-btn cancel" id="sidebar-logout-cancel">Cancel</button>
+        <button class="logout-confirm-btn confirm" id="sidebar-logout-confirm-btn">Log out</button>
+      </div>
+    </div>
+  ` : `
+    <button class="sidebar-nav-item sidebar-login-btn" id="sidebar-login-btn" title="Log in / Sync" onclick="window.dispatchEvent(new CustomEvent('open-login-modal'))">
+      <span class="sidebar-nav-icon">${iconSvgs.login}</span>
+      <span class="sidebar-nav-label">Log in / Sync</span>
+    </button>
+  `;
 
   return `
     <aside class="desktop-sidebar ${isCollapsed ? 'collapsed' : ''}" data-collapsed="${isCollapsed}">
@@ -58,20 +81,10 @@ export function Sidebar(activeRoute = '/') {
       <div class="sidebar-section">
         <div class="sidebar-section-label">MENU</div>
         <nav class="sidebar-nav">
-          ${menuHtml}
+           ${menuHtml}
         </nav>
         <div class="sidebar-divider"></div>
-        <button class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout-btn" title="Log out">
-          <span class="sidebar-nav-icon">${iconSvgs.logout}</span>
-          <span class="sidebar-nav-label">Log out</span>
-        </button>
-        <div class="sidebar-logout-confirm" id="sidebar-logout-confirm">
-          <p class="logout-confirm-text">Sign out of your account?</p>
-          <div class="logout-confirm-actions">
-            <button class="logout-confirm-btn cancel" id="sidebar-logout-cancel">Cancel</button>
-            <button class="logout-confirm-btn confirm" id="sidebar-logout-confirm-btn">Log out</button>
-          </div>
-        </div>
+        ${authHtml}
       </div>
     </aside>
   `;
@@ -210,4 +223,54 @@ function hideTooltip(element) {
   if (tooltip) {
     tooltip.classList.remove('visible');
   }
+}
+
+/**
+ * Updates the authentication button region in the Sidebar dynamically.
+ */
+export function updateSidebarAuthState() {
+  const sidebar = document.querySelector('.desktop-sidebar');
+  if (!sidebar) return;
+
+  const user = auth.currentUser;
+  const divider = sidebar.querySelector('.sidebar-divider');
+  if (!divider) return;
+
+  // Remove existing auth elements (like buttons or confirms) that sit after the divider
+  let nextSibling = divider.nextElementSibling;
+  while (nextSibling) {
+    const toRemove = nextSibling;
+    nextSibling = nextSibling.nextElementSibling;
+    toRemove.remove();
+  }
+
+  const iconSvgs = {
+    logout: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
+    login: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>`
+  };
+
+  const authHtml = user ? `
+    <button class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout-btn" title="Log out">
+      <span class="sidebar-nav-icon">${iconSvgs.logout}</span>
+      <span class="sidebar-nav-label">Log out</span>
+    </button>
+    <div class="sidebar-logout-confirm" id="sidebar-logout-confirm">
+      <p class="logout-confirm-text">Sign out of your account?</p>
+      <div class="logout-confirm-actions">
+        <button class="logout-confirm-btn cancel" id="sidebar-logout-cancel">Cancel</button>
+        <button class="logout-confirm-btn confirm" id="sidebar-logout-confirm-btn">Log out</button>
+      </div>
+    </div>
+  ` : `
+    <button class="sidebar-nav-item sidebar-login-btn" id="sidebar-login-btn" title="Log in / Sync" onclick="window.dispatchEvent(new CustomEvent('open-login-modal'))">
+      <span class="sidebar-nav-icon">${iconSvgs.login}</span>
+      <span class="sidebar-nav-label">Log in / Sync</span>
+    </button>
+  `;
+
+  divider.insertAdjacentHTML('afterend', authHtml);
+
+  // Re-bind sidebar-specific events so the new buttons work without full re-init
+  eventsInitialized = false;
+  initSidebarEvents();
 }

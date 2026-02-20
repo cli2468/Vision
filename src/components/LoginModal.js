@@ -169,6 +169,12 @@ export function initLoginModalEvents() {
       });
     } else if (!user) {
       syncInitialized = false;
+      // Clear global data cache entirely when a user signs out to preserve privacy
+      // Bypass this wipe if actively running the demo mode
+      if (localStorage.getItem('demoMode') !== 'true') {
+        setLots([]);
+      }
+      window.dispatchEvent(new CustomEvent('viewchange'));
     }
   });
 }

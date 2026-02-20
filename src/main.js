@@ -9,12 +9,13 @@ import { AddLotView, initAddLotEvents } from './views/AddLotView.js';
 import { SalesView, initSalesEvents } from './views/SalesView.js';
 import { SettingsView, initSettingsEvents } from './views/SettingsView.js';
 import { BottomNav, initBottomNavEvents } from './components/BottomNav.js';
-import { Sidebar, initSidebarEvents } from './components/Sidebar.js';
+import { Sidebar, initSidebarEvents, toggleSidebar, isSidebarCollapsed, updateSidebarAuthState } from './components/Sidebar.js';
 import { DesktopDashboardView, initDesktopDashboardEvents } from './views/DesktopDashboardView.js';
 import { LoginModal, initLoginModalEvents } from './components/LoginModal.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase.js';
 import { initRippleEffects } from './utils/animations.js';
+import { initDemoTour } from './components/demoTour.js';
 
 // Track if we have performed the initial view render
 let initialViewRendered = false;
@@ -38,7 +39,7 @@ function initEvents() {
   // Route-specific events
   if (isDesktop() && currentRoute === '/') {
     // Use desktop dashboard events on desktop
-    initDesktopDashboardEvents();
+    initDesktopDashboardEvents(isInitialLoad);
     initDashboardEvents(isInitialLoad);
   } else {
     // Mobile or non-dashboard routes
@@ -99,13 +100,26 @@ onAuthStateChanged(auth, () => {
     // Initial view content is already in DOM from initApp, 
     // now we just trigger the events/animations once
     initialViewRendered = true;
+
+    const app = document.getElementById('app');
+    if (app) app.classList.add('is-initial-load');
+
     initEvents();
 
     // Safety: ensure app is visible if preloader timings were off
-    const app = document.getElementById('app');
     if (app && !app.classList.contains('ready')) app.classList.add('ready');
+
+    // Remove the initial load class after the preloader finishes (approx 800-1000ms)
+    setTimeout(() => {
+      if (app) app.classList.remove('is-initial-load');
+    }, 1000);
   } else {
     scheduleViewChange();
+  }
+
+  // Re-render auth-dependent UI like the Sidebar
+  if (isDesktop()) {
+    updateSidebarAuthState();
   }
 });
 
@@ -115,7 +129,7 @@ function getViewContent(currentRoute) {
   if (isDesktop() && currentRoute === '/') {
     return DesktopDashboardView();
   }
-  
+
   // Otherwise use standard mobile views
   switch (currentRoute) {
     case '/':
@@ -135,17 +149,61 @@ function getViewContent(currentRoute) {
 
 // Initial render - set up the app structure and initial static content
 function initApp() {
+  // Demo Mode Activation for First Time Visitors
+  if (!localStorage.getItem('hasVisited')) {
+    localStorage.setItem('hasVisited', 'true');
+    localStorage.setItem('demoMode', 'true');
+    localStorage.setItem('dashboardCurrentRange', 'all');
+  }
+
+  // Global helper to exit demo mode cleanly
+  window.exitDemoMode = () => {
+    localStorage.removeItem('demoMode');
+    localStorage.removeItem('resell_demo_lots');
+    localStorage.removeItem('demoTourStep');
+    // Set to all to avoid blank screen on empty state after exit
+    localStorage.setItem('dashboardCurrentRange', 'all');
+    window.location.reload();
+  };
+
   const app = document.getElementById('app');
   if (!app) return;
 
   const currentRoute = getCurrentRoute();
-  
+
   // Set responsive state classes
   app.classList.toggle('is-desktop', isDesktop());
   app.classList.toggle('is-mobile', !isDesktop());
 
+  const demoBadge = localStorage.getItem('demoMode') === 'true' ? `
+    <div class="demo-badge" onclick="window.exitDemoMode()">
+      DEMO MODE &middot; <span>Exit</span>
+    </div>
+  ` : '';
+
+  let demoToast = '';
+  if (localStorage.getItem('demoMode') === 'true' && !sessionStorage.getItem('demoToastShown')) {
+    demoToast = `
+        <div class="demo-toast" id="demo-toast">
+          <span>Interactive demo data loaded.</span>
+          <button onclick="document.getElementById('demo-toast').remove()">✕</button>
+        </div>
+      `;
+    sessionStorage.setItem('demoToastShown', 'true');
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+      const toast = document.getElementById('demo-toast');
+      if (toast) {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }
+    }, 5000);
+  }
+
   // Create shell structure with both mobile and desktop navigation
   app.innerHTML = `
+    ${demoBadge}
+    ${demoToast}
     ${Sidebar(currentRoute)}
     <div id="page-content"></div>
     ${BottomNav(currentRoute)}
@@ -156,6 +214,9 @@ function initApp() {
   const pageContent = document.getElementById('page-content');
   const content = getViewContent(currentRoute);
   pageContent.innerHTML = `<div class="page-view">${content}</div>`;
+
+  // Start demo tour if applicable
+  initDemoTour();
 }
 
 // Handle window resize to switch between mobile and desktop layouts
@@ -165,14 +226,14 @@ window.addEventListener('resize', () => {
   resizeTimeout = setTimeout(() => {
     const app = document.getElementById('app');
     if (!app) return;
-    
+
     const wasDesktop = app.classList.contains('is-desktop');
     const isDesktopNow = isDesktop();
-    
+
     // Update responsive state classes
     app.classList.toggle('is-desktop', isDesktopNow);
     app.classList.toggle('is-mobile', !isDesktopNow);
-    
+
     // Only re-render if crossing the breakpoint
     if (wasDesktop !== isDesktopNow) {
       const currentRoute = getCurrentRoute();
@@ -193,14 +254,14 @@ window.addEventListener('viewchange', () => {
   if (!pageContent) return;
 
   const currentRoute = getCurrentRoute();
-  
+
   // Apply appropriate layout class for responsive handling
   const app = document.getElementById('app');
   if (app) {
     app.classList.toggle('is-desktop', isDesktop());
     app.classList.toggle('is-mobile', !isDesktop());
   }
-  
+
   const content = getViewContent(currentRoute);
   pageContent.innerHTML = `<div class="page-view">${content}</div>`;
   initEvents();

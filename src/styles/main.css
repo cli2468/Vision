@@ -122,6 +122,7 @@ textarea {
 html {
   font-size: 16px;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -151,6 +152,237 @@ body {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* ===== Demo Mode Components ===== */
+.demo-badge {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  background: rgba(204, 255, 0, 0.15);
+  border: 1px solid rgba(204, 255, 0, 0.3);
+  color: var(--accent);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  z-index: 1000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(204, 255, 0, 0.05);
+  animation: slideDownIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.demo-badge span {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.demo-badge:hover {
+  background: rgba(204, 255, 0, 0.25);
+  border-color: rgba(204, 255, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.demo-toast {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--desktop-surface-elevated);
+  border: var(--desktop-border-strong);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-lg);
+  animation: toastPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transition: opacity 0.3s ease;
+}
+
+.demo-toast button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.demo-toast button:hover {
+  color: var(--text-primary);
+}
+
+@keyframes slideDownIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastPop {
+  from {
+    transform: translate(-50%, 20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .demo-toast {
+    bottom: 24px;
+    right: 24px;
+    left: auto;
+    transform: none;
+    animation: toastPopDesktop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes toastPopDesktop {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+/* ===== Demo Tour Component ===== */
+.demo-tour-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 300px;
+  background: var(--desktop-surface-elevated);
+  border: var(--border-accent);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  color: var(--text-primary);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(204, 255, 0, 0.08);
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(50vw, 50vh, 0) scale(0.95);
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    opacity 0.3s ease;
+  will-change: transform, opacity;
+}
+
+.demo-tour-tooltip.visible {
+  opacity: 1;
+  pointer-events: auto;
+  /* Transform is set inline dynamically via JS translate3d + scaling if needed, but we keep scale 1 here */
+}
+
+/* 
+  When JS sets transform: translate3d(X, Y, 0), the transition 
+  blends the X,Y coordinates dynamically. To get the 'pop in' scale effect,
+  we use a @keyframe instead on the .visible class.
+*/
+.demo-tour-tooltip.visible {
+  animation: tourPopBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes tourPopBounce {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.demo-tour-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.demo-tour-step {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.demo-tour-skip {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.demo-tour-skip:hover {
+  color: var(--text-primary);
+}
+
+.demo-tour-body h3 {
+  font-size: 1.125rem;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.demo-tour-body p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.demo-tour-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.demo-tour-btn {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.demo-tour-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
 }
 
 /* ===== Utility Classes ===== */
@@ -215,6 +447,19 @@ body {
 }
 
 /* ===== Typography ===== */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
 .page-title {
   font-size: var(--font-size-2xl);
   font-weight: 600;
@@ -223,6 +468,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-wrap: balance;
 }
 
 .section-title {
@@ -230,11 +476,13 @@ body {
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: var(--spacing-md);
+  text-wrap: balance;
 }
 
 .text-secondary {
   color: var(--text-secondary);
   transition: opacity var(--transition-fast);
+  text-wrap: pretty;
 }
 
 .text-secondary:hover {
@@ -244,6 +492,7 @@ body {
 .text-muted {
   color: var(--text-muted);
   transition: opacity var(--transition-fast);
+  text-wrap: pretty;
 }
 
 .text-muted:hover {

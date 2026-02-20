@@ -2,6 +2,7 @@
 
 import { getAllSales, getLots } from '../services/storage.js';
 import { formatCurrency } from '../services/calculations.js';
+import { renderPlatformBadge } from '../services/uiHelpers.js';
 import { navigate } from '../router.js';
 
 let currentSort = { key: 'date', direction: 'desc' };
@@ -10,20 +11,20 @@ let platformFilter = 'all';
 export function SalesView() {
   const salesData = getAllSales();
   const allLots = getLots();
-  
+
   // Filter by platform if needed
   let filteredSales = salesData;
   if (platformFilter !== 'all') {
     filteredSales = salesData.filter(({ sale }) => sale?.platform === platformFilter);
   }
-  
+
   // Sort sales
   const sortedSales = sortSales(filteredSales, currentSort.key, currentSort.direction);
-  
+
   // Calculate totals
   const totalRevenue = filteredSales.reduce((sum, { sale }) => sum + (Number(sale?.totalPrice) || 0), 0);
   const totalProfit = filteredSales.reduce((sum, { sale }) => sum + (Number(sale?.profit) || 0), 0);
-  
+
   // Count by platform
   const platformCounts = {};
   salesData.forEach(({ sale }) => {
@@ -58,8 +59,12 @@ export function SalesView() {
             <label>Platform</label>
             <select id="platform-filter" class="filter-select">
               <option value="all" ${platformFilter === 'all' ? 'selected' : ''}>All Platforms</option>
-              <option value="facebook" ${platformFilter === 'facebook' ? 'selected' : ''}>Facebook</option>
+               <option value="facebook" ${platformFilter === 'facebook' ? 'selected' : ''}>Facebook</option>
               <option value="ebay" ${platformFilter === 'ebay' ? 'selected' : ''}>eBay</option>
+              <option value="amazon" ${platformFilter === 'amazon' ? 'selected' : ''}>Amazon</option>
+              <option value="shopify" ${platformFilter === 'shopify' ? 'selected' : ''}>Shopify</option>
+              <option value="poshmark" ${platformFilter === 'poshmark' ? 'selected' : ''}>Poshmark</option>
+              <option value="whatnot" ${platformFilter === 'whatnot' ? 'selected' : ''}>Whatnot</option>
             </select>
           </div>
         </div>
@@ -111,10 +116,10 @@ function getSortIndicator(key) {
 
 function sortSales(sales, key, direction) {
   const sorted = [...sales];
-  
+
   sorted.sort((a, b) => {
     let valA, valB;
-    
+
     switch (key) {
       case 'date':
         valA = a.sale?.dateSold ? new Date(a.sale.dateSold) : new Date(0);
@@ -143,12 +148,12 @@ function sortSales(sales, key, direction) {
       default:
         return 0;
     }
-    
+
     if (valA < valB) return direction === 'asc' ? -1 : 1;
     if (valA > valB) return direction === 'asc' ? 1 : -1;
     return 0;
   });
-  
+
   return sorted;
 }
 
@@ -156,14 +161,14 @@ function renderSalesRows(sales, lots) {
   if (sales.length === 0) {
     return '';
   }
-  
+
   return sales.map(({ lot, sale }) => {
     if (!sale) return '';
-    
+
     const lotName = lot?.name || 'Unknown';
     const dateStr = sale.dateSold;
     let dateDisplay = '—';
-    
+
     if (dateStr && dateStr !== 'Invalid Date') {
       try {
         const date = new Date(dateStr);
@@ -178,20 +183,18 @@ function renderSalesRows(sales, lots) {
         dateDisplay = '—';
       }
     }
-    
+
     const platform = sale.platform || 'unknown';
     const units = sale.unitsSold || 0;
     const revenue = Number(sale.totalPrice) || 0;
     const profit = Number(sale.profit) || 0;
-    
+
     return `
       <tr class="sale-row">
         <td>${dateDisplay}</td>
         <td class="item-name">${lotName}</td>
         <td>
-          <span class="platform-badge ${platform}">
-            ${platform === 'facebook' ? 'Facebook' : platform === 'ebay' ? 'eBay' : 'Unknown'}
-          </span>
+          ${renderPlatformBadge(platform)}
         </td>
         <td>${units}</td>
         <td>${formatCurrency(revenue)}</td>
@@ -211,12 +214,12 @@ export function initSalesEvents() {
       window.dispatchEvent(new CustomEvent('viewchange'));
     });
   }
-  
+
   // Table sorting
   document.querySelectorAll('.sortable').forEach(th => {
     th.addEventListener('click', () => {
       const sortKey = th.dataset.sort;
-      
+
       // Toggle direction if clicking same column
       if (currentSort.key === sortKey) {
         currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
@@ -224,7 +227,7 @@ export function initSalesEvents() {
         currentSort.key = sortKey;
         currentSort.direction = 'desc';
       }
-      
+
       // Re-render the view
       window.dispatchEvent(new CustomEvent('viewchange'));
     });

@@ -10,7 +10,7 @@ export function aggregateSalesByDay(salesData, range) {
   // Get today's date at midnight (no time component)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   // Create end date string from today (for comparing sale dates)
   const todayKey = formatDateKey(today);
 
@@ -21,21 +21,7 @@ export function aggregateSalesByDay(salesData, range) {
     case '30d': numDays = 30; break;
     case '90d': numDays = 90; break;
     case 'all':
-      // For "all", find the earliest sale date or default to 30 days
-      if (salesData.length === 0) {
-        numDays = 30;
-      } else {
-        const earliest = salesData.reduce((min, { sale }) => {
-          const d = new Date(sale.dateSold);
-          return d < min ? d : min;
-        }, new Date());
-        const earliestKey = formatDateKey(earliest);
-        const todayDate = new Date(todayKey + 'T00:00:00');
-        const earliestDate = new Date(earliestKey + 'T00:00:00');
-        numDays = Math.ceil((todayDate - earliestDate) / (1000 * 60 * 60 * 24)) + 1;
-        numDays = Math.max(numDays, 7); // At least 7 days
-        numDays = Math.min(numDays, 365); // Cap at 1 year
-      }
+      numDays = 365;
       break;
     default: numDays = 30;
   }
@@ -55,14 +41,14 @@ export function aggregateSalesByDay(salesData, range) {
   for (const { lot, sale } of salesData) {
     // Defensive: skip invalid sales
     if (!sale || !sale.dateSold) continue;
-    
+
     // Parse date as local time by appending T00:00:00 to avoid UTC shift
     const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
     const saleDate = new Date(saleDateStr);
-    
+
     // Skip invalid dates
     if (isNaN(saleDate.getTime())) continue;
-    
+
     const dateKey = formatDateKey(saleDate);
 
     if (salesByDay.has(dateKey)) {
@@ -96,7 +82,7 @@ export function aggregateSalesByDay(salesData, range) {
 
   // Convert Map to array and reverse to get chronological order
   const entries = Array.from(salesByDay.entries()).reverse();
-  
+
   for (const [dateKey, data] of entries) {
     labels.push(formatDateLabel(dateKey, range));
     revenues.push(data.revenue / 100); // Convert cents to dollars
@@ -166,14 +152,21 @@ function bucketByMonth(dayEntries) {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const buckets = new Map();
 
+  // Initialize precisely 12 monthly buckets ending with today's month
+  const today = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+    buckets.set(monthKey, { month: d.getMonth(), year: d.getFullYear(), revenue: 0 });
+  }
+
   for (const [dateKey, data] of dayEntries) {
     const date = new Date(dateKey + 'T12:00:00');
     const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
 
-    if (!buckets.has(monthKey)) {
-      buckets.set(monthKey, { month: date.getMonth(), year: date.getFullYear(), revenue: 0 });
+    if (buckets.has(monthKey)) {
+      buckets.get(monthKey).revenue += data.revenue;
     }
-    buckets.get(monthKey).revenue += data.revenue;
   }
 
   const sorted = Array.from(buckets.values());
@@ -187,20 +180,20 @@ function bucketByMonth(dayEntries) {
  * Format date as YYYY-MM-DD key
  */
 function formatDateKey(date) {
-    return date.toISOString().split('T')[0];
+  return date.toISOString().split('T')[0];
 }
 
 /**
  * Format date for chart label based on range
  */
 function formatDateLabel(dateKey, range) {
-    const date = new Date(dateKey + 'T12:00:00');
-    if (range === '7d') {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
-    } else {
-        // Use M/D format (e.g., "1/12")
-        return `${date.getMonth() + 1}/${date.getDate()}`;
-    }
+  const date = new Date(dateKey + 'T12:00:00');
+  if (range === '7d') {
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
+  } else {
+    // Use M/D format (e.g., "1/12")
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
 }
 
 /**

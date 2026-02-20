@@ -6,7 +6,7 @@ import { aggregateSalesByDay, getSalesForDay } from '../services/chartData.js';
 import { animateCountUp } from '../utils/animations.js';
 
 // Current selected time range for dashboard
-let selectedRange = '30d'; // '7d' | '30d' | '90d' | 'all'
+let selectedRange = null;
 let chartMode = 'revenue'; // 'revenue' | 'profit'
 let chartInstance = null;
 let currentChartData = null;
@@ -14,6 +14,7 @@ let isFirstRender = true; // Track first render for placeholders
 
 export function setTimeRange(range) {
   selectedRange = range;
+  localStorage.setItem('dashboardCurrentRange', range);
 }
 
 export function getSelectedRange() {
@@ -98,27 +99,32 @@ function renderReturnAlerts() {
  * Get contextual header label based on selected time range
  */
 function getContextualHeader() {
-  const now = new Date();
-  switch (selectedRange) {
-    case '7d': return 'This Week';
-    case '30d': return `${getMonthName(now.getMonth())} Performance`;
-    case '90d': return 'Quarterly Overview';
-    case 'all': return 'All-Time Performance';
-    default: return 'Performance';
-  }
+  return 'Last 30 Days';
 }
 
 export function DashboardView() {
+  if (!selectedRange) {
+    selectedRange = localStorage.getItem('dashboardCurrentRange') || '30d';
+  }
+
   const salesData = getSalesForSelectedRange();
   const allLots = getLots();
   const unsoldUnits = allLots.reduce((sum, lot) => sum + (lot.remaining || 0), 0);
   const unsoldCostBasis = allLots.reduce((sum, lot) => sum + (lot.unitCost || 0) * (lot.remaining || 0), 0);
-  const stats = calculateMonthlyStats(salesData);
+  const now = new Date();
+
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+  const rolling30DSales = getSalesByDateRange(thirtyDaysAgo, now);
+  const rolling30DStats = calculateMonthlyStats(rolling30DSales);
+
   const returnAlertsHtml = renderReturnAlerts();
 
-  // Calculate margin
-  const margin = stats.totalRevenue > 0 ? Math.round((stats.totalProfit / stats.totalRevenue) * 100) : 0;
-  const profitSign = stats.totalProfit >= 0 ? '+' : '-';
+  // Calculate margin strictly on 30D
+  const margin = rolling30DStats.totalRevenue > 0 ? Math.round((rolling30DStats.totalProfit / rolling30DStats.totalRevenue) * 100) : 0;
+  const profitSign = rolling30DStats.totalProfit >= 0 ? '+' : '-';
 
   return `
     <div class="page">
@@ -129,9 +135,9 @@ export function DashboardView() {
           <div class="chart-header">
             <div class="chart-title-section">
               <div class="chart-context-label">${getContextualHeader()}</div>
-              <div class="chart-revenue-value">${isFirstRender ? '$0.00' : formatCurrency(stats.totalRevenue)}</div>
+              <div class="chart-revenue-value">${isFirstRender ? '$0.00' : formatCurrency(rolling30DStats.totalRevenue)}</div>
               <div class="chart-sub-metrics">
-                <span class="chart-profit-inline ${stats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">${isFirstRender ? '+0.00' : (profitSign + formatCurrency(Math.abs(stats.totalProfit)))} net</span>
+                <span class="chart-profit-inline ${rolling30DStats.totalProfit >= 0 ? 'text-success' : 'text-danger'}">${isFirstRender ? '+0.00' : (profitSign + formatCurrency(Math.abs(rolling30DStats.totalProfit)))} net</span>
                 <span class="chart-metric-sep">·</span>
                 <span class="chart-margin-inline ${margin >= 0 ? '' : 'text-danger'}">${isFirstRender ? '0' : margin}% margin</span>
               </div>
@@ -615,7 +621,12 @@ function updateDashboard() {
   const allLots = getLots();
   const unsoldUnits = allLots.reduce((sum, lot) => sum + (lot.remaining || 0), 0);
   const unsoldCostBasis = allLots.reduce((sum, lot) => sum + (lot.unitCost || 0) * (lot.remaining || 0), 0);
-  const stats = calculateMonthlyStats(salesData);
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
+  const rolling30DSales = getSalesByDateRange(thirtyDaysAgo, now);
+  const rolling30DStats = calculateMonthlyStats(rolling30DSales);
 
   // Update time selector active state and current label
   document.querySelectorAll('.time-option').forEach(btn => {
@@ -638,7 +649,7 @@ function updateDashboard() {
   initChart();
 
   // Update totals in header with animation
-  animateDashboardTotals(stats);
+  animateDashboardTotals(rolling30DStats);
 }
 
 export function initDashboardEvents(isInitialLoad = false) {
@@ -650,9 +661,14 @@ export function initDashboardEvents(isInitialLoad = false) {
     // Initialize chart and animate count-up together
     initChart();
 
-    const salesData = getSalesForSelectedRange();
-    const stats = calculateMonthlyStats(salesData);
-    animateDashboardTotals(stats);
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    const rolling30DSales = getSalesByDateRange(thirtyDaysAgo, now);
+    const rolling30DStats = calculateMonthlyStats(rolling30DSales);
+
+    animateDashboardTotals(rolling30DStats);
   }, animationDelay);
 
   // Time selector accordion toggle

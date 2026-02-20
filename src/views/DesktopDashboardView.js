@@ -1,12 +1,14 @@
 import { getAllSales, getSalesByDateRange, getLots, getLotTotalProfit } from '../services/storage.js';
 import { calculateMonthlyStats, formatCurrency } from '../services/calculations.js';
 import { aggregateSalesByDay, aggregateSalesForChart } from '../services/chartData.js';
+import { renderPlatformBadge } from '../services/uiHelpers.js';
 import { navigate } from '../router.js';
 import { auth } from '../services/firebase.js';
 
-let selectedRange = '30d';
+let selectedRange = null;
 let desktopChartInstance = null;
 let desktopChartData = null;
+let selectedBarIndex = null;
 
 function getCssVar(name, fallback) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -14,6 +16,10 @@ function getCssVar(name, fallback) {
 }
 
 export function DesktopDashboardView() {
+  if (!selectedRange) {
+    selectedRange = localStorage.getItem('dashboardCurrentRange') || '30d';
+  }
+
   const salesData = getAllSales();
   const allLots = getLots();
   const unsoldUnits = allLots.reduce((sum, lot) => sum + (lot.remaining || 0), 0);
@@ -23,20 +29,25 @@ export function DesktopDashboardView() {
 
   const now = new Date();
   now.setHours(23, 59, 59, 999);
+
+
+  // Rolling 30D Bounds
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   thirtyDaysAgo.setHours(0, 0, 0, 0);
+
   const sixtyDaysAgo = new Date(now);
   sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
   sixtyDaysAgo.setHours(0, 0, 0, 0);
 
-  const currentPeriodSales = getSalesByDateRange(thirtyDaysAgo, now);
-  const previousPeriodSales = getSalesByDateRange(sixtyDaysAgo, thirtyDaysAgo);
+  // KPIs are strictly rolling 30D and real-time, completely ignoring selectedRange
+  const currentMonthSales = getSalesByDateRange(thirtyDaysAgo, now);
+  const previousMonthSales = getSalesByDateRange(sixtyDaysAgo, thirtyDaysAgo);
+  const inventoryValueAtStartOfMonth = calculateInventoryValueAtDate(allLots, thirtyDaysAgo);
+  const prevUnsoldUnitsAtStartOfMonth = calculateInventoryQtyAtDate(allLots, thirtyDaysAgo);
 
-  const currentStats = calculateMonthlyStats(currentPeriodSales);
-  const previousStats = calculateMonthlyStats(previousPeriodSales);
-  const inventoryValueThirtyDaysAgo = calculateInventoryValueAtDate(allLots, thirtyDaysAgo);
-  const prevUnsoldUnits = calculateInventoryQtyAtDate(allLots, thirtyDaysAgo);
+  const currentStats = calculateMonthlyStats(currentMonthSales);
+  const previousStats = calculateMonthlyStats(previousMonthSales);
 
   const profitMargin = currentStats.totalRevenue > 0
     ? Math.round((currentStats.totalProfit / currentStats.totalRevenue) * 100)
@@ -59,12 +70,12 @@ export function DesktopDashboardView() {
     {
       label: 'Inventory Value',
       value: formatCurrency(unsoldCostBasis),
-      trend: calculateTrend(unsoldCostBasis, inventoryValueThirtyDaysAgo),
+      trend: calculateTrend(unsoldCostBasis, inventoryValueAtStartOfMonth),
     },
     {
       label: 'Inventory Qty',
       value: unsoldUnits.toString(),
-      trend: calculateTrend(unsoldUnits, prevUnsoldUnits),
+      trend: calculateTrend(unsoldUnits, prevUnsoldUnitsAtStartOfMonth),
     },
     {
       label: 'Items Sold',
@@ -119,7 +130,7 @@ export function DesktopDashboardView() {
           <div class="section-header">
             <h3 class="section-title">Segmentation</h3>
           </div>
-          ${renderSegmentation(salesData)}
+          ${renderSegmentation(currentMonthSales, previousMonthSales)}
         </div>
       </div>
 
@@ -137,9 +148,11 @@ export function DesktopDashboardView() {
 
 function renderPillTrend(trend) {
   if (!trend) return '';
-  const arrow = trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→';
+  const arrow = trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '';
   const cls = trend.direction === 'up' ? 'trend-up' : trend.direction === 'down' ? 'trend-down' : 'trend-neutral';
-  return `<span class="kpi-pill-trend"><span class="${cls}">${trend.value}% ${arrow}</span> vs Last Month</span>`;
+  // Use a slight gap if arrow exists
+  const arrowHtml = arrow ? ` ${arrow}` : '';
+  return `<span class="kpi-pill-trend"><span class="${cls}">${trend.value}%${arrowHtml}</span> vs Last 30D</span>`;
 }
 
 function calculateInventoryValueAtDate(lots, atDate) {
@@ -180,62 +193,123 @@ function calculateInventoryQtyAtDate(lots, atDate) {
   }, 0);
 }
 
-function renderSegmentation(salesData) {
-  const platformStats = {};
+function renderSegmentation(salesData, prevSalesData) {
+  const currentStats = {};
   let totalRevenue = 0;
-  salesData.forEach(({ lot, sale }) => {
+
+  salesData.forEach(({ sale }) => {
     if (!sale) return;
-    const platform = sale.platform || 'unknown';
-    if (!platformStats[platform]) platformStats[platform] = { count: 0, revenue: 0 };
-    platformStats[platform].count++;
+    const platform = (sale.platform || 'other').toLowerCase();
+    if (!currentStats[platform]) currentStats[platform] = { count: 0, revenue: 0 };
+    currentStats[platform].count++;
     const rev = Number(sale.totalPrice) || 0;
-    platformStats[platform].revenue += rev;
+    currentStats[platform].revenue += rev;
     totalRevenue += rev;
   });
 
+  const prevStats = {};
+  if (prevSalesData) {
+    prevSalesData.forEach(({ sale }) => {
+      if (!sale) return;
+      const platform = (sale.platform || 'other').toLowerCase();
+      if (!prevStats[platform]) prevStats[platform] = { count: 0, revenue: 0 };
+      prevStats[platform].count++;
+      prevStats[platform].revenue += (Number(sale.totalPrice) || 0);
+    });
+  }
+
   const colors = {
+    amazon: '#FF9900',
+    shopify: '#96BF48',
     facebook: 'var(--platform-facebook)',
     ebay: 'var(--platform-ebay)',
-    unknown: 'var(--platform-other)',
-  };
-  const labels = { facebook: 'Facebook', ebay: 'eBay', unknown: 'Other' };
-  const icons = {
-    facebook: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>`,
-    ebay: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-    unknown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+    whatnot: '#F5D01E',
+    other: 'var(--platform-other)'
   };
 
-  const entries = Object.entries(platformStats);
-  if (entries.length === 0 || totalRevenue === 0) {
+  const icons = {
+    amazon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 21c-2.4 1.3-6.5 2-10 2-4.5 0-8.2-1.3-11-2.5l1-2.5c2.4 1.1 5.4 2 8.5 2 3.8 0 7.2-.6 9.5-1.5l2 2.5z"/></svg>`,
+    shopify: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2 4 4l-1 5 13-1-1-6z"/><path d="M4 9 3 20l9 2 9-5V7Z"/></svg>`,
+    facebook: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>`,
+    ebay: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+    whatnot: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+    other: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`
+  };
+
+  const getLabel = (p) => p === 'other' || p === 'unknown' ? 'Other' : p.charAt(0).toUpperCase() + p.slice(1);
+
+  let sortedPlatforms = Object.keys(currentStats).sort((a, b) => currentStats[b].revenue - currentStats[a].revenue);
+
+  if (sortedPlatforms.length === 0 || totalRevenue === 0) {
     return `<p class="seg-empty">No sales data yet.</p>`;
   }
 
-  const totalSales = entries.reduce((s, [, v]) => s + v.count, 0);
+  const chartStats = [];
+  const top2 = sortedPlatforms.slice(0, 2);
+  const remaining = sortedPlatforms.slice(2);
 
-  const pcts = entries.map(([, stats]) => Math.round((stats.revenue / totalRevenue) * 100));
+  top2.forEach(p => {
+    chartStats.push({ platform: p, ...currentStats[p] });
+  });
 
-  const segmentBar = entries.map(([platform], i) => {
-    return `<div class="seg-bubble" style="width: ${pcts[i]}%; background: ${colors[platform] || '#999'}"></div>`;
+  if (remaining.length > 0) {
+    let otherCount = 0;
+    let otherRevenue = 0;
+    remaining.forEach(p => {
+      otherCount += currentStats[p].count;
+      otherRevenue += currentStats[p].revenue;
+    });
+
+    // In case a literal 'other' platform made top 3, meld it.
+    const existingOther = chartStats.find(s => s.platform === 'other');
+    if (existingOther) {
+      existingOther.count += otherCount;
+      existingOther.revenue += otherRevenue;
+    } else {
+      chartStats.push({ platform: 'other', count: otherCount, revenue: otherRevenue });
+    }
+  }
+
+  const totalSales = sortedPlatforms.reduce((sum, p) => sum + currentStats[p].count, 0);
+  const pcts = chartStats.map(stats => Math.round((stats.revenue / totalRevenue) * 100));
+
+  const segmentBar = chartStats.map((stats, i) => {
+    return `<div class="seg-bubble" style="width: ${pcts[i]}%; background: ${colors[stats.platform] || colors.other};"></div>`;
   }).join('');
 
   let cumulativeOffset = 0;
-  const legendItems = entries.map(([platform], i) => {
+  const legendItems = chartStats.map((stats, i) => {
     const left = cumulativeOffset;
     cumulativeOffset += pcts[i];
     return `
-      <div class="seg-legend-item" style="left: ${left}%">
-        <span class="seg-legend-dot" style="background: ${colors[platform] || '#999'}"></span>
-        <span class="seg-legend-label">${labels[platform] || platform}</span>
+      <div class="seg-legend-item" style="left: ${left}%; position: absolute; min-width: max-content; margin-bottom: 24px;">
+        <span class="seg-legend-dot" style="background: ${colors[stats.platform] || colors.other};"></span>
+        <span class="seg-legend-label" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${getLabel(stats.platform)}</span>
       </div>
     `;
   }).join('');
 
-  const channelRows = entries.map(([platform, stats], i) => {
+  const channelRows = sortedPlatforms.map((platform) => {
+    const stats = currentStats[platform];
+    const prevRev = prevStats[platform] ? prevStats[platform].revenue : 0;
+
+    // Growth vs Last 30D. Using the global calculateTrend function from calculations.js
+    const realTrendObj = calculateTrend(stats.revenue, prevRev);
+
+    const arrow = realTrendObj.direction === 'up' ? '↑' : realTrendObj.direction === 'down' ? '↓' : '';
+    const trendCls = realTrendObj.direction === 'up' ? 'trend-up' : realTrendObj.direction === 'down' ? 'trend-down' : 'trend-neutral';
+    const trendText = realTrendObj.value === '∞' ? '∞%' : `${realTrendObj.value}%`;
+    const sign = realTrendObj.direction === 'up' ? '+' : realTrendObj.direction === 'down' ? '-' : '';
+    const arrowHtml = arrow ? ` ${arrow}` : '';
+
     return `
-      <div class="seg-channel-row">
-        <span class="seg-channel-name"><span class="seg-channel-icon" style="color: ${colors[platform] || '#999'}">${icons[platform] || icons.unknown}</span>${labels[platform] || platform}</span>
-        <span class="seg-channel-number">${stats.count}</span>
-        <span class="seg-channel-total">+${pcts[i]}% ↑</span>
+      <div class="seg-channel-row" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; min-width: 0;">
+        <span class="seg-channel-name" style="flex: 1 1 80px; min-width: 80px; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <span class="seg-channel-icon" style="color: ${colors[platform] || colors.other}; display: flex;">${icons[platform] || icons.other}</span>
+          ${getLabel(platform)}
+        </span>
+        <span class="seg-channel-number" style="flex: 0 0 40px; text-align: right; min-width: 40px;">${stats.count}</span>
+        <span class="seg-channel-total ${trendCls}" style="flex: 0 0 60px; text-align: right; min-width: 60px;">${sign}${trendText}${arrowHtml}</span>
       </div>
     `;
   }).join('');
@@ -245,14 +319,14 @@ function renderSegmentation(salesData) {
       <span class="seg-hero-value">${totalSales.toLocaleString()}</span>
       <span class="seg-hero-label">total sales</span>
     </div>
-    <div class="seg-bar">${segmentBar}</div>
-    <div class="seg-legend">${legendItems}</div>
-    <div class="seg-channels-header">
-      <span>Channels</span>
-      <span>Number</span>
-      <span>Total</span>
+    <div class="seg-bar" style="display: flex; width: 100%; border-radius: 4px; overflow: hidden; margin-bottom: 24px;">${segmentBar}</div>
+    <div class="seg-legend" style="position: relative; width: 100%; height: 32px; overflow: hidden; margin-bottom: 8px;">${legendItems}</div>
+    <div class="seg-channels-header" style="display: flex; justify-content: space-between; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 12px; gap: 8px;">
+      <span style="flex: 1 1 80px; min-width: 80px;">Channels</span>
+      <span style="flex: 0 0 40px; text-align: right; min-width: 40px;">Number</span>
+      <span style="flex: 0 0 60px; text-align: right; min-width: 60px;">Growth</span>
     </div>
-    <div class="seg-channels">${channelRows}</div>
+    <div class="seg-channels" style="display: flex; flex-direction: column; gap: 12px; overflow-x: hidden;">${channelRows}</div>
   `;
 }
 
@@ -340,7 +414,7 @@ function renderRecentSalesCard(sales, lots) {
       <div class="rs-row">
         <span class="rs-date">${dateDisplay}</span>
         <span class="rs-name">${lotName}</span>
-        <span class="platform-badge ${platform}">${platform === 'facebook' ? 'Facebook' : platform === 'ebay' ? 'eBay' : 'Other'}</span>
+        ${renderPlatformBadge(platform)}
         <span class="rs-revenue">${formatCurrency(totalPrice)}</span>
         <span class="rs-profit ${profit >= 0 ? 'positive' : 'negative'}">${formatCurrency(profit, true)}</span>
       </div>
@@ -365,11 +439,15 @@ function initDesktopRevenueChart() {
   if (!canvas || typeof Chart === 'undefined') return;
 
   let salesData;
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+
   if (selectedRange === 'all') {
-    salesData = getAllSales();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - 364); // 365 days including today
+    startDate.setHours(0, 0, 0, 0);
+    salesData = getSalesByDateRange(startDate, now);
   } else {
-    const now = new Date();
-    now.setHours(23, 59, 59, 999);
     const startDate = new Date(now);
     const days = selectedRange === '7d' ? 6 : selectedRange === '90d' ? 89 : 29;
     startDate.setDate(startDate.getDate() - days);
@@ -402,8 +480,14 @@ function initDesktopRevenueChart() {
   const barColors = revenues.map(v => v > 0 ? gradient : 'rgba(255,255,255,0.04)');
   const barHoverColors = revenues.map(v => v > 0 ? hoverGradient : 'rgba(255,255,255,0.06)');
 
+  if (selectedBarIndex === null || selectedBarIndex >= labels.length) {
+    selectedBarIndex = labels.length - 1;
+  }
+
   const barCount = labels.length;
   const radius = barCount <= 5 ? 14 : barCount <= 8 ? 11 : barCount <= 15 ? 9 : 7;
+  const unselectedBg = '#292929';
+  const unselectedBorder = '#424242';
 
   desktopChartInstance = new Chart(ctx, {
     type: 'bar',
@@ -412,8 +496,19 @@ function initDesktopRevenueChart() {
       datasets: [{
         label: 'Revenue',
         data: revenues,
-        backgroundColor: barColors,
-        hoverBackgroundColor: barHoverColors,
+        backgroundColor: (ctx) => {
+          return ctx.dataIndex === selectedBarIndex ? gradient : unselectedBg;
+        },
+        hoverBackgroundColor: (ctx) => {
+          return ctx.dataIndex === selectedBarIndex ? hoverGradient : unselectedBg;
+        },
+        borderColor: (ctx) => {
+          return ctx.dataIndex === selectedBarIndex ? 'transparent' : unselectedBorder;
+        },
+        borderWidth: (ctx) => {
+          return ctx.dataIndex === selectedBarIndex ? 0 : 1;
+        },
+        minBarLength: 10,
         borderRadius: radius,
         borderSkipped: false,
         barPercentage: 0.85,
@@ -423,8 +518,14 @@ function initDesktopRevenueChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 250, easing: 'easeOutQuart' },
-      interaction: { intersect: false, mode: 'index' },
+      animation: { duration: 200, easing: 'easeOutQuart' },
+      interaction: { intersect: true, mode: 'index' },
+      onClick: (e, elements) => {
+        if (elements.length > 0) {
+          selectedBarIndex = elements[0].index;
+          if (desktopChartInstance) desktopChartInstance.update();
+        }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -449,16 +550,19 @@ function initDesktopRevenueChart() {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: axisTicks, font: { size: 10 }, maxRotation: 0, autoSkip: false, maxTicksLimit: 15 },
+          ticks: {
+            color: axisTicks,
+            font: { size: 10, weight: '500' },
+            maxRotation: 0,
+            autoSkip: false,
+            maxTicksLimit: 15,
+            padding: 10
+          },
           border: { display: false }
         },
         y: {
-          max: yMax,
-          ticks: {
-            maxTicksLimit: 5, color: axisTicks, font: { size: 10 }, padding: 8,
-            callback: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v),
-          },
-          grid: { color: axisGrid, drawBorder: false, tickLength: 0 },
+          display: false,
+          grid: { display: false },
           border: { display: false }
         }
       }
@@ -466,14 +570,21 @@ function initDesktopRevenueChart() {
   });
 }
 
-export function initDesktopDashboardEvents() {
-  initDesktopRevenueChart();
+export function initDesktopDashboardEvents(isInitialLoad = false) {
+  // If this is the initial login load, wait for the app preloader to fade out (~750-800ms)
+  const initialDelay = isInitialLoad ? 800 : 0;
+
+  setTimeout(() => {
+    initDesktopRevenueChart();
+  }, initialDelay);
 
   document.querySelectorAll('.filter-btn[data-range]').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedRange = btn.dataset.range;
+      localStorage.setItem('dashboardCurrentRange', selectedRange);
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      selectedBarIndex = null; // Reset to latest for new range
       initDesktopRevenueChart();
     });
   });
