@@ -14,6 +14,8 @@ let desktopSalePrice = '';
 let desktopSaleQty = 1;
 let desktopSalePlatform = 'facebook';
 let desktopSaleShipping = '';
+let desktopSortBy = 'roi'; // 'roi' | 'daysHeld' | 'profit' | 'sellThrough'
+let desktopActiveFilters = new Set(); // 'lowStock' | 'highRoi' | 'stale'
 
 function isDesktop() {
   return window.innerWidth >= 1280;
@@ -24,9 +26,12 @@ function calculateLotStats(lot) {
   const sellThrough = lot.quantity > 0 ? Math.round((unitsSold / lot.quantity) * 100) : 0;
   const totalProfit = getLotTotalProfit(lot);
   const totalRevenue = lot.sales?.reduce((sum, s) => sum + (s.totalPrice || 0), 0) || 0;
-  const totalCost = lot.unitCost * unitsSold;
+  const totalCost = lot.unitCost * lot.quantity;
   const roi = totalCost > 0 ? Math.round((totalProfit / totalCost) * 100) : 0;
   const cashRemaining = lot.remaining * lot.unitCost;
+  const daysHeld = Math.floor((Date.now() - new Date(lot.purchaseDate).getTime()) / (1000 * 60 * 60 * 24));
+
+  const capitalRecoveredPercent = totalCost > 0 ? Math.min(Math.round((totalRevenue / totalCost) * 100), 200) : 0;
 
   // Low stock detection
   const isLowStock = lot.remaining <= 2 || (lot.remaining / lot.quantity) <= 0.2;
@@ -38,18 +43,13 @@ function calculateLotStats(lot) {
     totalRevenue,
     roi,
     cashRemaining,
-    isLowStock
+    isLowStock,
+    capitalRecoveredPercent,
+    daysHeld
   };
 }
 
-function getStatusDot(lot, stats) {
-  if (isFullySold(lot)) {
-    return `<span class="status-dot sold" title="Sold Out"></span>`;
-  } else if (stats.isLowStock) {
-    return `<span class="status-dot low-stock" title="Low Stock"></span>`;
-  }
-  return `<span class="status-dot active" title="Active"></span>`;
-}
+// Status dot removed from grid — it was visual noise without clear meaning
 
 function renderInventoryGrid(lots) {
   if (lots.length === 0) {
@@ -62,63 +62,67 @@ function renderInventoryGrid(lots) {
 
   return `
     <div class="inv-grid">
-      <div class="inv-grid-header">
-        <span>Item</span>
-        <span class="text-right">Left</span>
-        <span class="text-right">Sold</span>
-        <span>Sell-Through</span>
-        <span class="text-right">ROI</span>
-        <span class="text-right">Profit</span>
-        <span class="text-right">Cash</span>
-        <span></span>
-      </div>
       <div class="inv-grid-body">
         ${lots.map(lot => {
     const stats = calculateLotStats(lot);
     const isSelected = lot.id === desktopSelectedLotId;
     const isSoldOut = isFullySold(lot);
-    const purchaseDate = new Date(lot.purchaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const purchaseDate = new Date(lot.purchaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    const roiCls = stats.roi >= 0 ? 'trend-up' : 'trend-down';
-    const roiArrow = stats.roi >= 0 ? '↑' : '↓';
+    // ROI badge — color-coded by performance tier
+    let roiBadgeClass = 'roi-badge-neutral';
+    if (stats.roi >= 60) roiBadgeClass = 'roi-badge-great';
+    else if (stats.roi >= 40) roiBadgeClass = 'roi-badge-good';
+    else if (stats.roi > 0) roiBadgeClass = 'roi-badge-ok';
+    else if (stats.roi < 0) roiBadgeClass = 'roi-badge-bad';
+    const roiSign = stats.roi >= 0 ? '+' : '';
+
+    // Semantic Sell-Through progress bar color
+    let sellThroughClass = 'progress-red';
+    if (stats.sellThrough >= 80) sellThroughClass = 'progress-green';
+    else if (stats.sellThrough >= 50) sellThroughClass = 'progress-yellow';
+
+    // Capital at risk = cost of remaining unsold units  
+    const capitalAtRisk = lot.remaining * lot.unitCost;
+
+    // Days held semantic color
+    let daysClass = '';
+    if (stats.daysHeld > 180) daysClass = 'days-danger';
+    else if (stats.daysHeld > 90) daysClass = 'days-warn';
 
     return `
             <div class="inv-card ${isSelected ? 'selected' : ''} ${isSoldOut ? 'sold-out' : ''}" data-lot-id="${lot.id}">
-              <div class="inv-col-item">
+              <div class="inv-zone inv-zone-identity">
                 <div class="inv-item-name">${lot.name}</div>
-                <div class="inv-item-date">${purchaseDate}</div>
+                <div class="inv-item-meta">${purchaseDate} · ${lot.quantity} units</div>
               </div>
-              
-              <div class="inv-col-units ${stats.isLowStock ? 'low-stock' : ''}">
-                <span class="val-left">${lot.remaining}</span>
-                ${stats.isLowStock ? '<span class="low-stock-indicator"></span>' : ''}
-              </div>
-              
-              <div class="inv-col-units">
-                <span class="val-sold">${stats.unitsSold}</span>
-              </div>
-              
-              <div class="inv-col-progress">
-                <div class="mini-progress-bar">
-                  <div class="mini-progress-fill" style="width: ${stats.sellThrough}%"></div>
+
+              <div class="inv-zone inv-zone-performance">
+                <div class="inv-perf-profit ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">
+                  ${formatCurrency(stats.totalProfit, true)}
                 </div>
-                <span class="val-sellthrough">${stats.sellThrough}%</span>
+                <span class="roi-badge ${roiBadgeClass}">${roiSign}${stats.roi}%</span>
+                <div class="inv-perf-bar">
+                  <div class="mini-progress-bar">
+                    <div class="mini-progress-fill ${sellThroughClass}" style="width: ${stats.sellThrough}%"></div>
+                  </div>
+                  <span class="val-sellthrough">${stats.sellThrough}%</span>
+                </div>
               </div>
-              
-              <div class="inv-col-roi">
-                <span class="kpi-pill-trend inline"><span class="${roiCls}">${Math.abs(stats.roi)}% ${roiArrow}</span></span>
-              </div>
-              
-              <div class="inv-col-currency val-profit ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">
-                ${formatCurrency(stats.totalProfit, true)}
-              </div>
-              
-              <div class="inv-col-currency val-cash">
-                ${formatCurrency(stats.cashRemaining)}
-              </div>
-              
-              <div class="inv-col-status">
-                ${getStatusDot(lot, stats)}
+
+              <div class="inv-zone inv-zone-risk">
+                <div class="inv-risk-item">
+                  <span class="inv-risk-value">${formatCurrency(capitalAtRisk)}</span>
+                  <span class="inv-risk-label">at risk</span>
+                </div>
+                <div class="inv-risk-item">
+                  <span class="inv-risk-value">${lot.remaining}</span>
+                  <span class="inv-risk-label">left</span>
+                </div>
+                <div class="inv-risk-item">
+                  <span class="inv-risk-value ${daysClass}">${stats.daysHeld}d</span>
+                  <span class="inv-risk-label">held</span>
+                </div>
               </div>
             </div>
           `;
@@ -151,11 +155,40 @@ function renderIntelligencePanel(lot) {
     year: 'numeric'
   });
 
-  // Days held
-  const daysHeld = Math.floor((Date.now() - new Date(lot.purchaseDate).getTime()) / (1000 * 60 * 60 * 24));
+  // Days held context
+  let daysHeldClass = '';
+  if (stats.daysHeld > 180) daysHeldClass = 'negative';
+  else if (stats.daysHeld > 90) daysHeldClass = 'days-warn';
 
-  // Avg sale price
+  // Capital At Risk
+  const totalInvested = lot.quantity * lot.unitCost;
+  const capitalAtRisk = lot.remaining * lot.unitCost;
+  const capitalAtRiskPercent = totalInvested > 0 ? Math.round((capitalAtRisk / totalInvested) * 100) : 0;
+  const riskProgressWidth = Math.min(capitalAtRiskPercent, 100);
+
+  // Avg sale price & margin
   const avgSalePrice = stats.unitsSold > 0 ? stats.totalRevenue / stats.unitsSold : 0;
+  const marginPerUnit = avgSalePrice > 0 ? avgSalePrice - lot.unitCost : 0;
+
+  // Break-even price (min price to sell remaining units at to cover total cost)
+  const totalCostRemaining = lot.remaining * lot.unitCost;
+  const breakEvenPrice = lot.remaining > 0 ? totalCostRemaining / lot.remaining : 0;
+
+  // Projected total profit (if remaining sell at avg sale price)
+  const projectedRevFromRemaining = lot.remaining * avgSalePrice;
+  const projectedCostRemaining = lot.remaining * lot.unitCost;
+  const projectedProfitRemaining = projectedRevFromRemaining - projectedCostRemaining;
+  const projectedTotalProfit = stats.totalProfit + projectedProfitRemaining;
+
+  // Avg days to sell (velocity)
+  let avgDaysToSell = '—';
+  if (lot.sales?.length > 0 && stats.unitsSold > 0) {
+    const salesDates = lot.sales.map(s => new Date(s.dateSold).getTime()).sort();
+    const purchaseTime = new Date(lot.purchaseDate).getTime();
+    const lastSaleTime = salesDates[salesDates.length - 1];
+    const sellingPeriod = Math.max(1, Math.floor((lastSaleTime - purchaseTime) / (1000 * 60 * 60 * 24)));
+    avgDaysToSell = Math.round(sellingPeriod / stats.unitsSold);
+  }
 
   if (desktopSaleMode) {
     return renderSaleDrawer(lot);
@@ -163,60 +196,63 @@ function renderIntelligencePanel(lot) {
 
   return `
     <div class="intelligence-panel">
-      <div class="panel-header">
-        <h3 class="panel-title">${lot.name}</h3>
-        <div class="panel-meta">
-          <span>Purchased ${purchaseDate}</span>
-          <span class="meta-sep">•</span>
-          <span>${lot.quantity} units @ ${formatCurrency(lot.unitCost)}/unit</span>
+      <div class="panel-section-card">
+        <div class="panel-section-title">Financial Performance</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Revenue</div>
+            <div class="stat-value">${formatCurrency(stats.totalRevenue)}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Cost Basis</div>
+            <div class="stat-value">${formatCurrency(lot.unitCost)}/unit</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Net Profit</div>
+            <div class="stat-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">${formatCurrency(stats.totalProfit, true)}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">ROI</div>
+            <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">${stats.roi >= 0 ? '+' : ''}${stats.roi}%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Margin / Unit</div>
+            <div class="stat-value ${marginPerUnit >= 0 ? 'positive' : 'negative'}">${formatCurrency(marginPerUnit, true)}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Projected Total</div>
+            <div class="stat-value ${projectedTotalProfit >= 0 ? 'positive' : 'negative'}">${stats.unitsSold > 0 ? formatCurrency(projectedTotalProfit, true) : '—'}</div>
+          </div>
         </div>
       </div>
 
-      <div class="capital-recovered-section">
-        <div class="section-label">Capital Recovered</div>
-        <div class="progress-bar-container">
-          <div class="progress-labels">
-            <span class="val-sellthrough">${stats.sellThrough}%</span>
-            <span><span class="inv-col-currency">${formatCurrency(stats.totalRevenue)}</span> <span class="text-muted">/ ${formatCurrency(lot.totalCost)}</span></span>
+      <div class="panel-section-card">
+        <div class="panel-section-title">Inventory Status</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Units Left</div>
+            <div class="stat-value ${stats.isLowStock ? 'low-stock' : ''}">${lot.remaining} <span style="font-size:0.8em;color:var(--text-muted);font-weight:normal">/ ${lot.quantity}</span></div>
           </div>
-          <div class="mini-progress-bar" style="margin-top: 8px; height: 6px;">
-            <div class="mini-progress-fill" style="width: ${stats.sellThrough}%"></div>
+          <div class="stat-item">
+            <div class="stat-label">Days Held</div>
+            <div class="stat-value ${daysHeldClass}">${stats.daysHeld}</div>
           </div>
-        </div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-label">Total Invested</div>
-          <div class="stat-value">${formatCurrency(lot.totalCost)}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">Total Revenue</div>
-          <div class="stat-value">${formatCurrency(stats.totalRevenue)}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">Net Profit</div>
-          <div class="stat-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">${formatCurrency(stats.totalProfit, true)}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">ROI</div>
-          <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">${stats.roi >= 0 ? '+' : ''}${stats.roi}%</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">Units Remaining</div>
-          <div class="stat-value ${stats.isLowStock ? 'low-stock' : ''}">${lot.remaining}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">Days Held</div>
-          <div class="stat-value">${daysHeld}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">Avg Sale Price</div>
-          <div class="stat-value">${formatCurrency(avgSalePrice)}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">Cost Basis</div>
-          <div class="stat-value">${formatCurrency(lot.unitCost)}/unit</div>
+          <div class="stat-item">
+            <div class="stat-label">Sell-Through</div>
+            <div class="stat-value">${stats.sellThrough}%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Avg Days / Sale</div>
+            <div class="stat-value">${avgDaysToSell}${typeof avgDaysToSell === 'number' ? 'd' : ''}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Capital at Risk</div>
+            <div class="stat-value ${capitalAtRiskPercent > 50 ? 'negative' : ''}">${formatCurrency(capitalAtRisk)}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Break-even</div>
+            <div class="stat-value">${formatCurrency(breakEvenPrice)}/unit</div>
+          </div>
         </div>
       </div>
 
@@ -407,48 +443,94 @@ export function DesktopInventoryView() {
     filteredLots = filteredLots.filter(lot => lot.name.toLowerCase().includes(q));
   }
 
+  // Apply chip filters
+  if (desktopActiveFilters.size > 0) {
+    filteredLots = filteredLots.filter(lot => {
+      const stats = calculateLotStats(lot);
+      if (desktopActiveFilters.has('lowStock') && !(stats.isLowStock && lot.remaining > 0)) return false;
+      if (desktopActiveFilters.has('highRoi') && stats.roi < 50) return false;
+      if (desktopActiveFilters.has('stale') && stats.daysHeld <= 180) return false;
+      return true;
+    });
+  }
+
+  // Apply sorting
+  filteredLots = [...filteredLots].sort((a, b) => {
+    const sa = calculateLotStats(a);
+    const sb = calculateLotStats(b);
+    switch (desktopSortBy) {
+      case 'roi': return sb.roi - sa.roi;
+      case 'daysHeld': return sb.daysHeld - sa.daysHeld;
+      case 'profit': return sb.totalProfit - sa.totalProfit;
+      case 'sellThrough': return sb.sellThrough - sa.sellThrough;
+      default: return 0;
+    }
+  });
+
   const selectedLot = desktopSelectedLotId ? lots.find(l => l.id === desktopSelectedLotId) : null;
   const hasSelection = !!selectedLot;
   const summary = calculateSummaryMetrics(lots);
 
   return `
     <div class="desktop-inventory-container ${hasSelection ? 'has-selection' : ''}">
-      <div class="inventory-summary-strip">
-        <div class="summary-item">
-          <span class="summary-value">${summary.skusInStock}</span>
-          <span class="summary-label">SKUs in Stock</span>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-item">
-          <span class="summary-value">${formatCurrency(summary.totalCapital)}</span>
-          <span class="summary-label">Capital Deployed</span>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-item">
-          <span class="summary-value ${summary.totalUnrealizedProfit >= 0 ? 'positive' : 'negative'}">${formatCurrency(summary.totalUnrealizedProfit, true)}</span>
-          <span class="summary-label">Unrealized Profit</span>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-item ${summary.lowStockCount > 0 ? 'has-alert' : ''}">
-          <span class="summary-value">${summary.lowStockCount}</span>
-          <span class="summary-label">Low Stock</span>
-          ${summary.lowStockCount > 0 ? '<span class="alert-dot"></span>' : ''}
-        </div>
-      </div>
       <div class="inventory-content">
         <div class="inventory-left-panel">
-          <div class="panel-header">
-            <div class="tabs">
-              <button class="tab ${currentTab === 'all' ? 'active' : ''}" data-tab="all">All</button>
-              <button class="tab ${currentTab === 'unsold' ? 'active' : ''}" data-tab="unsold">Available</button>
-              <button class="tab ${currentTab === 'sold' ? 'active' : ''}" data-tab="sold">Sold Out</button>
+          <div class="inv-header">
+            <div class="inv-header-title">
+              <h1>Inventory</h1>
+              <span class="inv-header-sub">Operational overview</span>
             </div>
-            <div class="inventory-search">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input type="text" id="desktop-inventory-search" placeholder="Search items..." value="${currentSearch}">
+            <div class="inv-header-stats">
+              <div class="inv-header-stat">
+                <span class="inv-header-stat-label">Active SKUs</span>
+                <span class="inv-header-stat-value">${summary.skusInStock}</span>
+              </div>
+              <div class="inv-header-divider"></div>
+              <div class="inv-header-stat">
+                <span class="inv-header-stat-label">Capital Deployed</span>
+                <span class="inv-header-stat-value stat-hero">${formatCurrency(summary.totalCapital)}</span>
+              </div>
+              <div class="inv-header-divider"></div>
+              <div class="inv-header-stat">
+                <span class="inv-header-stat-label">Unrealized Profit</span>
+                <span class="inv-header-stat-value accent-green">${formatCurrency(summary.totalUnrealizedProfit, true)}</span>
+              </div>
+              <div class="inv-header-divider"></div>
+              <div class="inv-header-stat">
+                <span class="inv-header-stat-label">Low Stock</span>
+                <span class="inv-header-stat-value ${summary.lowStockCount > 0 ? 'accent-amber' : ''}">${summary.lowStockCount}</span>
+              </div>
+            </div>
+          </div>
+          <div class="inv-toolbar">
+            <div class="inv-toolbar-left">
+              <div class="tabs">
+                <button class="tab ${currentTab === 'all' ? 'active' : ''}" data-tab="all">All Items</button>
+                <button class="tab ${currentTab === 'unsold' ? 'active' : ''}" data-tab="unsold">Available</button>
+              </div>
+              <div class="inv-filter-chips">
+                <button class="filter-chip ${desktopActiveFilters.has('lowStock') ? 'active' : ''}" data-filter="lowStock">Low Stock</button>
+                <button class="filter-chip ${desktopActiveFilters.has('highRoi') ? 'active' : ''}" data-filter="highRoi">High ROI</button>
+                <button class="filter-chip ${desktopActiveFilters.has('stale') ? 'active' : ''}" data-filter="stale">Stale</button>
+              </div>
+            </div>
+            <div class="inv-toolbar-right">
+              <div class="inv-sort">
+                <label for="desktop-sort-select">Sort</label>
+                <select id="desktop-sort-select">
+                  <option value="roi" ${desktopSortBy === 'roi' ? 'selected' : ''}>ROI</option>
+                  <option value="daysHeld" ${desktopSortBy === 'daysHeld' ? 'selected' : ''}>Days Held</option>
+                  <option value="profit" ${desktopSortBy === 'profit' ? 'selected' : ''}>Profit</option>
+                  <option value="sellThrough" ${desktopSortBy === 'sellThrough' ? 'selected' : ''}>Sell-Through</option>
+                </select>
+              </div>
+              <div class="inventory-search">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="desktop-inventory-search" placeholder="Search items..." value="${currentSearch}">
+              </div>
             </div>
           </div>
           <div class="inventory-table-container">
@@ -513,6 +595,28 @@ export function initDesktopInventoryEvents() {
     desktopSelectedLotId = null;
     desktopSaleMode = false;
     window.dispatchEvent(new CustomEvent('viewchange'));
+  });
+
+  // Sort dropdown
+  const sortSelect = document.getElementById('desktop-sort-select');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      desktopSortBy = e.target.value;
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    });
+  }
+
+  // Filter chips
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const filter = chip.dataset.filter;
+      if (desktopActiveFilters.has(filter)) {
+        desktopActiveFilters.delete(filter);
+      } else {
+        desktopActiveFilters.add(filter);
+      }
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    });
   });
 
   attachPanelEvents();
@@ -657,22 +761,41 @@ function updateRowData(lot) {
 
   const stats = calculateLotStats(lot);
 
-  row.querySelector('.val-left').textContent = lot.remaining;
-  row.querySelector('.val-sold').textContent = stats.unitsSold;
+  // Update performance zone  
+  const profitEl = row.querySelector('.inv-perf-profit');
+  if (profitEl) {
+    profitEl.textContent = formatCurrency(stats.totalProfit, true);
+    profitEl.className = `inv-perf-profit ${stats.totalProfit >= 0 ? 'positive' : 'negative'}`;
+  }
 
+  // Update ROI badge
+  let roiBadgeClass = 'roi-badge-neutral';
+  if (stats.roi >= 60) roiBadgeClass = 'roi-badge-great';
+  else if (stats.roi >= 40) roiBadgeClass = 'roi-badge-good';
+  else if (stats.roi > 0) roiBadgeClass = 'roi-badge-ok';
+  else if (stats.roi < 0) roiBadgeClass = 'roi-badge-bad';
+  const roiSign = stats.roi >= 0 ? '+' : '';
+  const roiBadge = row.querySelector('.roi-badge');
+  if (roiBadge) {
+    roiBadge.className = `roi-badge ${roiBadgeClass}`;
+    roiBadge.textContent = `${roiSign}${stats.roi}%`;
+  }
+
+  // Update sell-through bar
   const progressFill = row.querySelector('.mini-progress-fill');
   if (progressFill) progressFill.style.width = `${stats.sellThrough}%`;
-  row.querySelector('.val-sellthrough').textContent = stats.sellThrough + '%';
+  const sellThroughEl = row.querySelector('.val-sellthrough');
+  if (sellThroughEl) sellThroughEl.textContent = stats.sellThrough + '%';
 
-  const roiCls = stats.roi >= 0 ? 'trend-up' : 'trend-down';
-  const roiArrow = stats.roi >= 0 ? '↑' : '↓';
-  row.querySelector('.inv-col-roi').innerHTML = `<span class="kpi-pill-trend inline"><span class="${roiCls}">${Math.abs(stats.roi)}% ${roiArrow}</span></span>`;
-
-  row.querySelector('.val-profit').textContent = formatCurrency(stats.totalProfit, true);
-  row.querySelector('.val-profit').className = `inv-col-currency val-profit ${stats.totalProfit >= 0 ? 'positive' : 'negative'}`;
-
-  row.querySelector('.val-cash').textContent = formatCurrency(stats.cashRemaining);
-  row.querySelector('.inv-col-status').innerHTML = getStatusDot(lot, stats);
+  // Update risk zone values
+  const riskValues = row.querySelectorAll('.inv-risk-value');
+  if (riskValues.length >= 3) {
+    const capitalAtRisk = lot.remaining * lot.unitCost;
+    riskValues[0].textContent = formatCurrency(capitalAtRisk);
+    riskValues[1].textContent = lot.remaining;
+    riskValues[2].textContent = stats.daysHeld + 'd';
+    riskValues[2].className = `inv-risk-value ${stats.daysHeld > 180 ? 'days-danger' : stats.daysHeld > 90 ? 'days-warn' : ''}`;
+  }
 }
 
 // Expose to window for access from main.js

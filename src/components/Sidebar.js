@@ -161,7 +161,26 @@ export function initSidebarEvents() {
     });
   }
 
-  // Sidebar logout control with inline confirmation
+  bindAuthEvents();
+
+  // Tooltip handling for collapsed mode
+  const sidebar = document.querySelector('.desktop-sidebar');
+  if (sidebar) {
+    sidebar.addEventListener('mouseenter', (e) => {
+      if (sidebar.classList.contains('collapsed') && e.target.classList.contains('sidebar-nav-item')) {
+        showTooltip(e.target);
+      }
+    }, true);
+
+    sidebar.addEventListener('mouseleave', (e) => {
+      if (e.target.classList.contains('sidebar-nav-item')) {
+        hideTooltip(e.target);
+      }
+    }, true);
+  }
+}
+
+function bindAuthEvents() {
   const logoutBtn = document.getElementById('sidebar-logout-btn');
   const logoutConfirm = document.getElementById('sidebar-logout-confirm');
   const logoutCancel = document.getElementById('sidebar-logout-cancel');
@@ -184,22 +203,6 @@ export function initSidebarEvents() {
       await logout();
       logoutConfirm.classList.remove('visible');
     });
-  }
-
-  // Tooltip handling for collapsed mode
-  const sidebar = document.querySelector('.desktop-sidebar');
-  if (sidebar) {
-    sidebar.addEventListener('mouseenter', (e) => {
-      if (sidebar.classList.contains('collapsed') && e.target.classList.contains('sidebar-nav-item')) {
-        showTooltip(e.target);
-      }
-    }, true);
-
-    sidebar.addEventListener('mouseleave', (e) => {
-      if (e.target.classList.contains('sidebar-nav-item')) {
-        hideTooltip(e.target);
-      }
-    }, true);
   }
 }
 
@@ -270,7 +273,6 @@ export function updateSidebarAuthState() {
 
   divider.insertAdjacentHTML('afterend', authHtml);
 
-  // Re-bind sidebar-specific events so the new buttons work without full re-init
-  eventsInitialized = false;
-  initSidebarEvents();
+  // Bind events only to the newly injected auth elements
+  bindAuthEvents();
 }
