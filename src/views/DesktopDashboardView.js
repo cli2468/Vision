@@ -265,12 +265,12 @@ function generateSegmentationLegendHTML(salesData, prevSalesData) {
   }
 
   const colors = {
-    amazon: '#FF9900',
-    shopify: '#96BF48',
-    facebook: 'var(--platform-facebook)',
-    ebay: 'var(--platform-ebay)',
-    whatnot: '#F5D01E',
-    other: 'var(--platform-other)'
+    amazon: '#FBBF24',
+    shopify: '#2DD4BF',
+    facebook: '#8B5CF6',
+    ebay: '#EF4444',
+    whatnot: '#F97316',
+    other: '#71717A'
   };
 
   const icons = {
@@ -533,11 +533,11 @@ function initDesktopRevenueChart() {
   const axisGrid = getCssVar('--chart-grid-line', 'rgba(234, 230, 224, 0.08)');
 
   // Use solid color strings (not CanvasGradient) so Chart.js can smoothly interpolate during fade transitions
-  const barColors = revenues.map(v => v > 0 ? 'rgba(59, 195, 240, 1)' : 'rgba(255,255,255,0.04)');
-  const barHoverColors = revenues.map(v => v > 0 ? 'rgba(90, 215, 255, 1)' : 'rgba(255,255,255,0.06)');
+  const barColors = revenues.map(v => v > 0 ? 'rgba(45, 212, 191, 1)' : 'rgba(255,255,255,0.04)');
+  const barHoverColors = revenues.map(v => v > 0 ? 'rgba(94, 234, 212, 1)' : 'rgba(255,255,255,0.06)');
 
   // Create faded colors for when a different bar is hovered
-  const barFadedColors = revenues.map(v => v > 0 ? 'rgba(53, 184, 230, 0.25)' : 'rgba(255,255,255,0.02)');
+  const barFadedColors = revenues.map(v => v > 0 ? 'rgba(45, 212, 191, 0.25)' : 'rgba(255,255,255,0.02)');
 
   if (selectedBarIndex === null || selectedBarIndex >= labels.length) {
     selectedBarIndex = labels.length - 1;
@@ -901,7 +901,7 @@ function initSegmentationChart(salesData, prevSalesData) {
   const labels = chartStats.map(s => s.platform.charAt(0).toUpperCase() + s.platform.slice(1));
   const data = chartStats.map(s => s.revenue);
   const counts = chartStats.map(s => s.count);
-  const colors = { amazon: '#FF9900', shopify: '#96BF48', facebook: '#1877F2', ebay: '#E53238', whatnot: '#F5D01E', other: '#888888' };
+  const colors = { amazon: '#FBBF24', shopify: '#2DD4BF', facebook: '#8B5CF6', ebay: '#EF4444', whatnot: '#F97316', other: '#71717A' };
   const bgColors = chartStats.map(s => colors[s.platform] || colors.other);
 
   if (segmentationChartInstance) {
