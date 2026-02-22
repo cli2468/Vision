@@ -309,12 +309,13 @@
   }
 
   .sidebar-nav-item.active {
-    background: #212121;
-    color: var(--text-primary);
+    background: rgba(52, 211, 153, 0.08);
+    /* subtle green tint */
+    color: var(--accent-green);
   }
 
   .sidebar-nav-item.active .sidebar-nav-label {
-    font-weight: 700;
+    font-weight: 600;
   }
 
   .sidebar-nav-item.active::before {
@@ -325,8 +326,8 @@
     transform: translateY(-50%);
     width: 3px;
     height: 20px;
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 0 6px 6px 0;
+    background: var(--accent-green);
+    border-radius: 0 4px 4px 0;
   }
 
   .sidebar-nav-icon {
@@ -1532,11 +1533,39 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    margin: 0 auto;
-    padding-top: 60px;
-    height: calc(100vh - 120px);
-    min-height: 600px;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
     gap: 0;
+  }
+
+  .inv-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 16px 28px;
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+
+  .inv-header-title h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .inv-header-sub {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: lowercase;
+    opacity: 0.6;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    display: block;
   }
 
   /* Summary Strip */
@@ -1546,11 +1575,9 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 18px 24px;
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 24px 28px;
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
   }
 
@@ -1564,24 +1591,31 @@
   }
 
   .inv-header-sub {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.35);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    margin-top: 4px;
+    display: block;
+    font-family: var(--font-mono);
   }
 
   .inv-header-stats {
     display: flex;
     align-items: center;
-    gap: 0;
+    flex: 1;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .inv-header-stat {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 3px;
-    padding: 0 28px;
+    align-items: flex-start;
+    gap: 8px;
+    /* Slightly increase gap for extra spacing */
+    flex: 1;
+    padding: 0 16px;
   }
 
   .inv-header-stat:last-child {
@@ -1593,7 +1627,7 @@
   }
 
   .inv-header-stat-label {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.38);
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -1602,17 +1636,19 @@
   }
 
   .inv-header-stat-value {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.6rem;
+    font-weight: 650;
     color: var(--text-primary);
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     line-height: 1.2;
+    padding: 4px 0;
+    /* Add padding above and below the number */
   }
 
   /* Capital Deployed gets hierarchy emphasis */
   .inv-header-stat-value.stat-hero {
-    font-size: 1.4rem;
+    font-size: 1.8rem;
     font-weight: 700;
   }
 
@@ -1646,12 +1682,11 @@
     flex: 1 1 100%;
     display: flex;
     flex-direction: column;
-    background: var(--desktop-surface-card);
-    border: 1px solid var(--desktop-border-soft);
-    border-radius: 16px;
-    overflow: hidden;
+    background: transparent;
+    overflow-y: auto;
+    overflow-x: hidden;
     transition: flex 280ms cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
     width: 100%;
     max-width: 100%;
     margin-right: 0 !important;
@@ -1663,17 +1698,18 @@
     opacity: 0;
     transform: translateX(24px);
     transition: width 280ms cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      min-width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
       transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
       margin 280ms cubic-bezier(0.22, 1, 0.36, 1);
-    background: var(--desktop-surface-card);
-    border: 1px solid var(--desktop-border-soft);
-    border-radius: 16px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     position: relative;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
   }
 
   .desktop-inventory-container.has-selection .inventory-left-panel {
@@ -1681,11 +1717,11 @@
   }
 
   .desktop-inventory-container.has-selection .inventory-right-panel {
-    width: 440px;
-    min-width: 440px;
+    width: 420px;
+    min-width: 420px;
     opacity: 1;
     transform: translateX(0);
-    margin-left: 16px;
+    margin-left: 12px;
   }
 
   .panel-close-btn {
@@ -1697,9 +1733,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    background: transparent;
+    border: none;
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1707,7 +1742,6 @@
   }
 
   .panel-close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
   }
 
@@ -1722,16 +1756,17 @@
   .inventory-search {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     background: rgba(255, 255, 255, 0.05);
     /* Slightly lighter background */
     border: 1px solid rgba(255, 255, 255, 0.15);
     /* More visible border */
-    border-radius: 12px;
+    border-radius: 8px;
     /* Rounder corners */
-    padding: 10px 16px;
-    /* Larger padding */
-    width: 320px;
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    width: 240px;
     /* Significantly wider */
     transition: all 0.2s ease;
   }
@@ -1757,7 +1792,9 @@
     border: none;
     color: var(--text-primary);
     font-size: 0.95rem;
-    /* Larger font */
+    height: 100%;
+    padding: 0;
+    margin: 0;
     width: 100%;
     outline: none;
   }
@@ -1768,39 +1805,67 @@
 
   .inventory-table-container {
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 0;
   }
 
-  /* ===== Unified Control Strip ===== */
   .inv-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    gap: 12px;
+    padding: 6px 28px 16px 28px;
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    margin-bottom: 0;
     flex-shrink: 0;
   }
 
   .inv-toolbar-left {
     display: flex;
     align-items: center;
+    height: 36px;
     gap: 12px;
+    /* reduced space between title and tabs */
+  }
+
+  .inv-toolbar-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+    line-height: normal;
+    display: flex;
+    align-items: center;
+    margin-right: 4px;
+    transform: translateY(2px);
+    /* Optical adjustment to baseline with tabs */
+  }
+
+  .inv-toolbar-sep {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.18);
+    flex-shrink: 0;
   }
 
   .inv-toolbar-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    height: 36px;
+    gap: 8px;
   }
 
   /* Desktop segmented control — override global tabs */
   .inv-toolbar .tabs {
     display: flex;
+    align-items: center;
     gap: 0;
     padding: 0;
+    margin: 0;
+    height: 36px;
+    box-sizing: border-box;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1808,9 +1873,13 @@
   }
 
   .inv-toolbar .tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex: none;
-    padding: 6px 16px;
-    font-size: 0.78rem;
+    height: 100%;
+    padding: 0 16px;
+    font-size: 0.8125rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.45);
     background: transparent;
@@ -1819,6 +1888,7 @@
     cursor: pointer;
     transition: all 0.15s ease;
     letter-spacing: 0.02em;
+    line-height: 1.4;
   }
 
   .inv-toolbar .tab:hover {
@@ -1841,7 +1911,7 @@
   }
 
   .filter-chip {
-    padding: 5px 12px;
+    padding: 5px 11px;
     font-size: 0.72rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.4);
@@ -1851,6 +1921,7 @@
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
+    line-height: 1.4;
   }
 
   .filter-chip:hover {
@@ -1867,11 +1938,11 @@
   .inv-sort {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .inv-sort label {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: var(--desktop-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1880,13 +1951,21 @@
 
   .inv-sort select {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     color: var(--text-primary);
     font-size: 0.8125rem;
-    padding: 6px 10px;
+    padding: 0 28px 0 12px;
+    height: 36px;
+    box-sizing: border-box;
     cursor: pointer;
     outline: none;
+    line-height: 1;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 10px top 50%;
+    background-size: 8px auto;
   }
 
   .inv-sort select:focus {
@@ -1897,40 +1976,109 @@
   .inv-grid {
     display: flex;
     flex-direction: column;
-    padding: 12px 24px;
-    gap: 6px;
+    padding: 0;
     width: 100%;
+    flex: 1;
+    min-height: 0;
+    gap: 0;
+  }
+
+  .inv-table-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 28px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--desktop-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--desktop-surface-card, #1B1B1B);
+  }
+
+  /* Header cell flex alignments matching row zones */
+  .inv-header-cell {
+    flex-shrink: 0;
+  }
+
+  .cell-item {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cell-perf {
+    width: 160px;
+    text-align: left;
+  }
+
+  .cell-risk {
+    width: 120px;
+    text-align: right;
+  }
+
+  .cell-left {
+    width: 100px;
+    text-align: center;
+    /* Center aligned request for Units Left */
+  }
+
+  .cell-days {
+    width: 80px;
+    text-align: right;
   }
 
   .inv-grid-body {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
   }
 
-  /* ===== Inventory Card — 3-Zone Flex ===== */
+  .inv-grid-body::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .inv-grid-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .inv-grid-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  .inv-grid-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  /* ===== Inventory Row — Edge-to-Edge List ===== */
   .inv-card {
     display: flex;
     align-items: center;
-    gap: 16px;
-    background: var(--desktop-surface-elevated);
-    border: 1px solid var(--desktop-border-soft);
-    border-radius: 10px;
-    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+    margin: 0;
+    padding: 16px 28px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: background-color 0.15s ease;
   }
 
   .inv-card:hover {
-    background: #242424;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.02);
   }
 
   .inv-card.selected {
-    background: rgba(45, 212, 191, 0.08);
-    border: 1px solid rgba(45, 212, 191, 0.5);
-    box-shadow: inset 4px 0 0 #2DD4BF, 0 8px 24px rgba(0, 0, 0, 0.3);
+    background: rgba(45, 212, 191, 0.05);
+    border-bottom-color: rgba(45, 212, 191, 0.2);
+    box-shadow: inset 3px 0 0 #2DD4BF;
   }
 
   .inv-card.sold-out {
@@ -1949,26 +2097,62 @@
   }
 
   .inv-item-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
     font-weight: 500;
     font-size: 0.9375rem;
     color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Inline Row Badges */
+  .row-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    border: 1px solid;
+  }
+
+  .badge-low-stock {
+    color: #F87171;
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.3);
+  }
+
+  .badge-stale {
+    color: #FBBF24;
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.3);
   }
 
   .inv-item-meta {
     font-size: 0.78rem;
     color: var(--desktop-text-muted);
     white-space: nowrap;
+    margin-top: 4px;
   }
 
-  /* Zone: Performance (middle) */
   .inv-zone-performance {
     display: flex;
     align-items: center;
-    gap: 12px;
     flex-shrink: 0;
+  }
+
+  .perf-profit-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 180px;
+    /* Align with NET PROFIT / ROI header */
   }
 
   .inv-perf-profit {
@@ -1977,23 +2161,34 @@
     font-weight: 600;
     font-size: 0.9375rem;
     white-space: nowrap;
-    min-width: 90px;
-    text-align: right;
+  }
+
+  /* ROI badge moved directly under Profit in mockups? Wait, mockup shows profit, then below it +66% ROI */
+  .roi-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    border: 1px solid currentColor;
+    width: fit-content;
+    margin-top: 4px;
   }
 
   .inv-perf-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 100px;
-    max-width: 140px;
+    gap: 12px;
+    width: 140px;
+    /* Align with SELL-THROUGH header */
   }
 
   /* Zone: Risk (right) */
   .inv-zone-risk {
     display: flex;
     align-items: center;
-    gap: 16px;
+    justify-content: flex-end;
     flex-shrink: 0;
   }
 
@@ -2001,8 +2196,20 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 1px;
-    min-width: 50px;
+    gap: 2px;
+  }
+
+  /* Widths to align with headers */
+  .inv-risk-item:nth-child(1) {
+    width: 90px;
+  }
+
+  .inv-risk-item:nth-child(2) {
+    width: 90px;
+  }
+
+  .inv-risk-item:nth-child(3) {
+    width: 70px;
   }
 
   .inv-risk-value {
@@ -2156,6 +2363,10 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    display: block;
+    width: 100%;
   }
 
 
@@ -2180,7 +2391,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 24px;
+    padding: 18px 20px;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
@@ -2219,29 +2430,33 @@
   }
 
   .panel-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
     margin-bottom: 24px;
     padding-right: 40px;
+    position: relative;
+    width: 100%;
   }
 
   .panel-title {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin: 0 0 6px 0;
+    margin: 0 0 8px 0;
     line-height: 1.35;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    display: block;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: normal;
   }
 
   .panel-meta {
     display: flex;
     align-items: center;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
     gap: 6px;
   }
 
@@ -2252,6 +2467,44 @@
   .meta-sep {
     margin: 0 8px;
     opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  /* Sparkline Chart */
+  .sparkline-card {
+    margin-bottom: 32px;
+  }
+
+  .sparkline-card .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .sparkline-card .panel-section-title {
+    margin-bottom: 0;
+  }
+
+  .sparkline-placeholder {
+    width: 100%;
+    height: 40px;
+  }
+
+  .sparkline-placeholder svg {
+    overflow: visible;
+  }
+
+  .panel-section-flat {
+    padding: 0;
+    margin-bottom: 32px;
+  }
+
+  .panel-divider {
+    width: calc(100% + 40px);
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 24px -20px;
     flex-shrink: 0;
   }
 
@@ -2351,17 +2604,54 @@
   .recent-sales-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
   }
 
-  .recent-sale-item {
-    display: grid;
-    grid-template-columns: 80px 40px 1fr 1fr;
-    gap: 8px;
+  .recent-sale-item.stacked {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    font-size: 0.8125rem;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .recent-sale-item.stacked:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .sale-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sale-col.align-right {
+    align-items: flex-end;
+  }
+
+  .sale-date {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .sale-qty {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .sale-revenue {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+  }
+
+  .sale-profit {
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
   }
 
   .recent-sale-item:last-child {
@@ -2773,4 +3063,14 @@
 /* Mobile-only elements */
 .desktop-only {
   display: none;
+}
+
+/* ===== Edge-to-Edge Layout Overrides for Inventory ===== */
+#page-content:has(.desktop-inventory-container) {
+  padding: 0 !important;
+}
+
+.page-view:has(.desktop-inventory-container) {
+  max-width: none !important;
+  width: 100% !important;
 }

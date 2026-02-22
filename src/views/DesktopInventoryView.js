@@ -17,6 +17,67 @@ let desktopSaleShipping = '';
 let desktopSortBy = 'roi'; // 'roi' | 'daysHeld' | 'profit' | 'sellThrough'
 let desktopActiveFilters = new Set(); // 'lowStock' | 'highRoi' | 'stale'
 
+function generateSparklineSVG(lot) {
+  const purchaseDate = new Date(lot.purchaseDate);
+  purchaseDate.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  let numWeeks = Math.ceil((today - purchaseDate) / (1000 * 60 * 60 * 24 * 7));
+  if (numWeeks < 2) numWeeks = 2; // Need at least two points to draw a path
+  if (numWeeks > 52) numWeeks = 52; // Cap at 1 year (52 weeks) of data points for performance/sanity
+
+  // Initialize weekly buckets with 0 sales
+  const weeklySales = new Array(numWeeks).fill(0);
+
+  // Group sales into weekly buckets
+  if (lot.sales) {
+    for (const sale of lot.sales) {
+      if (!sale.dateSold) continue;
+      // Parse local to avoid timezone shifting
+      const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
+      const saleDate = new Date(saleDateStr);
+
+      const weeksSincePurchase = Math.floor((saleDate - purchaseDate) / (1000 * 60 * 60 * 24 * 7));
+      if (weeksSincePurchase >= 0 && weeksSincePurchase < numWeeks) {
+        weeklySales[weeksSincePurchase] += sale.unitsSold;
+      } else if (weeksSincePurchase >= numWeeks) {
+        weeklySales[numWeeks - 1] += sale.unitsSold;
+      }
+    }
+  }
+
+  // Generate SVG Path
+  // ViewBox: 0 0 200 40
+  // Y max: 5 (top, 5px margin for stroke), Y min: 38 (bottom)
+  const maxSales = Math.max(...weeklySales, 1); // Avoid division by zero
+  const graphHeight = 33; // 38 - 5
+
+  const pathPoints = weeklySales.map((sales, index) => {
+    const x = (index / (numWeeks - 1)) * 200;
+    const normalizedY = sales / maxSales;
+    const y = 38 - (normalizedY * graphHeight);
+    return { x: x.toFixed(1), y: y.toFixed(1) };
+  });
+
+  const pathData = pathPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ');
+  const fillPathData = `${pathData} L200 40 L0 40 Z`;
+
+  // Always use the same gradient and structure
+  return `
+    <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+      <path d="${pathData}" fill="none" class="spark-path" stroke="#34D399" stroke-width="2"/>
+      <path d="${fillPathData}" fill="url(#spark-gradient-${lot.id})" opacity="0.2"/>
+      <defs>
+        <linearGradient id="spark-gradient-${lot.id}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#34D399"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  `;
+}
+
 function isDesktop() {
   return window.innerWidth >= 1280;
 }
@@ -62,6 +123,13 @@ function renderInventoryGrid(lots) {
 
   return `
     <div class="inv-grid">
+      <div class="inv-table-header">
+        <div class="inv-header-cell cell-item">ITEM</div>
+        <div class="inv-header-cell cell-perf">NET PROFIT / ROI</div>
+        <div class="inv-header-cell cell-risk">CAPITAL</div>
+        <div class="inv-header-cell cell-left">UNITS LEFT</div>
+        <div class="inv-header-cell cell-days">DAYS HELD</div>
+      </div>
       <div class="inv-grid-body">
         ${lots.map(lot => {
     const stats = calculateLotStats(lot);
@@ -90,23 +158,27 @@ function renderInventoryGrid(lots) {
     if (stats.daysHeld > 180) daysClass = 'days-danger';
     else if (stats.daysHeld > 90) daysClass = 'days-warn';
 
+    // Inline badges replacing subfilters
+    let rowBadges = '';
+    if (stats.isLowStock && lot.remaining > 0) rowBadges += '<span class="row-badge badge-low-stock">LOW STOCK</span>';
+    if (stats.daysHeld > 180) rowBadges += '<span class="row-badge badge-stale">STALE</span>';
+
     return `
             <div class="inv-card ${isSelected ? 'selected' : ''} ${isSoldOut ? 'sold-out' : ''}" data-lot-id="${lot.id}">
               <div class="inv-zone inv-zone-identity">
-                <div class="inv-item-name">${lot.name}</div>
-                <div class="inv-item-meta">${purchaseDate} · ${lot.quantity} units</div>
+                <div class="inv-item-name">
+                  ${lot.name}
+                  ${rowBadges}
+                </div>
+                <div class="inv-item-meta">Purchased ${purchaseDate} · ${lot.quantity} units total</div>
               </div>
 
               <div class="inv-zone inv-zone-performance">
-                <div class="inv-perf-profit ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">
-                  ${formatCurrency(stats.totalProfit, true)}
-                </div>
-                <span class="roi-badge ${roiBadgeClass}">${roiSign}${stats.roi}%</span>
-                <div class="inv-perf-bar">
-                  <div class="mini-progress-bar">
-                    <div class="mini-progress-fill ${sellThroughClass}" style="width: ${stats.sellThrough}%"></div>
+                <div class="perf-profit-col">
+                  <div class="inv-perf-profit ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">
+                    ${formatCurrency(stats.totalProfit, true)}
                   </div>
-                  <span class="val-sellthrough">${stats.sellThrough}%</span>
+                  <span class="roi-badge ${roiBadgeClass}">${roiSign}${stats.roi}%</span>
                 </div>
               </div>
 
@@ -196,37 +268,36 @@ function renderIntelligencePanel(lot) {
 
   return `
     <div class="intelligence-panel">
-      <div class="panel-section-card">
-        <div class="panel-section-title">Financial Performance</div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">Revenue</div>
-            <div class="stat-value">${formatCurrency(stats.totalRevenue)}</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">Cost Basis</div>
-            <div class="stat-value">${formatCurrency(lot.unitCost)}/unit</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">Net Profit</div>
-            <div class="stat-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">${formatCurrency(stats.totalProfit, true)}</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">ROI</div>
-            <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">${stats.roi >= 0 ? '+' : ''}${stats.roi}%</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">Margin / Unit</div>
-            <div class="stat-value ${marginPerUnit >= 0 ? 'positive' : 'negative'}">${formatCurrency(marginPerUnit, true)}</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">Projected Total</div>
-            <div class="stat-value ${projectedTotalProfit >= 0 ? 'positive' : 'negative'}">${stats.unitsSold > 0 ? formatCurrency(projectedTotalProfit, true) : '—'}</div>
-          </div>
+      <div class="panel-header">
+        <h3 class="panel-title" title="${lot.name}">${lot.name}</h3>
+        <button class="panel-close-btn" id="close-intelligence-panel-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div class="panel-meta">
+          <span>Purchased ${purchaseDate}</span>
+          <span class="meta-sep">·</span>
+          <span>${lot.quantity} units total</span>
         </div>
       </div>
 
-      <div class="panel-section-card">
+      <div class="panel-divider"></div>
+
+      <div class="panel-section-card sparkline-card">
+        <div class="section-header">
+          <span class="panel-section-title">Sales Velocity</span>
+          <span class="accent-green" style="font-size:0.75rem;font-weight:600;">${stats.unitsSold} sales</span>
+        </div>
+        <div class="sparkline-placeholder">
+          ${generateSparklineSVG(lot)}
+        </div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section-flat">
         <div class="panel-section-title">Inventory Status</div>
         <div class="stats-grid">
           <div class="stat-item">
@@ -256,19 +327,56 @@ function renderIntelligencePanel(lot) {
         </div>
       </div>
 
+      <div class="panel-divider"></div>
+
+      <div class="panel-section-flat">
+        <div class="panel-section-title">Financial Performance</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Revenue</div>
+            <div class="stat-value">${formatCurrency(stats.totalRevenue)}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Cost Basis</div>
+            <div class="stat-value">${formatCurrency(lot.unitCost)}/unit</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Net Profit</div>
+            <div class="stat-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}">${formatCurrency(stats.totalProfit, true)}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">ROI</div>
+            <div class="stat-value ${stats.roi >= 0 ? 'positive' : 'negative'}">${stats.roi >= 0 ? '+' : ''}${stats.roi}%</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Margin / Unit</div>
+            <div class="stat-value ${marginPerUnit >= 0 ? 'positive' : 'negative'}">${formatCurrency(marginPerUnit, true)}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Projected Total</div>
+            <div class="stat-value ${projectedTotalProfit >= 0 ? 'positive' : 'negative'}">${stats.unitsSold > 0 ? formatCurrency(projectedTotalProfit, true) : '—'}</div>
+          </div>
+        </div>
+      </div>
+
       ${lot.sales?.length > 0 ? `
-        <div class="recent-sales-section">
-          <div class="section-header">
-            <span class="section-label" style="margin-bottom:0;">Recent Sales</span>
+        <div class="panel-divider"></div>
+        <div class="recent-sales-section panel-section-flat">
+          <div class="section-header" style="margin-bottom: 12px; padding: 0;">
+            <div class="panel-section-title" style="margin-bottom:0; padding:0;">Recent Sales</div>
             <span class="sale-count">${lot.sales.length} total</span>
           </div>
           <div class="recent-sales-list">
             ${lot.sales.slice(-5).reverse().map(sale => `
-              <div class="recent-sale-item">
-                <span class="sale-date">${formatDate(sale.dateSold)}</span>
-                <span class="sale-qty">${sale.unitsSold}×</span>
-                <span class="sale-revenue val-currency">${formatCurrency(sale.totalPrice)}</span>
-                <span class="sale-profit val-currency ${sale.profit >= 0 ? 'positive' : 'negative'}">${formatCurrency(sale.profit, true)}</span>
+              <div class="recent-sale-item stacked">
+                <div class="sale-col">
+                  <span class="sale-date">${formatDate(sale.dateSold)}</span>
+                  <span class="sale-qty">${sale.unitsSold}× units</span>
+                </div>
+                <div class="sale-col align-right">
+                  <span class="sale-revenue val-currency">${formatCurrency(sale.totalPrice)}</span>
+                  <span class="sale-profit val-currency ${sale.profit >= 0 ? 'positive' : 'negative'}">${formatCurrency(sale.profit, true)}</span>
+                </div>
               </div>
             `).join('')}
           </div>
@@ -473,81 +581,69 @@ export function DesktopInventoryView() {
 
   return `
     <div class="desktop-inventory-container ${hasSelection ? 'has-selection' : ''}">
+      <div class="inv-header">
+        <div class="inv-header-stats">
+          <div class="inv-header-stat">
+            <span class="inv-header-stat-label">Active SKUs</span>
+            <span class="inv-header-stat-value">${summary.skusInStock}</span>
+            <span class="inv-header-sub">across all categories</span>
+          </div>
+          <div class="inv-header-divider"></div>
+          <div class="inv-header-stat">
+            <span class="inv-header-stat-label">Total Inventory Value</span>
+            <span class="inv-header-stat-value stat-hero">${formatCurrency(summary.totalCapital)}</span>
+            <span class="inv-header-sub">capital deployed</span>
+          </div>
+          <div class="inv-header-divider"></div>
+          <div class="inv-header-stat">
+            <span class="inv-header-stat-label">Avg Portfolio ROI</span>
+            <span class="inv-header-stat-value accent-green">+58%</span>
+            <span class="inv-header-sub">across sold units</span>
+          </div>
+          <div class="inv-header-divider"></div>
+          <div class="inv-header-stat">
+            <span class="inv-header-stat-label">Low Stock</span>
+            <span class="inv-header-stat-value ${summary.lowStockCount > 0 ? 'accent-amber' : ''}">${summary.lowStockCount}</span>
+            <span class="inv-header-sub">items need attention</span>
+          </div>
+        </div>
+      </div>
+      <div class="inv-toolbar">
+        <div class="inv-toolbar-left">
+          <div class="inv-toolbar-title">INVENTORY</div>
+          <div class="tabs">
+            <button class="tab ${currentTab === 'all' ? 'active' : ''}" data-tab="all">All Items</button>
+            <button class="tab ${currentTab === 'unsold' ? 'active' : ''}" data-tab="unsold">Available</button>
+          </div>
+        </div>
+        <div class="inv-toolbar-right">
+          <div class="inv-sort">
+            <label for="desktop-sort-select">SORT</label>
+            <select id="desktop-sort-select">
+              <option value="roi" ${desktopSortBy === 'roi' ? 'selected' : ''}>ROI</option>
+              <option value="daysHeld" ${desktopSortBy === 'daysHeld' ? 'selected' : ''}>Days Held</option>
+              <option value="profit" ${desktopSortBy === 'profit' ? 'selected' : ''}>Profit</option>
+              <option value="sellThrough" ${desktopSortBy === 'sellThrough' ? 'selected' : ''}>Sell-Through</option>
+            </select>
+          </div>
+          <div class="inventory-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="desktop-inventory-search" placeholder="Search items..." value="${currentSearch}">
+          </div>
+        </div>
+      </div>
       <div class="inventory-content">
         <div class="inventory-left-panel">
-          <div class="inv-header">
-            <div class="inv-header-title">
-              <h1>Inventory</h1>
-              <span class="inv-header-sub">Operational overview</span>
-            </div>
-            <div class="inv-header-stats">
-              <div class="inv-header-stat">
-                <span class="inv-header-stat-label">Active SKUs</span>
-                <span class="inv-header-stat-value">${summary.skusInStock}</span>
-              </div>
-              <div class="inv-header-divider"></div>
-              <div class="inv-header-stat">
-                <span class="inv-header-stat-label">Capital Deployed</span>
-                <span class="inv-header-stat-value stat-hero">${formatCurrency(summary.totalCapital)}</span>
-              </div>
-              <div class="inv-header-divider"></div>
-              <div class="inv-header-stat">
-                <span class="inv-header-stat-label">Unrealized Profit</span>
-                <span class="inv-header-stat-value accent-green">${formatCurrency(summary.totalUnrealizedProfit, true)}</span>
-              </div>
-              <div class="inv-header-divider"></div>
-              <div class="inv-header-stat">
-                <span class="inv-header-stat-label">Low Stock</span>
-                <span class="inv-header-stat-value ${summary.lowStockCount > 0 ? 'accent-amber' : ''}">${summary.lowStockCount}</span>
-              </div>
-            </div>
-          </div>
-          <div class="inv-toolbar">
-            <div class="inv-toolbar-left">
-              <div class="tabs">
-                <button class="tab ${currentTab === 'all' ? 'active' : ''}" data-tab="all">All Items</button>
-                <button class="tab ${currentTab === 'unsold' ? 'active' : ''}" data-tab="unsold">Available</button>
-              </div>
-              <div class="inv-filter-chips">
-                <button class="filter-chip ${desktopActiveFilters.has('lowStock') ? 'active' : ''}" data-filter="lowStock">Low Stock</button>
-                <button class="filter-chip ${desktopActiveFilters.has('highRoi') ? 'active' : ''}" data-filter="highRoi">High ROI</button>
-                <button class="filter-chip ${desktopActiveFilters.has('stale') ? 'active' : ''}" data-filter="stale">Stale</button>
-              </div>
-            </div>
-            <div class="inv-toolbar-right">
-              <div class="inv-sort">
-                <label for="desktop-sort-select">Sort</label>
-                <select id="desktop-sort-select">
-                  <option value="roi" ${desktopSortBy === 'roi' ? 'selected' : ''}>ROI</option>
-                  <option value="daysHeld" ${desktopSortBy === 'daysHeld' ? 'selected' : ''}>Days Held</option>
-                  <option value="profit" ${desktopSortBy === 'profit' ? 'selected' : ''}>Profit</option>
-                  <option value="sellThrough" ${desktopSortBy === 'sellThrough' ? 'selected' : ''}>Sell-Through</option>
-                </select>
-              </div>
-              <div class="inventory-search">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="desktop-inventory-search" placeholder="Search items..." value="${currentSearch}">
-              </div>
-            </div>
-          </div>
           <div class="inventory-table-container">
             ${renderInventoryGrid(filteredLots)}
           </div>
         </div>
-        ${hasSelection ? `
-          <div class="inventory-right-panel">
-            <button class="panel-close-btn" id="close-intelligence-panel">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-            ${renderIntelligencePanel(selectedLot)}
-          </div>
-        ` : ''}
+        <div class="inventory-right-panel">
+          ${renderIntelligencePanel(selectedLot)}
+        </div>
       </div>
     </div>
   `;
@@ -591,7 +687,7 @@ export function initDesktopInventoryEvents() {
   }
 
   // Close panel button
-  document.getElementById('close-intelligence-panel')?.addEventListener('click', () => {
+  document.getElementById('close-intelligence-panel-header')?.addEventListener('click', () => {
     desktopSelectedLotId = null;
     desktopSaleMode = false;
     window.dispatchEvent(new CustomEvent('viewchange'));

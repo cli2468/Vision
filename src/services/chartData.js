@@ -100,7 +100,7 @@ export function aggregateSalesByDay(salesData, range) {
 /**
  * Re-bucket daily chart data into weekly or monthly groups for a fuller bar chart.
  * 7D  -> daily  (7 bars)
- * 30D -> weekly (4-5 bars)
+ * 30D -> 3-day buckets (10 bars)
  * 90D -> weekly (12-13 bars)
  * ALL -> monthly (variable)
  */
@@ -113,11 +113,45 @@ export function aggregateSalesForChart(salesData, range) {
 
   const entries = Array.from(daily.salesByDay.entries()).sort();
 
-  if (range === '30d' || range === '90d') {
+  if (range === '30d') {
+    return bucketByDays(entries, 3);
+  }
+
+  if (range === '90d') {
     return bucketByWeek(entries);
   }
 
   return bucketByMonth(entries);
+}
+
+function bucketByDays(dayEntries, daysPerBucket) {
+  const buckets = [];
+  let currentBucket = null;
+  let dayCount = 0;
+
+  for (const [dateKey, data] of dayEntries) {
+    const date = new Date(dateKey + 'T12:00:00');
+
+    // Start a new bucket every N days
+    if (!currentBucket || dayCount >= daysPerBucket) {
+      currentBucket = { startDate: new Date(date), revenue: 0 };
+      buckets.push(currentBucket);
+      dayCount = 0;
+    }
+
+    currentBucket.revenue += data.revenue;
+    currentBucket.endDate = new Date(date);
+    dayCount++;
+  }
+
+  const labels = buckets.map(b => {
+    const m = b.startDate.getMonth() + 1;
+    const d = b.startDate.getDate();
+    return `${m}/${d}`;
+  });
+  const revenues = buckets.map(b => b.revenue / 100);
+
+  return { labels, revenues };
 }
 
 function bucketByWeek(dayEntries) {
