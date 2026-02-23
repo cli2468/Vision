@@ -7,7 +7,6 @@ import { DashboardView, initDashboardEvents } from './views/DashboardView.js';
 import { InventoryView, initInventoryEvents } from './views/InventoryView.js';
 import { AddLotView, initAddLotEvents } from './views/AddLotView.js';
 import { SalesView, initSalesEvents } from './views/SalesView.js';
-import { SettingsView, initSettingsEvents } from './views/SettingsView.js';
 import { BottomNav, initBottomNavEvents } from './components/BottomNav.js';
 import { Sidebar, initSidebarEvents, toggleSidebar, isSidebarCollapsed, updateSidebarAuthState } from './components/Sidebar.js';
 import { DesktopDashboardView, initDesktopDashboardEvents } from './views/DesktopDashboardView.js';
@@ -56,9 +55,6 @@ function initEvents() {
       case '/sales':
         initSalesEvents();
         break;
-      case '/settings':
-        initSettingsEvents();
-        break;
     }
   }
 
@@ -74,7 +70,6 @@ route('/', () => getViewContent('/'));
 route('/inventory', () => getViewContent('/inventory'));
 route('/add', () => getViewContent('/add'));
 route('/sales', () => getViewContent('/sales'));
-route('/settings', () => getViewContent('/settings'));
 
 // Initialize router with event callback
 initRouter(initEvents);
@@ -140,8 +135,6 @@ function getViewContent(currentRoute) {
       return AddLotView();
     case '/sales':
       return SalesView();
-    case '/settings':
-      return SettingsView();
     default:
       return DashboardView();
   }

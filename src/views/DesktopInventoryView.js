@@ -732,6 +732,14 @@ export function initDesktopInventoryEvents() {
     });
   });
 
+  // Auto-select first item if nothing is selected
+  if (!desktopSelectedLotId) {
+    const firstRow = document.querySelector('.inv-card');
+    if (firstRow) {
+      firstRow.click();
+    }
+  }
+
   attachPanelEvents();
 }
 

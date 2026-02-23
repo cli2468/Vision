@@ -1,383 +1,578 @@
-// AddLot View - Screenshot upload and OCR processing
+// AddLot View - Restructured for Bento UI Picker and Specialized Flows
 
 import { extractOrderData, fileToBase64, createThumbnail } from '../services/ocr.js';
 import { saveLot } from '../services/storage.js';
 import { navigate } from '../router.js';
 import { celebrateSuccess } from '../utils/animations.js';
-import { importLotsFromCSV, generateCSVTemplate } from '../services/csvImport.js';
+import { importLotsFromCSV } from '../services/csvImport.js';
 
-let currentState = 'upload'; // 'upload', 'processing', 'preview'
+// State management for the new Bento UI
+let currentActiveView = 'picker'; // 'picker', 'ocr', 'manual', 'csv'
+let ocrState = 'idle'; // 'idle', 'parsing', 'reviewed'
 let ocrProgress = 0;
-let extractedData = { name: '', cost: 0, quantity: 1 };
-let imagePreview = null;
+let extractedData = { name: '', cost: 0, quantity: 1, platform: '', purchaseDate: new Date().toISOString().split('T')[0] };
 let thumbnailData = null;
-let imageZoomed = false;
 
 export function resetAddLotState() {
-  currentState = 'upload';
+  currentActiveView = 'picker';
+  ocrState = 'idle';
   ocrProgress = 0;
-  extractedData = { name: '', cost: 0, quantity: 1 };
-  imagePreview = null;
+  extractedData = { name: '', cost: 0, quantity: 1, platform: '', purchaseDate: new Date().toISOString().split('T')[0] };
   thumbnailData = null;
-  imageZoomed = false;
 }
 
 export function AddLotView() {
-  if (currentState === 'processing') {
-    return renderProcessingState();
-  }
+  const isDesktop = window.innerWidth >= 1024;
 
-  if (currentState === 'preview') {
-    return renderPreviewState();
-  }
-
-  return renderUploadState();
-}
-
-function renderUploadState() {
-  return `
-    <div class="page">
-      <div class="container">
-        <div class="upload-area" id="upload-area">
-          <div class="upload-icon">📸</div>
-          <div class="upload-text">Tap to upload order screenshot</div>
-          <div class="upload-hint">Amazon, Target, Walmart, etc.</div>
-        </div>
-        
-        <input type="file" id="file-input" accept="image/*" style="display: none;" />
-        
-        <div style="text-align: center; margin-top: var(--spacing-xl);">
-          <p class="text-muted" style="margin-bottom: var(--spacing-lg);">or</p>
-          <button class="btn btn-secondary btn-full" id="manual-entry-btn">
-            Enter Manually
-          </button>
-        </div>
-
-        <div style="text-align: center; margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md);">
-          <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-xl);">
-            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
-            <span class="text-muted" style="font-size: var(--font-size-sm);">BULK IMPORT</span>
-            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
-          </div>
-        </div>
-
-        <div class="upload-area" id="import-csv-area" style="border-color: rgba(204, 255, 0, 0.15);">
-          <div class="upload-icon">📄</div>
-          <div class="upload-text">Import from CSV</div>
-          <div class="upload-hint">Bulk import lots and sales from a spreadsheet</div>
-        </div>
-        <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display: none;" />
-
+  if (!isDesktop) {
+    return `
+      <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+        <h2 style="color: var(--text-primary);">Desktop Only View</h2>
+        <p>Please use a desktop browser to access the specialized inventory addition tools.</p>
+        <button onclick="window.location.hash = '#inventory'" style="margin-top: 20px; background: var(--accent-teal); border: none; padding: 10px 20px; border-radius: 6px; color: black; font-weight: 600; cursor: pointer;">Go Back</button>
       </div>
+    `;
+  }
+
+  return `
+    <div class="add-inventory-view">
+      ${renderHeader()}
+      ${currentActiveView === 'picker' ? renderPicker() : renderFlow()}
     </div>
   `;
 }
 
-function renderProcessingState() {
-  return `
-    <div class="page">
-      <div class="container">
-        <div class="card transactional">
-          <div class="modal-body">
-            <div class="ocr-progress">
-              <div class="progress-spinner"></div>
-              <div class="progress-text">Scanning image... ${ocrProgress}%</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
+function renderHeader() {
+  const methodLabels = {
+    'picker': '',
+    'ocr': 'Order Screenshot',
+    'manual': 'Manual Entry',
+    'csv': 'CSV Import'
+  };
 
-function renderPreviewState() {
-  const zoomClass = imageZoomed ? 'zoomed' : '';
+  const isPicker = currentActiveView === 'picker';
 
   return `
-    <div class="page">
-      <div class="container">
-        ${imagePreview ? `
-          <div class="image-preview-container ${zoomClass}" id="image-preview-container">
-            <img src="${imagePreview}" class="image-preview ${zoomClass}" alt="Order screenshot" id="preview-image" />
-            <div class="image-hint">${imageZoomed ? 'Tap to shrink' : 'Tap to zoom'}</div>
+    <div class="add-inventory-header">
+      <div class="add-header-content">
+        ${!isPicker ? `
+          <div class="add-header-breadcrumb">
+            <span id="back-to-picker" class="breadcrumb-back">← Back</span>
+            <span class="breadcrumb-sep">/</span>
           </div>
         ` : ''}
-        
-        <div class="card transactional">
-          <div class="modal-header">
-            <h2 class="modal-title">Add Inventory</h2>
+        <div class="add-header-title">ADD INVENTORY</div>
+        ${!isPicker ? `
+          <div class="add-header-breadcrumb">
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current">${methodLabels[currentActiveView]}</span>
           </div>
-          <div class="modal-body">
-            <div class="form-group" style="margin-bottom: 16px;">
-              <label class="transactional-label">Item Name</label>
-              <input type="text" class="form-input form-input-compact" id="lot-name" value="${escapeHtml(extractedData.name)}" placeholder="Enter item name" />
-            </div>
-            
-            <div class="transaction-grid" style="margin-bottom: 12px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="transactional-label">Total Quantity</label>
-                <div class="quantity-stepper">
-                  <button type="button" class="stepper-btn" id="decrease-qty">-</button>
-                  <input type="number" class="form-input form-input-compact stepper-input transactional-input-emphasized" id="lot-quantity" value="${extractedData.quantity}" placeholder="1" min="1" inputmode="numeric" readonly />
-                  <button type="button" class="stepper-btn" id="increase-qty">+</button>
-                </div>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="transactional-label">Total Cost ($)</label>
-                <input type="number" class="form-input form-input-compact transactional-input-emphasized" id="lot-cost" value="${(extractedData.cost || 0).toFixed(2)}" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
-              </div>
-            </div>
-            
-            <div class="form-group date-group">
-              <label class="transactional-label">Purchase Date</label>
-              <input type="date" class="form-input form-input-compact" id="lot-purchase-date" value="${new Date().toISOString().split('T')[0]}" />
-            </div>
-          </div>
-        
-        <div class="modal-footer">
-          <button class="btn btn-transactional-primary btn-full" id="save-lot-btn">
-            Save to Inventory
-          </button>
-          
-          <button class="btn btn-transactional-secondary btn-full" id="cancel-btn" style="margin-top: 12px;">
-            Cancel
-          </button>
+        ` : ''}
+        <div class="add-header-divider"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPicker() {
+  return `
+    <div class="add-inventory-picker">
+      <!-- 01 Order Screenshot Parser (Featured) -->
+      <div class="add-method-card featured" data-view="ocr" style="--index: 0">
+        <div class="add-card-number">01</div>
+        <div class="add-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <div class="add-card-badge">
+          <div class="pulse-dot"></div>
+          RECOMMENDED
+        </div>
+        <h2 class="add-card-title">Order Screenshot Parser</h2>
+        <p class="add-card-desc">Drop in a screenshot of any order confirmation — Amazon, eBay, StockX, GOAT. We extract item name, price, quantity, and date automatically.</p>
+        <div class="add-card-cta">
+          Get started
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </div>
+      </div>
+
+      <!-- 02 Add Manually -->
+      <div class="add-method-card" data-view="manual" style="--index: 1">
+        <div class="add-card-number">02</div>
+        <div class="add-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <h2 class="add-card-title">Add Manually</h2>
+        <p class="add-card-desc">Fill in the details yourself. Best for single items or when you don't have an order screenshot.</p>
+        <div class="add-card-cta">
+          Fill form
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </div>
+      </div>
+
+      <!-- 03 Import CSV -->
+      <div class="add-method-card" data-view="csv" style="--index: 2">
+        <div class="add-card-number">03</div>
+        <div class="add-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h2 class="add-card-title">Import CSV</h2>
+        <p class="add-card-desc">Bulk import multiple items from a spreadsheet. Download the template to get started.</p>
+        <div class="add-card-cta">
+          Upload file
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </div>
       </div>
     </div>
   `;
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function renderFlow() {
+  const titles = {
+    ocr: 'Order Screenshot Parser',
+    manual: 'Manual Entry',
+    csv: 'CSV Import'
+  };
+
+  const subtitles = {
+    ocr: 'Upload a confirmation screenshot from Amazon, eBay, StockX, or GOAT.',
+    manual: 'Enter your inventory details manually for single items.',
+    csv: 'Bulk import items from a spreadsheet using our template.'
+  };
+
+  return `
+    <div class="add-inventory-flow">
+      <div class="add-flow-content">
+        <h1 class="add-flow-title">${titles[currentActiveView]}</h1>
+        <p class="add-flow-subtitle">${subtitles[currentActiveView]}</p>
+        
+        ${currentActiveView === 'ocr' ? renderOcrFlow() : ''}
+        ${currentActiveView === 'manual' ? renderManualFlow() : ''}
+        ${currentActiveView === 'csv' ? renderCsvFlow() : ''}
+      </div>
+      
+      <div class="add-flow-sidebar">
+        ${renderSidebarContent()}
+      </div>
+    </div>
+  `;
 }
 
-async function handleFileUpload(file) {
+function renderOcrFlow() {
+  if (ocrState === 'idle' || ocrState === 'parsing') {
+    return `
+      <div class="add-drop-zone" id="ocr-drop-zone">
+        <input type="file" id="ocr-file-input" style="display: none;" accept="image/*" />
+        <div class="add-drop-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <div class="add-drop-title">Drop your screenshot here</div>
+        <div class="add-drop-hint">PNG, JPG, WEBP — works with Amazon, eBay, StockX, GOAT, and most order confirmation pages</div>
+        
+        <button class="btn-secondary-add" style="margin-top: 24px;" id="ocr-browse-btn">Browse file</button>
+        
+        ${ocrState === 'parsing' ? `
+          <div class="add-progress-container">
+            <div class="add-progress-bar">
+              <div class="add-progress-fill" style="width: ${ocrProgress}%"></div>
+            </div>
+            <div class="add-progress-text">
+              PARSING SCREENSHOT... ${ocrProgress}%
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="teal-notice-bar">
+      ✨ Fields extracted from screenshot automatically. Please review below.
+    </div>
+    ${renderInventoryForm(true)}
+  `;
+}
+
+function renderManualFlow() {
+  return renderInventoryForm(false);
+}
+
+function renderCsvFlow() {
+  return `
+    <div class="add-form-group">
+      <label class="add-form-label">REQUIRED COLUMNS</label>
+      <div class="csv-template-box">
+        <div class="csv-template-tags">
+          <code class="add-form-code featured">item_name</code>
+          <code class="add-form-code featured">purchase_date</code>
+          <code class="add-form-code featured">quantity</code>
+          <code class="add-form-code featured">total_cost</code>
+          <code class="add-form-code">platform</code>
+          <code class="add-form-code">notes</code>
+        </div>
+        <a href="#" class="csv-template-link">↓ Download template</a>
+      </div>
+    </div>
+
+    <div class="add-drop-zone" id="csv-drop-zone" style="margin-top: 32px;">
+      <input type="file" id="csv-file-input" style="display: none;" accept=".csv" />
+      <div class="add-drop-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="add-drop-title">Drop your CSV here</div>
+      <div class="add-drop-hint">Max 500 rows per import &middot; .csv only</div>
+      <button class="btn-secondary-add" style="margin-top: 24px;" id="csv-browse-btn">Browse file</button>
+    </div>
+    
+    <div class="add-form-actions">
+      <button class="btn-secondary-add" id="cancel-flow">Cancel</button>
+    </div>
+  `;
+}
+
+function renderInventoryForm(isParsed = false) {
+  const costPerUnit = extractedData.quantity > 0 ? (extractedData.cost / extractedData.quantity).toFixed(2) : '0.00';
+
+  return `
+    <div class="add-form">
+      <div class="add-form-group">
+        <label class="add-form-label">ITEM NAME</label>
+        <input type="text" class="add-form-input" id="item-name" value="${extractedData.name}" placeholder="e.g. Nike Dunk Low Panda" />
+      </div>
+      
+      <div class="add-form-row">
+        <div class="add-form-group">
+          <label class="add-form-label">PURCHASE DATE</label>
+          <input type="date" class="add-form-input" id="purchase-date" value="${extractedData.purchaseDate}" />
+        </div>
+        <div class="add-form-group">
+          <label class="add-form-label">PLATFORM PURCHASED FROM</label>
+          <select class="add-form-select" id="purchase-platform">
+            <option value="">Select platform...</option>
+            <option value="Amazon" ${extractedData.platform === 'Amazon' ? 'selected' : ''}>Amazon</option>
+            <option value="eBay" ${extractedData.platform === 'eBay' ? 'selected' : ''}>eBay</option>
+            <option value="StockX" ${extractedData.platform === 'StockX' ? 'selected' : ''}>StockX</option>
+            <option value="GOAT" ${extractedData.platform === 'GOAT' ? 'selected' : ''}>GOAT</option>
+            <option value="Other" ${extractedData.platform === 'Other' ? 'selected' : ''}>Other</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="add-form-divider"></div>
+      
+      <div class="add-form-row row-3">
+        <div class="add-form-group">
+          <label class="add-form-label">QUANTITY</label>
+          <input type="number" class="add-form-input" id="quantity" value="${extractedData.quantity}" min="1" />
+        </div>
+        <div class="add-form-group">
+          <label class="add-form-label">TOTAL COST</label>
+          <div class="input-with-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" class="add-form-input has-prefix" id="total-cost" value="${extractedData.cost}" step="0.01" />
+          </div>
+        </div>
+        <div class="add-form-group">
+          <label class="add-form-label">COST PER UNIT</label>
+          <div class="add-form-input stats-value" id="cost-per-unit-display">
+            $${costPerUnit}
+          </div>
+          <span class="add-form-hint">Auto-calculated</span>
+        </div>
+      </div>
+      
+      <div class="add-form-actions">
+        <button class="btn-primary-add" id="save-inventory-btn">Save to Inventory</button>
+        <button class="btn-secondary-add" id="cancel-flow">${isParsed ? 'Re-upload' : 'Cancel'}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSidebarContent() {
+  if (currentActiveView === 'ocr') {
+    return `
+      <span class="sidebar-section-title">COMPATIBLE PLATFORMS</span>
+      <div class="sidebar-list">
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
+          <span>Amazon</span>
+          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
+          <span>eBay</span>
+          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
+          <span>StockX</span>
+          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
+          <span>GOAT</span>
+          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
+          <span>Whatnot</span>
+          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
+        </div>
+      </div>
+
+      <span class="sidebar-section-title" style="margin-top: 48px;">TIPS</span>
+      <div class="sidebar-list">
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• Include the full order confirmation page, not just the header</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• Make sure the price and quantity are visible in the screenshot</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• You can edit any field after parsing</span>
+        </div>
+      </div>
+    `;
+  }
+
+  if (currentActiveView === 'manual') {
+    return `
+      <span class="sidebar-section-title">HOW IT WORKS</span>
+      <div class="sidebar-list">
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• Cost per unit is calculated automatically from total cost divided by quantity</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• The item will appear in your inventory immediately after saving</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• You can log sales against this item from the Inventory screen</span>
+        </div>
+      </div>
+    `;
+  }
+
+  if (currentActiveView === 'csv') {
+    return `
+      <span class="sidebar-section-title">BEFORE YOU IMPORT</span>
+      <div class="sidebar-list">
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• Download the template first to ensure your columns match the required format</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• Dates must be formatted as YYYY-MM-DD</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• Cost should be a plain number — no $ signs or commas</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">• Maximum 500 rows per import</span>
+        </div>
+      </div>
+    `;
+  }
+
+  return '';
+}
+
+// Event handlers
+export function initAddLotEvents() {
+  const isDesktop = window.innerWidth >= 1024;
+  if (!isDesktop) return;
+
+  // Picker navigation
+  document.querySelectorAll('.add-method-card').forEach(card => {
+    card.addEventListener('click', () => {
+      currentActiveView = card.dataset.view;
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    });
+  });
+
+  // Back to picker
+  document.getElementById('back-to-picker')?.addEventListener('click', () => {
+    resetAddLotState();
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  });
+
+  // Flow specific events
+  if (currentActiveView === 'ocr') initOcrEvents();
+  if (currentActiveView === 'manual') initFormEvents();
+  if (currentActiveView === 'csv') initCsvEvents();
+}
+
+function initOcrEvents() {
+  const dropZone = document.getElementById('ocr-drop-zone');
+  const fileInput = document.getElementById('ocr-file-input');
+  const browseBtn = document.getElementById('ocr-browse-btn');
+
+  if (ocrState === 'idle' || ocrState === 'parsing') {
+    browseBtn?.addEventListener('click', () => fileInput?.click());
+
+    fileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) handleOcrUpload(file);
+    });
+
+    dropZone?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone?.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer?.files[0];
+      if (file) handleOcrUpload(file);
+    });
+  } else {
+    initFormEvents();
+  }
+}
+
+async function handleOcrUpload(file) {
   if (!file || !file.type.startsWith('image/')) {
     alert('Please select a valid image file');
     return;
   }
 
-  currentState = 'processing';
+  ocrState = 'parsing';
   ocrProgress = 0;
   window.dispatchEvent(new CustomEvent('viewchange'));
 
+  // Simulated parsing delay for better UX (shimmer progress bar)
+  const interval = setInterval(() => {
+    ocrProgress += 5;
+    if (ocrProgress >= 100) {
+      clearInterval(interval);
+      finishParsing(file);
+    } else {
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    }
+  }, 80);
+}
+
+async function finishParsing(file) {
   try {
     const base64 = await fileToBase64(file);
-    imagePreview = base64;
     thumbnailData = await createThumbnail(base64, 200);
 
-    const result = await extractOrderData(file, (progress) => {
-      ocrProgress = progress;
-      window.dispatchEvent(new CustomEvent('viewchange'));
+    // Call real OCR service
+    const result = await extractOrderData(file, (p) => {
+      // We already simulated progress for the UI, but we could use the real one
     });
 
     extractedData = {
-      name: result.name || '',
+      name: result.name || 'Extracted Item Name',
       cost: result.cost || 0,
-      quantity: result.quantity || 1
+      quantity: result.quantity || 1,
+      platform: result.platform || '',
+      purchaseDate: result.purchaseDate || new Date().toISOString().split('T')[0]
     };
 
-    currentState = 'preview';
+    ocrState = 'reviewed';
     window.dispatchEvent(new CustomEvent('viewchange'));
   } catch (error) {
     console.error('OCR failed:', error);
-    alert('Failed to process image. Please try again or enter manually.');
-    currentState = 'upload';
+    alert('Failed to parse image. Reverting to manual entry.');
+    currentActiveView = 'manual';
     window.dispatchEvent(new CustomEvent('viewchange'));
   }
 }
 
-function saveLotAndNavigate() {
-  const nameInput = document.getElementById('lot-name');
-  const costInput = document.getElementById('lot-cost');
-  const qtyInput = document.getElementById('lot-quantity');
-  const purchaseDateInput = document.getElementById('lot-purchase-date');
+function initFormEvents() {
+  const qtyInput = document.getElementById('quantity');
+  const costInput = document.getElementById('total-cost');
+  const dspl = document.getElementById('cost-per-unit-display');
+  const saveBtn = document.getElementById('save-inventory-btn');
+  const cancelBtn = document.getElementById('cancel-flow');
 
-  const name = nameInput?.value.trim() || 'Unnamed Item';
-  const cost = parseFloat(costInput?.value) || 0;
-  const quantity = parseInt(qtyInput?.value) || 1;
-  const purchaseDate = purchaseDateInput?.value || new Date().toISOString().split('T')[0];
+  const updateCalculated = () => {
+    const q = parseInt(qtyInput?.value) || 0;
+    const c = parseFloat(costInput?.value) || 0;
+    const perUnit = q > 0 ? (c / q).toFixed(2) : '0.00';
+    if (dspl) dspl.textContent = `$${perUnit}`;
+  };
 
-  if (cost <= 0) {
-    alert('Please enter a valid cost');
-    return;
-  }
+  qtyInput?.addEventListener('input', updateCalculated);
+  costInput?.addEventListener('input', updateCalculated);
 
-  saveLot({
-    name,
-    cost,
-    quantity,
-    purchaseDate,
-    imageData: thumbnailData
-  });
-
-  // Celebrate successful save
-  const saveBtn = document.getElementById('save-lot-btn');
-  celebrateSuccess(saveBtn);
-
-  resetAddLotState();
-
-  // Delay navigation to show celebration
-  setTimeout(() => {
-    navigate('/inventory');
-  }, 1000);
-}
-
-export function initAddLotEvents() {
-  const uploadArea = document.getElementById('upload-area');
-  const fileInput = document.getElementById('file-input');
-  const manualBtn = document.getElementById('manual-entry-btn');
-  const saveBtn = document.getElementById('save-lot-btn');
-  const cancelBtn = document.getElementById('cancel-btn');
-  const nameInput = document.getElementById('lot-name');
-  const clearNameBtn = document.getElementById('clear-name-btn');
-  const imageContainer = document.getElementById('image-preview-container');
-
-  // Upload area click
-  uploadArea?.addEventListener('click', () => {
-    fileInput?.click();
-  });
-
-  // Drag and drop
-  uploadArea?.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('active');
-  });
-
-  uploadArea?.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('active');
-  });
-
-  uploadArea?.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('active');
-    const file = e.dataTransfer?.files[0];
-    if (file) handleFileUpload(file);
-  });
-
-  // File input change
-  fileInput?.addEventListener('change', (e) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileUpload(file);
-  });
-
-  // Manual entry
-  manualBtn?.addEventListener('click', () => {
-    extractedData = { name: '', cost: 0, quantity: 1 };
-    imagePreview = null;
-    thumbnailData = null;
-    currentState = 'preview';
-    window.dispatchEvent(new CustomEvent('viewchange'));
-  });
-
-  // CSV import
-  const importArea = document.getElementById('import-csv-area');
-  const csvFileInput = document.getElementById('csv-file-input');
-
-  importArea?.addEventListener('click', () => {
-    csvFileInput?.click();
-  });
-
-  csvFileInput?.addEventListener('change', async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const result = await importLotsFromCSV(file);
-      let message = `Imported ${result.success} lot${result.success !== 1 ? 's' : ''}`;
-      if (result.salesImported > 0) {
-        message += ` and ${result.salesImported} sale${result.salesImported !== 1 ? 's' : ''}`;
-      }
-      if (result.errors.length > 0) {
-        message += `\n\n${result.errors.length} error(s):\n${result.errors.slice(0, 5).join('\n')}`;
-      }
-      alert(message);
-
-      if (result.success > 0) {
-        navigate('/inventory');
-        window.dispatchEvent(new CustomEvent('viewchange'));
-      }
-    } catch (error) {
-      console.error('CSV import failed:', error);
-      alert('Failed to import CSV: ' + error.message);
-    }
-    // Reset input so same file can be re-selected
-    csvFileInput.value = '';
-  });
-
-  // Auto-select item name on load for quick replacement
-  if (nameInput && nameInput.value) {
-    nameInput.focus();
-    nameInput.select();
-  }
-
-  // Clear name button
-  clearNameBtn?.addEventListener('click', () => {
-    if (nameInput) {
-      nameInput.value = '';
-      nameInput.focus();
-    }
-  });
-
-  // Image zoom toggle
-  imageContainer?.addEventListener('click', () => {
-    imageZoomed = !imageZoomed;
-    window.dispatchEvent(new CustomEvent('viewchange'));
-    // Re-focus on name after zoom toggle
-    setTimeout(() => {
-      const newNameInput = document.getElementById('lot-name');
-      if (newNameInput && newNameInput.value) {
-        newNameInput.focus();
-        newNameInput.select();
-      }
-    }, 100);
-  });
-
-  // Save lot
-  saveBtn?.addEventListener('click', saveLotAndNavigate);
-
-  // Cancel
   cancelBtn?.addEventListener('click', () => {
     resetAddLotState();
     window.dispatchEvent(new CustomEvent('viewchange'));
   });
 
-  // Quantity stepper buttons
-  const decreaseBtn = document.getElementById('decrease-qty');
-  const increaseBtn = document.getElementById('increase-qty');
-  const qtyInput = document.getElementById('lot-quantity');
+  saveBtn?.addEventListener('click', () => {
+    const name = document.getElementById('item-name').value.trim();
+    const cost = parseFloat(document.getElementById('total-cost').value) || 0;
+    const quantity = parseInt(document.getElementById('quantity').value) || 1;
+    const purchaseDate = document.getElementById('purchase-date').value;
+    const platform = document.getElementById('purchase-platform').value;
 
-  function handleDecrease(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    if (!name || cost <= 0) {
+      alert('Please enter a name and valid cost');
+      return;
     }
-    if (qtyInput) {
-      const currentQty = parseInt(qtyInput.value) || 1;
-      if (currentQty > 1) {
-        qtyInput.value = currentQty - 1;
-      }
-    }
-  }
 
-  function handleIncrease(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (qtyInput) {
-      const currentQty = parseInt(qtyInput.value) || 1;
-      qtyInput.value = currentQty + 1;
-    }
-  }
+    saveLot({
+      name,
+      cost,
+      quantity,
+      purchaseDate,
+      platform,
+      imageData: thumbnailData
+    });
 
-  if (decreaseBtn) {
-    decreaseBtn.addEventListener('click', handleDecrease);
-  }
-  if (increaseBtn) {
-    increaseBtn.addEventListener('click', handleIncrease);
+    celebrateSuccess(saveBtn);
+    setTimeout(() => {
+      resetAddLotState();
+      navigate('/inventory');
+    }, 1000);
+  });
+}
+
+function initCsvEvents() {
+  const browseBtn = document.getElementById('csv-browse-btn');
+  const fileInput = document.getElementById('csv-file-input');
+  const dropZone = document.getElementById('csv-drop-zone');
+  const cancelBtn = document.getElementById('cancel-flow');
+
+  browseBtn?.addEventListener('click', () => fileInput?.click());
+
+  cancelBtn?.addEventListener('click', () => {
+    resetAddLotState();
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  });
+
+  fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleCsvImport(file);
+  });
+
+  dropZone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone?.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer?.files[0];
+    if (file) handleCsvImport(file);
+  });
+}
+
+async function handleCsvImport(file) {
+  try {
+    const result = await importLotsFromCSV(file);
+    alert(`Imported ${result.success} lots successfully.`);
+    if (result.success > 0) {
+      resetAddLotState();
+      navigate('/inventory');
+    }
+  } catch (err) {
+    alert('Import failed: ' + err.message);
   }
 }
