@@ -23,14 +23,14 @@ function generateSparklineSVG(lot) {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
 
-  let numWeeks = Math.ceil((today - purchaseDate) / (1000 * 60 * 60 * 24 * 7));
-  if (numWeeks < 2) numWeeks = 2; // Need at least two points to draw a path
-  if (numWeeks > 52) numWeeks = 52; // Cap at 1 year (52 weeks) of data points for performance/sanity
+  const totalTime = today - purchaseDate;
+  const numBuckets = 20; // Fixed number of points for a smooth trend line
+  const timePerBucket = totalTime / numBuckets;
 
-  // Initialize weekly buckets with 0 sales
-  const weeklySales = new Array(numWeeks).fill(0);
+  // Initialize buckets
+  const trendBuckets = new Array(numBuckets).fill(0);
 
-  // Group sales into weekly buckets
+  // Group sales into proportional buckets
   if (lot.sales) {
     for (const sale of lot.sales) {
       if (!sale.dateSold) continue;
@@ -38,42 +38,57 @@ function generateSparklineSVG(lot) {
       const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
       const saleDate = new Date(saleDateStr);
 
-      const weeksSincePurchase = Math.floor((saleDate - purchaseDate) / (1000 * 60 * 60 * 24 * 7));
-      if (weeksSincePurchase >= 0 && weeksSincePurchase < numWeeks) {
-        weeklySales[weeksSincePurchase] += sale.unitsSold;
-      } else if (weeksSincePurchase >= numWeeks) {
-        weeklySales[numWeeks - 1] += sale.unitsSold;
-      }
+      const timeSincePurchase = saleDate - purchaseDate;
+      let bucketIndex = Math.floor(timeSincePurchase / timePerBucket);
+
+      // Safety bounds
+      if (bucketIndex < 0) bucketIndex = 0;
+      if (bucketIndex >= numBuckets) bucketIndex = numBuckets - 1;
+
+      trendBuckets[bucketIndex] += sale.unitsSold;
     }
   }
 
-  // Generate SVG Path
-  // ViewBox: 0 0 200 40
-  // Y max: 5 (top, 5px margin for stroke), Y min: 38 (bottom)
-  const maxSales = Math.max(...weeklySales, 1); // Avoid division by zero
-  const graphHeight = 33; // 38 - 5
+  // Smooth the data slightly to prevent severe jaggedness using a simple moving average (3-point window)
+  const smoothedData = trendBuckets.map((val, i, arr) => {
+    if (i === 0) return (val + arr[1]) / 2;
+    if (i === arr.length - 1) return (arr[i - 1] + val) / 2;
+    return (arr[i - 1] + val + arr[i + 1]) / 3;
+  });
 
-  const pathPoints = weeklySales.map((sales, index) => {
-    const x = (index / (numWeeks - 1)) * 200;
+  // Generate SVG Path
+  // ViewBox: 0 0 200 70
+  // Y max: 5 (top, 5px margin), Y min: 68 (bottom)
+  const maxSales = Math.max(...smoothedData, 0.1); // Avoid division by zero
+  const graphHeight = 63; // 68 - 5
+
+  const pathPoints = smoothedData.map((sales, index) => {
+    const x = (index / (numBuckets - 1)) * 200;
     const normalizedY = sales / maxSales;
-    const y = 38 - (normalizedY * graphHeight);
+    const y = 68 - (normalizedY * graphHeight);
     return { x: x.toFixed(1), y: y.toFixed(1) };
   });
 
   const pathData = pathPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ');
-  const fillPathData = `${pathData} L200 40 L0 40 Z`;
+  const fillPathData = `${pathData} L200 70 L0 70 Z`;
 
-  // Always use the same gradient and structure
   return `
-    <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
-      <path d="${pathData}" fill="none" class="spark-path" stroke="#34D399" stroke-width="2"/>
-      <path d="${fillPathData}" fill="url(#spark-gradient-${lot.id})" opacity="0.2"/>
+    <svg width="100%" height="70" viewBox="0 0 200 70" preserveAspectRatio="none">
       <defs>
         <linearGradient id="spark-gradient-${lot.id}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#34D399"/>
           <stop offset="100%" stop-color="transparent"/>
         </linearGradient>
+        <clipPath id="spark-clip-${lot.id}">
+          <rect x="0" y="0" width="0" height="70">
+            <animate attributeName="width" from="0" to="200" dur="1.1s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" keyTimes="0;1"/>
+          </rect>
+        </clipPath>
       </defs>
+      <g clip-path="url(#spark-clip-${lot.id})">
+        <path d="${fillPathData}" fill="url(#spark-gradient-${lot.id})" opacity="0.2"/>
+        <path d="${pathData}" fill="none" class="spark-path" stroke="#34D399" stroke-width="2"/>
+      </g>
     </svg>
   `;
 }
@@ -295,8 +310,6 @@ function renderIntelligencePanel(lot) {
         </div>
       </div>
 
-      <div class="panel-divider"></div>
-
       <div class="panel-section-flat">
         <div class="panel-section-title">Inventory Status</div>
         <div class="stats-grid">
@@ -326,8 +339,6 @@ function renderIntelligencePanel(lot) {
           </div>
         </div>
       </div>
-
-      <div class="panel-divider"></div>
 
       <div class="panel-section-flat">
         <div class="panel-section-title">Financial Performance</div>
@@ -360,10 +371,9 @@ function renderIntelligencePanel(lot) {
       </div>
 
       ${lot.sales?.length > 0 ? `
-        <div class="panel-divider"></div>
         <div class="recent-sales-section panel-section-flat">
-          <div class="section-header" style="margin-bottom: 12px; padding: 0;">
-            <div class="panel-section-title" style="margin-bottom:0; padding:0;">Recent Sales</div>
+          <div class="section-header">
+            <span class="panel-section-title">Recent Sales</span>
             <span class="sale-count">${lot.sales.length} total</span>
           </div>
           <div class="recent-sales-list">
@@ -650,16 +660,30 @@ export function DesktopInventoryView() {
 }
 
 export function initDesktopInventoryEvents() {
-  // Row selection - trigger viewchange for smooth panel animation
+  // Row selection - dynamic update for smooth panel animation
   document.querySelectorAll('.inv-card').forEach(row => {
     row.addEventListener('click', () => {
       const lotId = row.dataset.lotId;
 
-      // Only trigger re-render if selecting a different item
       if (desktopSelectedLotId !== lotId) {
         desktopSelectedLotId = lotId;
         desktopSaleMode = false;
-        window.dispatchEvent(new CustomEvent('viewchange'));
+
+        const container = document.querySelector('.desktop-inventory-container');
+        const rightPanel = document.querySelector('.inventory-right-panel');
+        const lots = getLots();
+        const selectedLot = lots.find(l => l.id === lotId);
+
+        if (container && rightPanel && selectedLot) {
+          document.querySelectorAll('.inv-card').forEach(r => r.classList.remove('selected'));
+          row.classList.add('selected');
+
+          rightPanel.innerHTML = renderIntelligencePanel(selectedLot);
+          attachPanelEvents();
+          container.classList.add('has-selection');
+        } else {
+          window.dispatchEvent(new CustomEvent('viewchange'));
+        }
       }
     });
   });
@@ -686,14 +710,7 @@ export function initDesktopInventoryEvents() {
     });
   }
 
-  // Close panel button
-  document.getElementById('close-intelligence-panel-header')?.addEventListener('click', () => {
-    desktopSelectedLotId = null;
-    desktopSaleMode = false;
-    window.dispatchEvent(new CustomEvent('viewchange'));
-  });
-
-  // Sort dropdown
+  // Close panel button logic moved to attachPanelEvents  // Sort dropdown
   const sortSelect = document.getElementById('desktop-sort-select');
   if (sortSelect) {
     sortSelect.addEventListener('change', (e) => {
@@ -735,6 +752,29 @@ function attachPanelEvents() {
       if (rightPanel && selectedLot) {
         rightPanel.innerHTML = renderSaleDrawer(selectedLot);
         attachDrawerEvents(selectedLot);
+      }
+    });
+  }
+
+  // Close panel button
+  const closeBtn = document.getElementById('close-intelligence-panel-header');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      desktopSelectedLotId = null;
+      desktopSaleMode = false;
+      const container = document.querySelector('.desktop-inventory-container');
+      if (container) {
+        container.classList.remove('has-selection');
+        document.querySelectorAll('.inv-card').forEach(r => r.classList.remove('selected'));
+        // Wait for animation to finish before clearing DOM
+        setTimeout(() => {
+          const rightPanel = document.querySelector('.inventory-right-panel');
+          if (rightPanel && !desktopSelectedLotId) {
+            rightPanel.innerHTML = '';
+          }
+        }, 300);
+      } else {
+        window.dispatchEvent(new CustomEvent('viewchange'));
       }
     });
   }

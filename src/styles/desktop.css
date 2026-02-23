@@ -1576,7 +1576,7 @@
     justify-content: space-between;
     width: 100%;
     padding: 24px 28px;
-    background: transparent;
+    background: #1B1B1B;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
   }
@@ -1702,7 +1702,7 @@
       opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
       transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
       margin 280ms cubic-bezier(0.22, 1, 0.36, 1);
-    background: transparent;
+    background: #1B1B1B;
     border: none;
     border-radius: 0;
     overflow: hidden;
@@ -1721,7 +1721,8 @@
     min-width: 420px;
     opacity: 1;
     transform: translateX(0);
-    margin-left: 12px;
+    margin-left: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .panel-close-btn {
@@ -1826,19 +1827,19 @@
     display: flex;
     align-items: center;
     height: 36px;
-    gap: 12px;
-    /* reduced space between title and tabs */
+    gap: 24px;
+    /* increased space between title and tabs */
   }
 
   .inv-toolbar-title {
-    font-size: 0.85rem;
+    font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     color: var(--text-primary);
     line-height: normal;
     display: flex;
     align-items: center;
-    margin-right: 4px;
+    margin-right: 16px;
     transform: translateY(2px);
     /* Optical adjustment to baseline with tabs */
   }
@@ -2362,9 +2363,13 @@
     color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-bottom: 16px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .panel-section-flat>.panel-section-title {
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    /* -- ADJUST UNDERLINES BELOW -- */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: block;
     width: 100%;
   }
@@ -2434,8 +2439,11 @@
     flex-direction: column;
     justify-content: flex-start;
     align-items: flex-start;
-    margin-bottom: 24px;
-    padding-right: 40px;
+    margin-bottom: 12px;
+    padding: 0 40px 0 0;
+    /* Override earlier padding */
+    border-bottom: none;
+    /* Override earlier border */
     position: relative;
     width: 100%;
   }
@@ -2488,7 +2496,7 @@
 
   .sparkline-placeholder {
     width: 100%;
-    height: 40px;
+    height: 70px;
   }
 
   .sparkline-placeholder svg {
@@ -2503,8 +2511,9 @@
   .panel-divider {
     width: calc(100% + 40px);
     height: 1px;
-    background: rgba(255, 255, 255, 0.12);
-    margin: 24px -20px;
+    /* -- ADJUST DIVIDERS BELOW -- */
+    background: rgba(255, 255, 255, 0.08);
+    margin: 16px -20px 32px;
     flex-shrink: 0;
   }
 
@@ -2591,9 +2600,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding: 0;
-    border: none;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    /* -- ADJUST RECENT SALES UNDERLINE BELOW -- */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .sale-count {
