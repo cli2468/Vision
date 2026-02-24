@@ -1289,6 +1289,18 @@
     padding: 4px;
   }
 
+  .live-calc-panel {
+    background: #1B1B1B;
+    /* Match sidebar */
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .add-form-input.stats-value,
+  .csv-template-box {
+    background: #1B1B1B;
+  }
+
   .filter-btn {
     padding: 6px 12px;
     border: none;
@@ -3050,6 +3062,7 @@
     flex-direction: column;
     overflow: hidden;
     padding: 0;
+    background-color: #171717;
   }
 
   .sale-log-header {
@@ -3378,6 +3391,8 @@
   }
 
   .add-inventory-header {
+    background: #1B1B1B;
+    /* Header uses 1B as requested */
     padding: 24px 32px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
@@ -3444,10 +3459,12 @@
 
   .add-method-card {
     position: relative;
-    background: var(--bg-card, #141414);
+    background: #171717;
+    /* All selectors use 17 */
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.04);
+    /* Subtle border */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     padding: 60px;
     display: flex;
     flex-direction: column;
@@ -3492,11 +3509,118 @@
     border-color: rgba(255, 255, 255, 0.15);
   }
 
+
   /* Featured Card Styles */
   .add-method-card.featured {
     grid-row: span 2;
-    background: rgba(45, 212, 191, 0.02);
+    background: #171717;
+    /* All selectors use 17 */
     padding: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  /* Screenshot Collage Demo */
+  .card-screenshot-collage {
+    width: 100%;
+    height: 240px;
+    position: relative;
+    margin-bottom: 40px;
+    z-index: 1;
+    perspective: 1000px;
+  }
+
+  .collage-img {
+    position: absolute;
+    width: 200px;
+    /* Increased size */
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .img-1 {
+    z-index: 3;
+    left: 5%;
+    top: 0;
+    transform: rotate(-8deg);
+    animation: float1 6s ease-in-out infinite;
+  }
+
+  .img-2 {
+    z-index: 2;
+    left: 30%;
+    top: 25px;
+    transform: rotate(2deg);
+    animation: float2 7s ease-in-out infinite alternate;
+  }
+
+  .img-3 {
+    z-index: 1;
+    left: 55%;
+    top: 10px;
+    transform: rotate(10deg);
+    animation: float3 8s ease-in-out infinite;
+  }
+
+  @keyframes float1 {
+
+    0%,
+    100% {
+      transform: rotate(-8deg) translateY(0);
+    }
+
+    50% {
+      transform: rotate(-6deg) translateY(-10px);
+    }
+  }
+
+  @keyframes float2 {
+
+    0%,
+    100% {
+      transform: rotate(4deg) translateY(0);
+    }
+
+    50% {
+      transform: rotate(2deg) translateY(-8px);
+    }
+  }
+
+  @keyframes float3 {
+
+    0%,
+    100% {
+      transform: rotate(12deg) translateY(0);
+    }
+
+    50% {
+      transform: rotate(10deg) translateY(-12px);
+    }
+  }
+
+  .add-method-card:hover .collage-img {
+    transform: rotate(0deg) translateY(-5px) scale(1.05);
+  }
+
+  /* Reset previous debug styles */
+  .card-video-container {
+    display: none;
+  }
+
+  .add-method-card .add-card-icon,
+  .add-method-card .add-card-badge,
+  .add-method-card .add-card-title,
+  .add-method-card .add-card-desc,
+  .add-method-card .add-card-cta {
+    position: relative;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .add-method-card .add-card-cta {
+    pointer-events: auto;
+    /* CTA should still be clickable */
   }
 
   .add-method-card.featured:hover {
@@ -3504,23 +3628,6 @@
     border-color: rgba(45, 212, 191, 0.25);
   }
 
-  .add-card-number {
-    position: absolute;
-    top: 40px;
-    right: 40px;
-    font-family: var(--font-mono, monospace);
-    font-size: 3rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.03);
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-  }
-
-  .featured .add-card-number {
-    top: 60px;
-    left: 60px;
-  }
 
   .add-card-icon {
     width: 48px;
@@ -3624,6 +3731,8 @@
   .add-inventory-flow {
     display: flex;
     height: 100%;
+    background: #171717;
+    /* Rest of the pages use 17 */
     animation: flowFadeUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
@@ -3651,7 +3760,8 @@
     width: 320px;
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     padding: 60px 40px;
-    background: rgba(255, 255, 255, 0.01);
+    background: #1B1B1B;
+    /* Match header for contrast against 171717 background */
   }
 
   .add-flow-title {
@@ -3687,7 +3797,8 @@
   .add-form-input,
   .add-form-select {
     width: 100%;
-    background: rgba(255, 255, 255, 0.03);
+    background: #1B1B1B;
+    /* Match sidebar for input fields */
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     padding: 0 16px;
@@ -3738,7 +3849,8 @@
   }
 
   .csv-template-box {
-    background: rgba(255, 255, 255, 0.02);
+    background: #1B1B1B;
+    /* Match form inputs */
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 24px;
@@ -3846,17 +3958,14 @@
 
   /* Drop Zone */
   .add-drop-zone {
-    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border: 2px dashed #2D2D2D;
     border-radius: 12px;
-    padding: 60px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.01);
-    cursor: pointer;
-    transition: all 0.3s ease;
+    padding: 60px 40px;
     text-align: center;
+    background: #1B1B1B;
+    /* Elevated drop zone against 171717 background */
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
 
   .add-drop-zone.dragover {
