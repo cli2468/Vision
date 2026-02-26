@@ -11,77 +11,84 @@ export function Sidebar(activeRoute = '/') {
 
   const menuItems = [
     { route: '/', label: 'Dashboard', icon: 'dashboard' },
-    { route: '/add', label: 'Add', icon: 'add' },
     { route: '/inventory', label: 'Inventory', icon: 'inventory' },
-    { route: '/sales', label: 'Sales', icon: 'sales' }
+    { route: '/sales', label: 'Sales', icon: 'sales' },
+    { route: '/add', label: 'Add', icon: 'add' }
   ];
 
   const iconSvgs = {
-    dashboard: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>`,
-    inventory: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline></svg>`,
-    sales: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
-    logout: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
-    login: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>`,
-    add: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-    collapse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`,
-    expand: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`
+    dashboard: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>`,
+    inventory: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`,
+    sales: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
+    logout: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
+    login: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>`,
+    add: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>`,
+    chevron: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`,
+    settings: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`
   };
 
   const menuHtml = menuItems.map(item => `
     <button 
       class="sidebar-nav-item ${activeRoute === item.route ? 'active' : ''}" 
       data-route="${item.route}"
-      title="${item.label}"
     >
-      <span class="sidebar-nav-icon">${iconSvgs[item.icon]}</span>
-      <span class="sidebar-nav-label">${item.label}</span>
+      <div class="sidebar-nav-icon">${iconSvgs[item.icon]}</div>
+      <div class="collapsible-content sidebar-nav-label">${item.label}</div>
+      <div class="sidebar-tooltip">${item.label}</div>
     </button>
   `).join('');
 
-  const toggleIcon = isCollapsed ? iconSvgs.expand : iconSvgs.collapse;
-
-  // Determine auth button content based on user state
+  // The Profile Footer replaces the basic Auth buttons
   const authHtml = user ? `
-    <button class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout-btn" title="Log out">
-      <span class="sidebar-nav-icon">${iconSvgs.logout}</span>
-      <span class="sidebar-nav-label">Log out</span>
-    </button>
-    <div class="sidebar-logout-confirm" id="sidebar-logout-confirm">
-      <p class="logout-confirm-text">Sign out of your account?</p>
-      <div class="logout-confirm-actions">
-        <button class="logout-confirm-btn cancel" id="sidebar-logout-cancel">Cancel</button>
-        <button class="logout-confirm-btn confirm" id="sidebar-logout-confirm-btn">Log out</button>
+    <div class="sidebar-profile-wrapper">
+      <button class="sidebar-profile-btn" id="sidebar-profile-btn">
+        <div class="profile-avatar">CH</div>
+        <div class="collapsible-content profile-info">
+          <div class="profile-name">Chris</div>
+          <div class="profile-role">Admin</div>
+        </div>
+      </button>
+      <div class="profile-popover" id="profile-popover">
+        <button class="popover-item"><span class="popover-icon">${iconSvgs.settings}</span> Settings</button>
+        <button class="popover-item logout-trigger" id="sidebar-logout-btn"><span class="popover-icon">${iconSvgs.logout}</span> Log out</button>
       </div>
     </div>
   ` : `
-    <button class="sidebar-nav-item sidebar-login-btn" id="sidebar-login-btn" title="Log in / Sync" onclick="window.dispatchEvent(new CustomEvent('open-login-modal'))">
-      <span class="sidebar-nav-icon">${iconSvgs.login}</span>
-      <span class="sidebar-nav-label">Log in / Sync</span>
+    <button class="sidebar-nav-item sidebar-login-btn" id="sidebar-login-btn" onclick="window.dispatchEvent(new CustomEvent('open-login-modal'))">
+      <div class="sidebar-nav-icon">${iconSvgs.login}</div>
+      <div class="collapsible-content sidebar-nav-label">Log in / Sync</div>
+      <div class="sidebar-tooltip">Log in / Sync</div>
     </button>
   `;
 
   return `
     <aside class="desktop-sidebar ${isCollapsed ? 'collapsed' : ''}" data-collapsed="${isCollapsed}">
       <div class="sidebar-header">
-        <div class="sidebar-brand">
-          <div class="brand-name">Vision</div>
+        <div class="sidebar-brand-group">
+          <div class="brand-logo-mark">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green, #2dd4bf)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="collapsible-content brand-name">Vision</div>
         </div>
+        <!-- Toggle button is hidden in CSS when collapsed -->
         <button
           class="sidebar-toggle"
-          title="${isCollapsed ? 'Expand' : 'Collapse'} sidebar"
-          aria-label="${isCollapsed ? 'Expand' : 'Collapse'} sidebar"
-          aria-expanded="${(!isCollapsed).toString()}"
+          title="Collapse sidebar"
+          aria-label="Collapse sidebar"
         >
-          ${toggleIcon}
+          ${iconSvgs.chevron}
         </button>
       </div>
+      <div class="sidebar-header-divider"></div>
       
       <div class="sidebar-section">
-        <div class="sidebar-section-label">MENU</div>
+        <div class="collapsible-content sidebar-section-label">MENU</div>
         <nav class="sidebar-nav">
            ${menuHtml}
         </nav>
-        <div class="sidebar-divider"></div>
+      </div>
+
+      <div class="sidebar-footer">
         ${authHtml}
       </div>
     </aside>
@@ -101,17 +108,11 @@ export function toggleSidebar() {
     sidebar.classList.toggle('collapsed', isCollapsed);
     sidebar.setAttribute('data-collapsed', isCollapsed);
 
-    // Update toggle icon
+    // Update toggle aria
     const toggleBtn = sidebar.querySelector('.sidebar-toggle');
     if (toggleBtn) {
-      const iconSvgs = {
-        expand: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`,
-        collapse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`
-      };
-      toggleBtn.innerHTML = isCollapsed ? iconSvgs.expand : iconSvgs.collapse;
       toggleBtn.title = (isCollapsed ? 'Expand' : 'Collapse') + ' sidebar';
       toggleBtn.setAttribute('aria-label', (isCollapsed ? 'Expand' : 'Collapse') + ' sidebar');
-      toggleBtn.setAttribute('aria-expanded', (!isCollapsed).toString());
     }
   }
 }
@@ -133,6 +134,11 @@ export function initSidebarEvents() {
 
       if (route === '/add') {
         resetAddLotState();
+      }
+
+      // Auto-expand if clicking nav while collapsed
+      if (isCollapsed) {
+        toggleSidebar(); // Trigger expansion unconditionally
       }
 
       document.querySelectorAll('.sidebar-nav-item[data-route]').forEach(navItem => {
@@ -179,44 +185,39 @@ export function initSidebarEvents() {
 }
 
 function bindAuthEvents() {
+  const profileBtn = document.getElementById('sidebar-profile-btn');
+  const profilePopover = document.getElementById('profile-popover');
   const logoutBtn = document.getElementById('sidebar-logout-btn');
-  const logoutConfirm = document.getElementById('sidebar-logout-confirm');
-  const logoutCancel = document.getElementById('sidebar-logout-cancel');
-  const logoutConfirmBtn = document.getElementById('sidebar-logout-confirm-btn');
 
-  if (logoutBtn && logoutConfirm) {
-    logoutBtn.addEventListener('click', () => {
-      logoutConfirm.classList.add('visible');
+  // Popover toggle
+  if (profileBtn && profilePopover) {
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profilePopover.classList.toggle('visible');
+    });
+
+    // Close popover on outside click
+    document.addEventListener('click', (e) => {
+      if (!profileBtn.contains(e.target) && !profilePopover.contains(e.target)) {
+        profilePopover.classList.remove('visible');
+      }
     });
   }
 
-  if (logoutCancel && logoutConfirm) {
-    logoutCancel.addEventListener('click', () => {
-      logoutConfirm.classList.remove('visible');
-    });
-  }
-
-  if (logoutConfirmBtn && logoutConfirm) {
-    logoutConfirmBtn.addEventListener('click', async () => {
+  // Logout trigger
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      if (profilePopover) profilePopover.classList.remove('visible');
       await logout();
-      logoutConfirm.classList.remove('visible');
     });
   }
 }
 
 function showTooltip(element) {
-  const label = element.getAttribute('title');
-  if (!label) return;
-
-  let tooltip = element.querySelector('.sidebar-tooltip');
-  if (!tooltip) {
-    tooltip = document.createElement('div');
-    tooltip.className = 'sidebar-tooltip';
-    tooltip.textContent = label;
-    element.appendChild(tooltip);
+  const tooltip = element.querySelector('.sidebar-tooltip');
+  if (tooltip) {
+    tooltip.classList.add('visible');
   }
-
-  tooltip.classList.add('visible');
 }
 
 function hideTooltip(element) {
@@ -234,42 +235,38 @@ export function updateSidebarAuthState() {
   if (!sidebar) return;
 
   const user = auth.currentUser;
-  const divider = sidebar.querySelector('.sidebar-divider');
-  if (!divider) return;
-
-  // Remove existing auth elements (like buttons or confirms) that sit after the divider
-  let nextSibling = divider.nextElementSibling;
-  while (nextSibling) {
-    const toRemove = nextSibling;
-    nextSibling = nextSibling.nextElementSibling;
-    toRemove.remove();
-  }
+  const footerNode = sidebar.querySelector('.sidebar-footer');
+  if (!footerNode) return;
 
   const iconSvgs = {
-    logout: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
-    login: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>`
+    logout: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>`,
+    login: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>`,
+    settings: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`
   };
 
   const authHtml = user ? `
-    <button class="sidebar-nav-item sidebar-logout-btn" id="sidebar-logout-btn" title="Log out">
-      <span class="sidebar-nav-icon">${iconSvgs.logout}</span>
-      <span class="sidebar-nav-label">Log out</span>
-    </button>
-    <div class="sidebar-logout-confirm" id="sidebar-logout-confirm">
-      <p class="logout-confirm-text">Sign out of your account?</p>
-      <div class="logout-confirm-actions">
-        <button class="logout-confirm-btn cancel" id="sidebar-logout-cancel">Cancel</button>
-        <button class="logout-confirm-btn confirm" id="sidebar-logout-confirm-btn">Log out</button>
+    <div class="sidebar-profile-wrapper">
+      <button class="sidebar-profile-btn" id="sidebar-profile-btn">
+        <div class="profile-avatar">CH</div>
+        <div class="collapsible-content profile-info">
+          <div class="profile-name">Chris</div>
+          <div class="profile-role">Admin</div>
+        </div>
+      </button>
+      <div class="profile-popover" id="profile-popover">
+        <button class="popover-item"><span class="popover-icon">${iconSvgs.settings}</span> Settings</button>
+        <button class="popover-item logout-trigger" id="sidebar-logout-btn"><span class="popover-icon">${iconSvgs.logout}</span> Log out</button>
       </div>
     </div>
   ` : `
-    <button class="sidebar-nav-item sidebar-login-btn" id="sidebar-login-btn" title="Log in / Sync" onclick="window.dispatchEvent(new CustomEvent('open-login-modal'))">
-      <span class="sidebar-nav-icon">${iconSvgs.login}</span>
-      <span class="sidebar-nav-label">Log in / Sync</span>
+    <button class="sidebar-nav-item sidebar-login-btn" id="sidebar-login-btn" onclick="window.dispatchEvent(new CustomEvent('open-login-modal'))">
+      <div class="sidebar-nav-icon">${iconSvgs.login}</div>
+      <div class="collapsible-content sidebar-nav-label">Log in / Sync</div>
+      <div class="sidebar-tooltip">Log in / Sync</div>
     </button>
   `;
 
-  divider.insertAdjacentHTML('afterend', authHtml);
+  footerNode.innerHTML = authHtml;
 
   // Bind events only to the newly injected auth elements
   bindAuthEvents();

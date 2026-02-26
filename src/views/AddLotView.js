@@ -88,7 +88,7 @@ function renderPicker() {
           <div class="pulse-dot"></div>
           RECOMMENDED
         </div>
-        <h2 class="add-card-title">Order Screenshot Parser</h2>
+        <h2 class="add-card-title">Vision Lens</h2>
         <p class="add-card-desc">Drop in a screenshot of any order confirmation — Amazon, eBay, StockX, GOAT. We extract item name, price, quantity, and date automatically.</p>
         <div class="add-card-cta">
           Get started
@@ -127,7 +127,7 @@ function renderPicker() {
 
 function renderFlow() {
   const titles = {
-    ocr: 'Order Screenshot Parser',
+    ocr: 'Vision Lens',
     manual: 'Manual Entry',
     csv: 'CSV Import'
   };
@@ -161,9 +161,6 @@ function renderOcrFlow() {
     return `
       <div class="add-drop-zone" id="ocr-drop-zone">
         <input type="file" id="ocr-file-input" style="display: none;" accept="image/*" />
-        <div class="add-drop-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        </div>
         <div class="add-drop-title">Drop your screenshot here</div>
         <div class="add-drop-hint">PNG, JPG, WEBP — works with Amazon, eBay, StockX, GOAT, and most order confirmation pages</div>
         
@@ -214,9 +211,6 @@ function renderCsvFlow() {
 
     <div class="add-drop-zone" id="csv-drop-zone" style="margin-top: 32px;">
       <input type="file" id="csv-file-input" style="display: none;" accept=".csv" />
-      <div class="add-drop-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </div>
       <div class="add-drop-title">Drop your CSV here</div>
       <div class="add-drop-hint">Max 500 rows per import &middot; .csv only</div>
       <button class="btn-secondary-add" style="margin-top: 24px;" id="csv-browse-btn">Browse file</button>

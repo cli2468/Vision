@@ -957,10 +957,10 @@ function initSegmentationChart(salesData, prevSalesData) {
     },
     options: {
       animation: {
-        animateScale: true,
+        animateScale: false,
         animateRotate: true,
-        duration: 800,
-        easing: 'easeOutQuart'
+        duration: 1000,
+        easing: 'easeOutExpo'
       },
       transitions: {
         active: {
