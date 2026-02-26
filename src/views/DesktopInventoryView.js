@@ -14,8 +14,15 @@ let desktopSalePrice = '';
 let desktopSaleQty = 1;
 let desktopSalePlatform = 'facebook';
 let desktopSaleShipping = '';
-let desktopSortBy = 'roi'; // 'roi' | 'daysHeld' | 'profit' | 'sellThrough'
+let desktopSortBy = 'profit'; // default to profit since 'roi' isn't explicitly a column now, although 'profit' column includes ROI
+let desktopSortDirection = 'desc';
 let desktopActiveFilters = new Set(); // 'lowStock' | 'highRoi' | 'stale'
+
+function getSortIndicator(key) {
+  if (desktopSortBy !== key) return '↕';
+  return desktopSortDirection === 'asc' ? '↑' : '↓';
+}
+
 
 function generateSparklineSVG(lot) {
   const purchaseDate = new Date(lot.purchaseDate);
@@ -139,11 +146,11 @@ function renderInventoryGrid(lots) {
   return `
     <div class="inv-grid">
       <div class="inv-table-header">
-        <div class="inv-header-cell cell-item">ITEM</div>
-        <div class="inv-header-cell cell-perf">NET PROFIT / ROI</div>
-        <div class="inv-header-cell cell-risk">CAPITAL</div>
-        <div class="inv-header-cell cell-left">UNITS LEFT</div>
-        <div class="inv-header-cell cell-days">DAYS HELD</div>
+        <div class="inv-header-cell cell-item sortable" data-sort="item" style="cursor: pointer;">ITEM <span class="sort-icon" style="margin-left:4px;font-size:0.9em;">${getSortIndicator('item')}</span></div>
+        <div class="inv-header-cell cell-perf sortable" data-sort="profit" style="cursor: pointer;">NET PROFIT / ROI <span class="sort-icon" style="margin-left:4px;font-size:0.9em;">${getSortIndicator('profit')}</span></div>
+        <div class="inv-header-cell cell-risk sortable" data-sort="capital" style="cursor: pointer;">CAPITAL <span class="sort-icon" style="margin-left:4px;font-size:0.9em;">${getSortIndicator('capital')}</span></div>
+        <div class="inv-header-cell cell-left sortable" data-sort="unitsLeft" style="cursor: pointer;">UNITS LEFT <span class="sort-icon" style="margin-left:4px;font-size:0.9em;">${getSortIndicator('unitsLeft')}</span></div>
+        <div class="inv-header-cell cell-days sortable" data-sort="daysHeld" style="cursor: pointer;">DAYS HELD <span class="sort-icon" style="margin-left:4px;font-size:0.9em;">${getSortIndicator('daysHeld')}</span></div>
       </div>
       <div class="inv-grid-body">
         ${lots.map(lot => {
@@ -576,13 +583,45 @@ export function DesktopInventoryView() {
   filteredLots = [...filteredLots].sort((a, b) => {
     const sa = calculateLotStats(a);
     const sb = calculateLotStats(b);
+    let valA, valB;
+
     switch (desktopSortBy) {
-      case 'roi': return sb.roi - sa.roi;
-      case 'daysHeld': return sb.daysHeld - sa.daysHeld;
-      case 'profit': return sb.totalProfit - sa.totalProfit;
-      case 'sellThrough': return sb.sellThrough - sa.sellThrough;
-      default: return 0;
+      case 'item':
+        valA = a.name.toLowerCase();
+        valB = b.name.toLowerCase();
+        break;
+      case 'profit':
+        valA = sa.totalProfit;
+        valB = sb.totalProfit;
+        break;
+      case 'capital':
+        valA = a.remaining * a.unitCost;
+        valB = b.remaining * b.unitCost;
+        break;
+      case 'unitsLeft':
+        valA = a.remaining;
+        valB = b.remaining;
+        break;
+      case 'daysHeld':
+        valA = sa.daysHeld;
+        valB = sb.daysHeld;
+        break;
+      // Fallbacks if existing state holds old values
+      case 'roi':
+        valA = sa.roi;
+        valB = sb.roi;
+        break;
+      case 'sellThrough':
+        valA = sa.sellThrough;
+        valB = sb.sellThrough;
+        break;
+      default:
+        return 0;
     }
+
+    if (valA < valB) return desktopSortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return desktopSortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const selectedLot = desktopSelectedLotId ? lots.find(l => l.id === desktopSelectedLotId) : null;
@@ -627,15 +666,6 @@ export function DesktopInventoryView() {
           </div>
         </div>
         <div class="inv-toolbar-right">
-          <div class="inv-sort">
-            <label for="desktop-sort-select">SORT</label>
-            <select id="desktop-sort-select">
-              <option value="roi" ${desktopSortBy === 'roi' ? 'selected' : ''}>ROI</option>
-              <option value="daysHeld" ${desktopSortBy === 'daysHeld' ? 'selected' : ''}>Days Held</option>
-              <option value="profit" ${desktopSortBy === 'profit' ? 'selected' : ''}>Profit</option>
-              <option value="sellThrough" ${desktopSortBy === 'sellThrough' ? 'selected' : ''}>Sell-Through</option>
-            </select>
-          </div>
           <div class="inventory-search">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <circle cx="11" cy="11" r="8"></circle>
@@ -710,14 +740,21 @@ export function initDesktopInventoryEvents() {
     });
   }
 
-  // Close panel button logic moved to attachPanelEvents  // Sort dropdown
-  const sortSelect = document.getElementById('desktop-sort-select');
-  if (sortSelect) {
-    sortSelect.addEventListener('change', (e) => {
-      desktopSortBy = e.target.value;
+  // Table header sorting
+  document.querySelectorAll('.inv-table-header .sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const sortKey = th.dataset.sort;
+      if (desktopSortBy === sortKey) {
+        // Toggle direction if clicking same column
+        desktopSortDirection = desktopSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New column, default to desc
+        desktopSortBy = sortKey;
+        desktopSortDirection = 'desc';
+      }
       window.dispatchEvent(new CustomEvent('viewchange'));
     });
-  }
+  });
 
   // Filter chips
   document.querySelectorAll('.filter-chip').forEach(chip => {

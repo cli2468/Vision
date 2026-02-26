@@ -3003,29 +3003,53 @@
   .sales-log-view .inv-toolbar {
     background: #1B1B1B;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 24px 32px;
+    padding: 0 32px;
+    height: 66px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
   }
 
-  .sales-log-view .inv-toolbar-left,
+  .sales-log-view .inv-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
   .sales-log-view .inv-toolbar-right {
-    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .sales-log-view .inv-toolbar-title {
-    transform: none;
-    /* Align perfectly to middle */
-    font-size: 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-primary);
+    text-transform: uppercase;
   }
 
   .sales-record-count {
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    font-size: 0.95rem;
     font-family: var(--font-mono, monospace);
-    margin-left: 16px;
-    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 800;
+    line-height: 1;
+    margin-left: 6px;
+    letter-spacing: normal;
     display: flex;
     align-items: center;
-    /* Removed translateY for perfect middle alignment */
+  }
+
+  .sales-record-count::before {
+    content: "/";
+    margin-right: 12px;
+    opacity: 0.5;
+    color: rgba(255, 255, 255, 0.3);
   }
 
   .date-range-selector {
@@ -3034,26 +3058,272 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
-    padding: 0 16px;
-    height: 40px;
-    gap: 10px;
-    font-size: 0.9rem;
+    padding: 0 12px;
+    height: 32px;
+    gap: 8px;
+    font-size: 0.8rem;
     color: var(--text-muted);
     font-family: var(--font-mono, monospace);
-    cursor: pointer;
     transition: all 0.2s ease;
     box-sizing: border-box;
   }
 
   .sales-log-view .inventory-search {
-    height: 40px;
+    height: 32px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-sizing: border-box;
   }
 
-  .date-range-selector:hover {
-    border-color: rgba(255, 255, 255, 0.25);
+  .date-range-selector:hover,
+  .date-range-selector:focus-within {
+    border-color: rgba(45, 212, 191, 0.4);
+  }
+
+  .date-inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .date-sep {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .sales-date-input {
+    background: transparent;
+    border: none;
     color: var(--text-primary);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8rem;
+    outline: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .sales-date-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.5;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .sales-date-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* Custom Date Popover UI */
+  .custom-date-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    background: #171717;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    padding: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    cursor: default;
+  }
+
+  .custom-date-popover.active {
+    display: flex;
+    animation: fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .date-popover-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: var(--font-mono, monospace);
+  }
+
+  .date-popover-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .date-chip {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono, monospace);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .date-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .date-popover-inputs {
+    display: none;
+    /* Safely keep for specificity if needed, but unused now */
+  }
+
+  /* Interactive Calendar UI */
+  .calendar-module {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 4px;
+    user-select: none;
+  }
+
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+  }
+
+  .calendar-month-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-mono, monospace);
+  }
+
+  .calendar-nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .calendar-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+  }
+
+  .calendar-day-header {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: var(--font-mono, monospace);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .calendar-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.1s ease;
+    border: 1px solid transparent;
+  }
+
+  .calendar-cell:hover:not(.empty):not(.active-start):not(.active-end) {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .calendar-cell.empty {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  /* The highlighted range trace */
+  .calendar-cell.in-range {
+    background: rgba(45, 212, 191, 0.1);
+    color: var(--text-primary);
+    border-radius: 0;
+    /* Boxy feel between nodes */
+  }
+
+  /* Start and End nodes */
+  .calendar-cell.active-start,
+  .calendar-cell.active-end {
+    background: var(--text-primary);
+    color: #000;
+    font-weight: 800;
+    border-radius: 6px;
+  }
+
+  /* Seamless connection graphics if both are active */
+  .calendar-cell.active-start.has-end {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .calendar-cell.active-end.has-start {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  /* Current Day Dot */
+  .calendar-cell.is-today {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .date-popover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 12px;
+    margin-top: 4px;
+  }
+
+  .btn-date-clear {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s ease;
+  }
+
+  .btn-date-clear:hover {
+    color: #F87171;
+  }
+
+  .btn-date-apply {
+    background: var(--text-primary);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-weight: 600;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.2s ease;
+  }
+
+  .btn-date-apply:active {
+    transform: scale(0.96);
   }
 
   .sales-log-container {
@@ -3392,9 +3662,12 @@
 
   .add-inventory-header {
     background: #1B1B1B;
-    /* Header uses 1B as requested */
-    padding: 24px 32px;
+    padding: 0 32px;
+    height: 66px;
+    display: flex;
+    align-items: center;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-sizing: border-box;
   }
 
   .add-header-content {

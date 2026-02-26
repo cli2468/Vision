@@ -15,10 +15,38 @@ const firebaseConfig = {
 };
 
 console.log('🔥 Initializing Firebase...');
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
+
+let app;
+let auth;
+let db;
+let googleProvider;
+
+try {
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'your_api_key_here') {
+        throw new Error('Firebase API Key is missing or default. Live features will be disabled.');
+    }
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+    console.log('✅ Firebase initialized successfully.');
+} catch (error) {
+    console.warn('⚠️ Firebase initialization skipped:', error.message);
+    // Export nulls or mocks to prevent top-level crashes
+    app = null;
+    auth = {
+        onAuthStateChanged: (cb) => {
+            // Immediately trigger with "no user" to allow app to boot into demo mode
+            setTimeout(() => cb(null), 0);
+            return () => { };
+        }
+    };
+    db = null;
+    googleProvider = null;
+}
+
+export { auth, db };
+
 
 // Simple popup sign-in
 export const signInWithGoogle = async () => {
