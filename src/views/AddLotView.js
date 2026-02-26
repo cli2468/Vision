@@ -389,6 +389,7 @@ export function initAddLotEvents() {
   });
 
   // Flow specific events
+  if (currentActiveView === 'ocr') initOcrEvents();
   if (currentActiveView === 'manual') initFormEvents();
   if (currentActiveView === 'csv') initCsvEvents();
 }
