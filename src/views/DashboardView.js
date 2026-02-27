@@ -62,6 +62,9 @@ function getSalesForSelectedRange() {
 }
 
 function renderReturnAlerts() {
+  // Don't show return alerts on mobile
+  if (window.innerWidth < 1024) return '';
+
   const lotsNearingDeadline = getLotsNearingReturnDeadline(3);
 
   if (lotsNearingDeadline.length === 0) return '';

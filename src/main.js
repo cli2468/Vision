@@ -5,7 +5,7 @@ import './styles/desktop.css';
 import { route, initRouter, getCurrentRoute } from './router.js';
 import { DashboardView, initDashboardEvents } from './views/DashboardView.js';
 import { InventoryView, initInventoryEvents } from './views/InventoryView.js';
-import { AddLotView, initAddLotEvents } from './views/AddLotView.js';
+import { AddLotView, initAddLotEvents, initMobileAddLotEvents } from './views/AddLotView.js';
 import { SalesView, initSalesEvents } from './views/SalesView.js';
 import { BottomNav, initBottomNavEvents } from './components/BottomNav.js';
 import { Sidebar, initSidebarEvents, toggleSidebar, isSidebarCollapsed, updateSidebarAuthState } from './components/Sidebar.js';
@@ -50,7 +50,11 @@ function initEvents() {
         initInventoryEvents();
         break;
       case '/add':
-        initAddLotEvents();
+        if (isDesktop()) {
+          initAddLotEvents();
+        } else {
+          initMobileAddLotEvents();
+        }
         break;
       case '/sales':
         initSalesEvents();
@@ -142,11 +146,16 @@ function getViewContent(currentRoute) {
 
 // Initial render - set up the app structure and initial static content
 function initApp() {
-  // Demo Mode Activation for First Time Visitors
+  // Demo Mode Activation for First Time Visitors (desktop only)
   if (!localStorage.getItem('hasVisited')) {
     localStorage.setItem('hasVisited', 'true');
-    localStorage.setItem('demoMode', 'true');
-    localStorage.setItem('dashboardCurrentRange', 'all');
+    if (isDesktop()) {
+      localStorage.setItem('demoMode', 'true');
+      localStorage.setItem('dashboardCurrentRange', 'all');
+    } else {
+      // On mobile first visit, show a one-time popup suggesting desktop
+      sessionStorage.setItem('showMobileDesktopPrompt', 'true');
+    }
   }
 
   // Global helper to exit demo mode cleanly
@@ -210,6 +219,30 @@ function initApp() {
 
   // Start demo tour if applicable
   initDemoTour();
+
+  // Mobile first-visit popup suggesting desktop for demo
+  if (sessionStorage.getItem('showMobileDesktopPrompt') === 'true') {
+    sessionStorage.removeItem('showMobileDesktopPrompt');
+    const overlay = document.createElement('div');
+    overlay.id = 'mobile-desktop-prompt';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card, #1a1a1a);border-radius:16px;padding:32px 24px;max-width:340px;text-align:center;border:1px solid rgba(255,255,255,0.08);">
+        <div style="font-size:2rem;margin-bottom:12px;">🖥️</div>
+        <h3 style="color:var(--text-primary, #fff);margin:0 0 8px;font-size:1.1rem;">Try the Demo on Desktop</h3>
+        <p style="color:var(--text-secondary, #aaa);font-size:0.85rem;line-height:1.5;margin:0 0 20px;">For the best experience with sample data and the interactive walkthrough, visit on a desktop browser.</p>
+        <button id="dismiss-mobile-prompt" style="background:var(--accent-teal, #2DD4BF);color:#000;border:none;padding:10px 28px;border-radius:8px;font-weight:600;font-size:0.85rem;cursor:pointer;">Got it</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.id === 'dismiss-mobile-prompt') {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => overlay.remove(), 300);
+      }
+    });
+  }
 }
 
 // Handle window resize to switch between mobile and desktop layouts
