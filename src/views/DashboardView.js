@@ -400,11 +400,11 @@ function initChart() {
 
   const ctx = canvas.getContext('2d');
 
-  // Create fade gradient that goes from neon to transparent
+  // Create fade gradient that goes from accent to transparent
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 200);
-  gradient.addColorStop(0, 'rgba(204, 255, 0, 0.25)');
-  gradient.addColorStop(0.5, 'rgba(204, 255, 0, 0.08)');
-  gradient.addColorStop(1, 'rgba(204, 255, 0, 0)');
+  gradient.addColorStop(0, 'rgba(163, 230, 53, 0.24)');
+  gradient.addColorStop(0.5, 'rgba(163, 230, 53, 0.1)');
+  gradient.addColorStop(1, 'rgba(163, 230, 53, 0)');
 
   // Custom plugin for vertical dotted hover line
   const verticalLinePlugin = {
@@ -419,7 +419,7 @@ function initChart() {
         ctx.lineTo(x, bottom);
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = 'rgba(204, 255, 0, 0.6)';
+        ctx.strokeStyle = 'rgba(163, 230, 53, 0.5)';
         ctx.stroke();
         ctx.restore();
       }
@@ -434,17 +434,17 @@ function initChart() {
         label: 'Revenue',
         data: cumulativeRevenues,
         backgroundColor: gradient,
-        borderColor: '#CCFF00',
+        borderColor: '#A3E635',
         borderWidth: 2,
         tension: 0.4,
         fill: true,
-        pointBackgroundColor: '#CCFF00',
-        pointBorderColor: '#1C180D',
+        pointBackgroundColor: '#A3E635',
+        pointBorderColor: '#0A0A0A',
         pointBorderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 6,
-        pointHoverBackgroundColor: '#CCFF00',
-        pointHoverBorderColor: '#1C180D',
+        pointHoverBackgroundColor: '#A3E635',
+        pointHoverBorderColor: '#0A0A0A',
         pointHoverBorderWidth: 3,
       }]
     },
@@ -471,10 +471,10 @@ function initChart() {
         },
         tooltip: {
           enabled: true,
-          backgroundColor: 'rgba(28, 24, 13, 0.95)',
-          titleColor: '#D4D0C9',
-          bodyColor: '#CCFF00',
-          borderColor: 'rgba(204, 255, 0, 0.4)',
+          backgroundColor: 'rgba(10, 10, 10, 0.95)',
+          titleColor: '#ffffff',
+          bodyColor: '#A3E635',
+          borderColor: 'rgba(163, 230, 53, 0.35)',
           borderWidth: 1,
           padding: 12,
           cornerRadius: 8,
@@ -497,7 +497,7 @@ function initChart() {
             display: false
           },
           ticks: {
-            color: '#B4B1AB',
+            color: 'rgba(255, 255, 255, 0.45)',
             font: { size: 11 },
             maxRotation: 0,
             autoSkip: selectedRange !== '7d', // Show all labels for 7D
@@ -512,7 +512,7 @@ function initChart() {
           max: yMax,
           ticks: {
             stepSize: stepSize,
-            color: '#B4B1AB',
+            color: 'rgba(255, 255, 255, 0.45)',
             font: { size: 11 },
             padding: 8,
             callback: function (value) {
@@ -523,7 +523,7 @@ function initChart() {
             }
           },
           grid: {
-            color: 'rgba(180, 177, 171, 0.15)',
+            color: 'rgba(255, 255, 255, 0.06)',
             drawBorder: false,
             tickLength: 0
           },

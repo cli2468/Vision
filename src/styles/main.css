@@ -1,27 +1,27 @@
 /* ===== Design System ===== */
 :root {
-  --base: #171717;
-  /* Robin Black - page background */
-  --surface: #8A8783;
-  /* Heather #1 - cards, modals, elevated surfaces */
-  --accent: #CCFF00;
-  /* Robin Neon - primary actions, profit, charts, FAB */
-  --text-primary: #EAE6E0;
-  /* Heather #3 - headlines, numbers, labels */
-  --text-secondary: #9A968F;
-  /* Heather #2 - hints, metadata, disabled */
+  --base: #0A0A0A;
+  /* Page background - neutral dark */
+  --surface: #1B1B1B;
+  /* Cards, modals, elevated surfaces */
+  --accent: #2DD4BF;
+  /* Teal - primary actions, UI chrome */
+  --text-primary: #ffffff;
+  /* Pure white - headlines, numbers, labels */
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  /* Neutral gray - hints, metadata, disabled */
 
   /* Legacy compatibility - mapped to new system */
   --bg-primary: var(--base);
   --bg-secondary: var(--base);
-  --bg-card: rgba(42, 38, 33, 0.7);
+  --bg-card: rgba(27, 27, 27, 0.9);
   --bg-glass: rgba(255, 255, 255, 0.04);
 
-  /* Accent mapped to neon */
+  /* Accent mapped to teal */
   --accent-primary: var(--accent);
-  --accent-secondary: #b3e600;
-  /* Slightly dimmer neon for hover */
-  --accent-success: var(--accent);
+  --accent-secondary: #22b8a0;
+  /* Slightly dimmer teal for hover */
+  --accent-success: var(--profit-emerald);
   --accent-warning: #ffaa00;
   --accent-danger: #ff4444;
   /* Semantic color roles:
@@ -45,27 +45,27 @@
   --chart-fill-start: rgba(163, 230, 53, 0.24);
   --chart-fill-mid: rgba(163, 230, 53, 0.1);
   --chart-fill-end: rgba(163, 230, 53, 0);
-  --chart-axis-text: rgba(234, 230, 224, 0.55);
-  --chart-grid-line: rgba(234, 230, 224, 0.08);
+  --chart-axis-text: rgba(255, 255, 255, 0.45);
+  --chart-grid-line: rgba(255, 255, 255, 0.06);
   --chart-point-border: #1B1B1B;
 
   /* Text mapped */
   --text-muted: var(--text-secondary);
 
-  /* Gradients - Neon on black */
-  --gradient-primary: linear-gradient(135deg, var(--accent) 0%, #b3e600 100%);
-  --gradient-success: linear-gradient(135deg, var(--accent) 0%, #b3e600 100%);
-  --gradient-card: linear-gradient(135deg, rgba(138, 135, 131, 0.1) 0%, rgba(138, 135, 131, 0.05) 100%);
+  /* Gradients - Teal on dark */
+  --gradient-primary: linear-gradient(135deg, var(--accent) 0%, #22b8a0 100%);
+  --gradient-success: linear-gradient(135deg, var(--profit-emerald) 0%, #2DD4BF 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
 
   /* Shadows - subtle on dark */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(204, 255, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(45, 212, 191, 0.25);
 
   /* Subtle lines instead of borders */
-  --border-subtle: 1px solid rgba(180, 177, 171, 0.15);
-  --border-accent: 1px solid rgba(204, 255, 0, 0.4);
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+  --border-accent: 1px solid rgba(45, 212, 191, 0.35);
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -83,7 +83,7 @@
   --radius-full: 9999px;
 
   /* Typography */
-  --font-family: 'Noto Sans Gunjala Gondi', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -159,8 +159,8 @@ body {
   position: fixed;
   top: 12px;
   right: 12px;
-  background: rgba(204, 255, 0, 0.15);
-  border: 1px solid rgba(204, 255, 0, 0.3);
+  background: rgba(45, 212, 191, 0.15);
+  border: 1px solid rgba(45, 212, 191, 0.3);
   color: var(--accent);
   padding: 6px 12px;
   border-radius: var(--radius-full);
@@ -175,7 +175,7 @@ body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 12px rgba(204, 255, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(45, 212, 191, 0.05);
   animation: slideDownIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -185,8 +185,8 @@ body {
 }
 
 .demo-badge:hover {
-  background: rgba(204, 255, 0, 0.25);
-  border-color: rgba(204, 255, 0, 0.5);
+  background: rgba(45, 212, 191, 0.25);
+  border-color: rgba(45, 212, 191, 0.5);
   transform: translateY(-1px);
 }
 
@@ -285,7 +285,7 @@ body {
   border-radius: var(--radius-lg);
   padding: 20px;
   color: var(--text-primary);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(204, 255, 0, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(45, 212, 191, 0.08);
   z-index: 2000;
   opacity: 0;
   pointer-events: none;
@@ -778,7 +778,7 @@ p {
 
 .form-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.15);
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15);
 }
 
 .form-input::placeholder {
@@ -863,7 +863,7 @@ p {
 
 /* ===== Premium Lot Card ===== */
 .lot-card {
-  background: rgba(35, 31, 28, 0.85);
+  background: rgba(27, 27, 27, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 14px;
   padding: 20px 20px 24px;
@@ -960,7 +960,7 @@ p {
   border-radius: 6px;
   font-size: 0.5625rem;
   font-weight: 500;
-  color: rgba(154, 150, 143, 0.7);
+  color: rgba(255, 255, 255, 0.7);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -1022,14 +1022,14 @@ p {
 
 .lot-bought-label {
   font-size: 0.6875rem;
-  color: rgba(180, 177, 171, 0.5);
+  color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
 
 .lot-bought-value {
   font-size: 0.8125rem;
-  color: rgba(212, 208, 201, 0.7);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
   letter-spacing: -0.01em;
 }
@@ -1048,7 +1048,7 @@ p {
 
 .lot-progress-label {
   font-size: 0.6875rem;
-  color: rgba(180, 177, 171, 0.5);
+  color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
@@ -1056,7 +1056,7 @@ p {
 .lot-progress-percent {
   font-size: 0.6875rem;
   font-weight: 500;
-  color: rgba(204, 255, 0, 0.75);
+  color: rgba(45, 212, 191, 0.75);
   letter-spacing: 0.3px;
 }
 
@@ -1070,11 +1070,11 @@ p {
 
 .lot-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, rgba(204, 255, 0, 0.9) 0%, rgba(160, 255, 100, 0.7) 100%);
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.9) 0%, rgba(160, 255, 100, 0.7) 100%);
   border-radius: 3px;
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
-  box-shadow: 0 0 12px rgba(204, 255, 0, 0.3);
+  box-shadow: 0 0 12px rgba(45, 212, 191, 0.3);
 }
 
 
@@ -1091,7 +1091,7 @@ p {
 
 .lot-progress-text {
   font-size: 0.6875rem;
-  color: rgba(180, 177, 171, 0.5);
+  color: rgba(255, 255, 255, 0.5);
   margin-top: 6px;
   letter-spacing: 0.2px;
 }
@@ -1102,7 +1102,7 @@ p {
   align-items: center;
   gap: 6px;
   font-size: 0.6875rem;
-  color: rgba(180, 177, 171, 0.45);
+  color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.2px;
 }
 
@@ -1118,7 +1118,7 @@ p {
 .btn-text {
   background: none;
   border: none;
-  color: rgba(204, 255, 0, 0.65);
+  color: rgba(45, 212, 191, 0.65);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -1131,7 +1131,7 @@ p {
 }
 
 .btn-text:hover {
-  color: rgba(204, 255, 0, 0.9);
+  color: rgba(45, 212, 191, 0.9);
 }
 
 .btn-text:hover {
@@ -1192,13 +1192,13 @@ p {
 .sale-platform {
   font-size: 0.75rem;
   font-weight: 500;
-  color: rgba(212, 208, 201, 0.8);
+  color: rgba(255, 255, 255, 0.8);
   letter-spacing: 0.1px;
 }
 
 .sale-date {
   font-size: 0.6875rem;
-  color: rgba(180, 177, 171, 0.45);
+  color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.2px;
 }
 
@@ -1250,7 +1250,7 @@ p {
 
 .sale-details {
   font-size: 0.625rem;
-  color: rgba(180, 177, 171, 0.4);
+  color: rgba(255, 255, 255, 0.4);
   margin-top: 2px;
   letter-spacing: 0.2px;
 }
@@ -1296,24 +1296,24 @@ p {
   font-size: 0.875rem;
   font-weight: 500;
   margin-top: 20px;
-  background: linear-gradient(135deg, rgba(204, 255, 0, 0.2) 0%, rgba(204, 255, 0, 0.12) 100%);
-  border: 1px solid rgba(204, 255, 0, 0.35);
-  color: rgba(204, 255, 0, 0.95);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(204, 255, 0, 0.08);
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.2) 0%, rgba(45, 212, 191, 0.12) 100%);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: rgba(45, 212, 191, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(45, 212, 191, 0.08);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   letter-spacing: 0.3px;
 }
 
 .btn-sale:hover {
-  background: linear-gradient(135deg, rgba(204, 255, 0, 0.28) 0%, rgba(204, 255, 0, 0.18) 100%);
-  border-color: rgba(204, 255, 0, 0.5);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), 0 0 28px rgba(204, 255, 0, 0.12);
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.28) 0%, rgba(45, 212, 191, 0.18) 100%);
+  border-color: rgba(45, 212, 191, 0.5);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), 0 0 28px rgba(45, 212, 191, 0.12);
   transform: translateY(-1px);
 }
 
 .btn-sale:active {
   transform: scale(0.97);
-  background: linear-gradient(135deg, rgba(204, 255, 0, 0.15) 0%, rgba(204, 255, 0, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.15) 0%, rgba(45, 212, 191, 0.1) 100%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
@@ -1339,12 +1339,12 @@ p {
 }
 
 .search-bar:focus-within {
-  border-color: rgba(204, 255, 0, 0.25);
+  border-color: rgba(45, 212, 191, 0.25);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .search-bar svg {
-  color: rgba(180, 177, 171, 0.4);
+  color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
 }
 
@@ -1367,7 +1367,7 @@ p {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 10px;
-  color: rgba(212, 208, 201, 0.7);
+  color: rgba(255, 255, 255, 0.7);
   font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -1384,7 +1384,7 @@ p {
 }
 
 .sort-dropdown:focus {
-  border-color: rgba(204, 255, 0, 0.25);
+  border-color: rgba(45, 212, 191, 0.25);
   background-color: rgba(255, 255, 255, 0.04);
 }
 
@@ -1660,8 +1660,8 @@ p {
 
 .form-input-compact:focus {
   border-color: var(--accent);
-  background: rgba(204, 255, 0, 0.05);
-  box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.1);
+  background: rgba(45, 212, 191, 0.05);
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.1);
   outline: none;
 }
 
@@ -1741,7 +1741,7 @@ p {
 }
 
 .segmented-option.selected {
-  background: rgba(204, 255, 0, 0.15);
+  background: rgba(45, 212, 191, 0.15);
   color: var(--accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -1765,13 +1765,13 @@ p {
   font-weight: 600 !important;
   border-radius: 14px !important;
   border: none !important;
-  box-shadow: 0 4px 15px rgba(204, 255, 0, 0.2) !important;
+  box-shadow: 0 4px 15px rgba(45, 212, 191, 0.2) !important;
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
 .btn-transactional-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(204, 255, 0, 0.3) !important;
+  box-shadow: 0 6px 20px rgba(45, 212, 191, 0.3) !important;
   filter: brightness(1.05);
 }
 
@@ -1834,7 +1834,7 @@ p {
 
 .dynamic-profit-value.profit {
   color: var(--accent);
-  text-shadow: 0 0 15px rgba(204, 255, 0, 0.15);
+  text-shadow: 0 0 15px rgba(45, 212, 191, 0.15);
   /* Soft gradient glow */
 }
 
@@ -1941,7 +1941,7 @@ p {
 
 /* ===== Upload Area ===== */
 .upload-area {
-  border: 2px dashed rgba(204, 255, 0, 0.3);
+  border: 2px dashed rgba(45, 212, 191, 0.3);
   border-radius: var(--radius-lg);
   padding: var(--spacing-2xl);
   text-align: center;
@@ -1953,7 +1953,7 @@ p {
 .upload-area:hover,
 .upload-area.active {
   border-color: var(--accent);
-  background: rgba(204, 255, 0, 0.08);
+  background: rgba(45, 212, 191, 0.08);
 }
 
 .upload-icon {
@@ -2016,7 +2016,7 @@ p {
 
 .platform-option.selected {
   border-color: var(--accent);
-  background: rgba(204, 255, 0, 0.12);
+  background: rgba(45, 212, 191, 0.12);
 }
 
 .platform-name {
@@ -2085,20 +2085,20 @@ p {
   justify-content: center;
   background: rgba(255, 255, 255, 0.02);
   border-radius: 20px;
-  color: rgba(180, 177, 171, 0.35);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .empty-state-title {
   font-size: 1rem;
   font-weight: 500;
-  color: rgba(212, 208, 201, 0.6);
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: 6px;
   letter-spacing: -0.01em;
 }
 
 .empty-state-text {
   font-size: 0.8125rem;
-  color: rgba(180, 177, 171, 0.4);
+  color: rgba(255, 255, 255, 0.4);
   max-width: 240px;
   margin: 0 auto;
   line-height: 1.5;
@@ -2119,8 +2119,8 @@ p {
   padding: 10px 16px;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: rgba(154, 150, 143, 0.7);
-  background: rgba(35, 31, 28, 0.5);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(27, 27, 27, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 10px;
   cursor: pointer;
@@ -2130,18 +2130,18 @@ p {
 
 .tab:hover {
   color: rgba(232, 228, 222, 0.8);
-  background: rgba(42, 38, 33, 0.6);
+  background: rgba(27, 27, 27, 0.6);
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 .tab.active {
-  background: rgba(204, 255, 0, 0.15);
+  background: rgba(45, 212, 191, 0.15);
   /* Stronger lime background */
-  border-color: rgba(204, 255, 0, 0.5);
+  border-color: rgba(45, 212, 191, 0.5);
   /* Stronger border */
   color: #CCFF00;
   /* Bright lime text */
-  box-shadow: 0 4px 12px rgba(204, 255, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(45, 212, 191, 0.1);
   /* Subtle glow for elevation */
   font-weight: 600;
   /* Bolder text */
@@ -2315,7 +2315,7 @@ p {
 
   50% {
     transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(204, 255, 0, 0.5);
+    box-shadow: 0 0 20px rgba(45, 212, 191, 0.5);
   }
 
   75% {
@@ -2574,7 +2574,7 @@ p {
 
 .time-option.active {
   color: var(--accent);
-  background: rgba(204, 255, 0, 0.1);
+  background: rgba(45, 212, 191, 0.1);
   font-weight: 500;
 }
 
@@ -2932,7 +2932,7 @@ p {
 .import-drop-zone:hover,
 .import-drop-zone.drag-over {
   border-color: var(--accent);
-  background: rgba(204, 255, 0, 0.05);
+  background: rgba(45, 212, 191, 0.05);
 }
 
 .import-drop-zone.drag-over {
@@ -3348,7 +3348,7 @@ p {
 
 .swipe-actions-bg::after {
   right: 0;
-  background: linear-gradient(-90deg, rgba(204, 255, 0, 0.05) 0%, transparent 100%);
+  background: linear-gradient(-90deg, rgba(45, 212, 191, 0.05) 0%, transparent 100%);
 }
 
 .swipe-bg-action {
@@ -3375,13 +3375,13 @@ p {
 
 /* Edit on left (swipe right) - Green */
 .swipe-bg-action.edit-bg {
-  color: rgba(204, 255, 0, 0.75);
+  color: rgba(45, 212, 191, 0.75);
 }
 
 .swipe-bg-action.edit-bg .swipe-bg-icon {
-  background: rgba(204, 255, 0, 0.1);
-  border: 1px solid rgba(204, 255, 0, 0.2);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25), 0 0 16px rgba(204, 255, 0, 0.08);
+  background: rgba(45, 212, 191, 0.1);
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25), 0 0 16px rgba(45, 212, 191, 0.08);
 }
 
 /* Delete on right (swipe left) - Red */
@@ -3589,7 +3589,7 @@ p {
 .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(204, 255, 0, 0.3);
+  background: rgba(45, 212, 191, 0.3);
   transform: scale(0);
   animation: rippleEffect 600ms ease-out;
   pointer-events: none;
