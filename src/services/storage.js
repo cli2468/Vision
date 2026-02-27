@@ -185,7 +185,7 @@ export function recordSale(id, pricePerUnit, unitsSold, platform, shippingCost =
 
     const pricePerUnitCents = Math.round(price * 100);
     const totalSalePrice = pricePerUnitCents * qty;
-    const feeRate = platform === 'ebay' ? 0.135 : 0;
+    const feeRate = platform === 'facebook' ? 0 : 0.135;
     const fees = Math.round(totalSalePrice * feeRate);
     const shippingCostCents = Math.round(shipping * 100);
     const costBasis = (Number(lot.unitCost) || 0) * qty;
@@ -266,7 +266,32 @@ export function updateSale(lotId, saleId, updates) {
     const saleIndex = lot.sales.findIndex(s => s.id === saleId);
     if (saleIndex === -1) return null;
 
-    lot.sales[saleIndex] = { ...lot.sales[saleIndex], ...updates };
+    const oldSale = lot.sales[saleIndex];
+    const newSale = { ...oldSale, ...updates };
+
+    // If quantity changed, adjust lot.remaining
+    if (updates.unitsSold !== undefined) {
+        const qtyDiff = oldSale.unitsSold - updates.unitsSold;
+        lot.remaining += qtyDiff;
+    }
+
+    // Recalculate fees and profit if price, quantity, or platform changed
+    if (updates.pricePerUnit !== undefined || updates.unitsSold !== undefined || updates.platform !== undefined || updates.shippingCost !== undefined) {
+        const platform = newSale.platform || 'unknown';
+        const feeRate = platform === 'facebook' ? 0 : 0.135;
+
+        const pricePerUnitCents = newSale.pricePerUnit;
+        const totalSalePrice = pricePerUnitCents * newSale.unitsSold;
+        const fees = Math.round(totalSalePrice * feeRate);
+        const costBasis = (Number(lot.unitCost) || 0) * newSale.unitsSold;
+
+        newSale.totalPrice = totalSalePrice;
+        newSale.fees = fees;
+        newSale.costBasis = costBasis;
+        newSale.profit = totalSalePrice - costBasis - fees - (newSale.shippingCost || 0);
+    }
+
+    lot.sales[saleIndex] = newSale;
     saveStorageData(data);
 
     // Cloud sync
@@ -318,9 +343,9 @@ export function getAllSales() {
 
     for (const lot of lots) {
         if (!lot.sales) continue;
-        for (const sale of lot.sales) {
-            allSales.push({ lot, sale });
-        }
+        lot.sales.forEach((sale, saleIndex) => {
+            allSales.push({ lot, sale, saleIndex });
+        });
     }
 
     return allSales;
@@ -341,14 +366,14 @@ export function getSalesByDateRange(startDate, endDate = null) {
 
     for (const lot of lots) {
         if (!lot.sales) continue;
-        for (const sale of lot.sales) {
+        lot.sales.forEach((sale, saleIndex) => {
             // Parse date as local time by appending T00:00:00 to avoid UTC shift
             const saleDateStr = sale.dateSold.includes('T') ? sale.dateSold : sale.dateSold + 'T00:00:00';
             const saleTime = new Date(saleDateStr).getTime();
             if (saleTime >= startTime && saleTime <= endTime) {
-                salesInRange.push({ lot, sale });
+                salesInRange.push({ lot, sale, saleIndex });
             }
-        }
+        });
     }
 
     return salesInRange;
@@ -410,12 +435,12 @@ export function getSalesByMonth(year, month) {
 
     for (const lot of lots) {
         if (!lot.sales) continue;
-        for (const sale of lot.sales) {
+        lot.sales.forEach((sale, saleIndex) => {
             const date = new Date(sale.dateSold);
             if (date.getFullYear() === year && date.getMonth() === month) {
-                salesInMonth.push({ lot, sale });
+                salesInMonth.push({ lot, sale, saleIndex });
             }
-        }
+        });
     }
 
     return salesInMonth;

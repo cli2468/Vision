@@ -89,7 +89,7 @@ function renderPicker() {
           RECOMMENDED
         </div>
         <h2 class="add-card-title">Vision Lens</h2>
-        <p class="add-card-desc">Drop in a screenshot of any order confirmation — Amazon, eBay, StockX, GOAT. We extract item name, price, quantity, and date automatically.</p>
+        <p class="add-card-desc">Drop in a screenshot of any order confirmation — Amazon, Walmart, Target, Woot, Best Buy. We extract item name, price, quantity, and date automatically.</p>
         <div class="add-card-cta">
           Get started
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
@@ -133,7 +133,7 @@ function renderFlow() {
   };
 
   const subtitles = {
-    ocr: 'Upload a confirmation screenshot from Amazon, eBay, StockX, or GOAT.',
+    ocr: 'Upload a confirmation screenshot from Amazon, Walmart, Target, Woot, or Best Buy.',
     manual: 'Enter your inventory details manually for single items.',
     csv: 'Bulk import items from a spreadsheet using our template.'
   };
@@ -162,7 +162,7 @@ function renderOcrFlow() {
       <div class="add-drop-zone" id="ocr-drop-zone">
         <input type="file" id="ocr-file-input" style="display: none;" accept="image/*" />
         <div class="add-drop-title">Drop your screenshot here</div>
-        <div class="add-drop-hint">PNG, JPG, WEBP — works with Amazon, eBay, StockX, GOAT, and most order confirmation pages</div>
+        <div class="add-drop-hint">PNG, JPG, WEBP — works with Amazon, Walmart, Target, Woot, Best Buy, and most order confirmation pages</div>
         
         <button class="btn-secondary-add" style="margin-top: 24px;" id="ocr-browse-btn">Browse file</button>
         
@@ -182,7 +182,7 @@ function renderOcrFlow() {
 
   return `
     <div class="teal-notice-bar">
-      ✨ Fields extracted from screenshot automatically. Please review below.
+      Fields extracted from screenshot automatically. Please review below.
     </div>
     ${renderInventoryForm(true)}
   `;
@@ -202,7 +202,6 @@ function renderCsvFlow() {
           <code class="add-form-code featured">purchase_date</code>
           <code class="add-form-code featured">quantity</code>
           <code class="add-form-code featured">total_cost</code>
-          <code class="add-form-code">platform</code>
           <code class="add-form-code">notes</code>
         </div>
         <a href="#" class="csv-template-link">↓ Download template</a>
@@ -237,17 +236,6 @@ function renderInventoryForm(isParsed = false) {
           <label class="add-form-label">PURCHASE DATE</label>
           <input type="date" class="add-form-input" id="purchase-date" value="${extractedData.purchaseDate}" />
         </div>
-        <div class="add-form-group">
-          <label class="add-form-label">PLATFORM PURCHASED FROM</label>
-          <select class="add-form-select" id="purchase-platform">
-            <option value="">Select platform...</option>
-            <option value="Amazon" ${extractedData.platform === 'Amazon' ? 'selected' : ''}>Amazon</option>
-            <option value="eBay" ${extractedData.platform === 'eBay' ? 'selected' : ''}>eBay</option>
-            <option value="StockX" ${extractedData.platform === 'StockX' ? 'selected' : ''}>StockX</option>
-            <option value="GOAT" ${extractedData.platform === 'GOAT' ? 'selected' : ''}>GOAT</option>
-            <option value="Other" ${extractedData.platform === 'Other' ? 'selected' : ''}>Other</option>
-          </select>
-        </div>
       </div>
       
       <div class="add-form-divider"></div>
@@ -255,7 +243,16 @@ function renderInventoryForm(isParsed = false) {
       <div class="add-form-row row-3">
         <div class="add-form-group">
           <label class="add-form-label">QUANTITY</label>
-          <input type="number" class="add-form-input" id="quantity" value="${extractedData.quantity}" min="1" />
+          <div class="quantity-stepper">
+            <button type="button" class="stepper-btn" id="add-qty-decrease">-</button>
+            <input type="number" 
+                   class="add-form-input stepper-input" 
+                   id="quantity" 
+                   value="${extractedData.quantity}" 
+                   min="1" 
+                   inputmode="numeric" />
+            <button type="button" class="stepper-btn" id="add-qty-increase">+</button>
+          </div>
         </div>
         <div class="add-form-group">
           <label class="add-form-label">TOTAL COST</label>
@@ -273,9 +270,9 @@ function renderInventoryForm(isParsed = false) {
         </div>
       </div>
       
-      <div class="add-form-actions">
-        <button class="btn-primary-add" id="save-inventory-btn">Save to Inventory</button>
-        <button class="btn-secondary-add" id="cancel-flow">${isParsed ? 'Re-upload' : 'Cancel'}</button>
+      <div class="add-form-actions" style="display: flex; flex-direction: row; justify-content: flex-start; gap: 16px;">
+        <button class="btn btn-primary btn-full record-sale-drawer-btn" id="save-inventory-btn" style="margin: 0; flex: 1; max-width: 220px;">Save to Inventory</button>
+        <button class="btn btn-secondary-add" id="cancel-flow" style="margin: 0; flex: 1; max-width: 180px;">${isParsed ? 'Re-upload' : 'Cancel'}</button>
       </div>
     </div>
   `;
@@ -284,27 +281,10 @@ function renderInventoryForm(isParsed = false) {
 function renderSidebarContent() {
   if (currentActiveView === 'ocr') {
     return `
-      <span class="sidebar-section-title">COMPATIBLE PLATFORMS</span>
+      <span class="sidebar-section-title">VISION LENS OCR</span>
       <div class="sidebar-list">
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
-          <span>Amazon</span>
-          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
-          <span>eBay</span>
-          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
-          <span>StockX</span>
-          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
-          <span>GOAT</span>
-          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--text-primary);">
-          <span>Whatnot</span>
-          <span style="color: var(--accent-teal); background: rgba(45, 212, 191, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">SUPPORTED</span>
+        <div class="sidebar-item">
+          <span class="sidebar-item-desc">Drop in a screenshot of any order confirmation from Amazon, Walmart, Target, Woot, or Best Buy.</span>
         </div>
       </div>
 
@@ -432,13 +412,21 @@ async function handleOcrUpload(file) {
   window.dispatchEvent(new CustomEvent('viewchange'));
 
   // Simulated parsing delay for better UX (shimmer progress bar)
+  // Instead of dispatching viewchange 50 times (causing full layout flashes),
+  // we target DOM nodes directly for a perfectly smooth 60fps update progress.
   const interval = setInterval(() => {
     ocrProgress += 5;
+
+    // Direct DOM updates
+    const fillEl = document.querySelector('.add-progress-fill');
+    const textEl = document.querySelector('.add-progress-text');
+
+    if (fillEl) fillEl.style.width = `${ocrProgress}%`;
+    if (textEl) textEl.textContent = `PARSING SCREENSHOT... ${ocrProgress}%`;
+
     if (ocrProgress >= 100) {
       clearInterval(interval);
       finishParsing(file);
-    } else {
-      window.dispatchEvent(new CustomEvent('viewchange'));
     }
   }, 80);
 }
@@ -478,6 +466,9 @@ function initFormEvents() {
   const saveBtn = document.getElementById('save-inventory-btn');
   const cancelBtn = document.getElementById('cancel-flow');
 
+  const qtyDec = document.getElementById('add-qty-decrease');
+  const qtyInc = document.getElementById('add-qty-increase');
+
   const updateCalculated = () => {
     const q = parseInt(qtyInput?.value) || 0;
     const c = parseFloat(costInput?.value) || 0;
@@ -487,6 +478,24 @@ function initFormEvents() {
 
   qtyInput?.addEventListener('input', updateCalculated);
   costInput?.addEventListener('input', updateCalculated);
+
+  qtyDec?.addEventListener('click', () => {
+    if (qtyInput) {
+      const val = parseInt(qtyInput.value) || 1;
+      if (val > 1) {
+        qtyInput.value = val - 1;
+        updateCalculated();
+      }
+    }
+  });
+
+  qtyInc?.addEventListener('click', () => {
+    if (qtyInput) {
+      const val = parseInt(qtyInput.value) || 1;
+      qtyInput.value = val + 1;
+      updateCalculated();
+    }
+  });
 
   cancelBtn?.addEventListener('click', () => {
     resetAddLotState();
@@ -498,7 +507,6 @@ function initFormEvents() {
     const cost = parseFloat(document.getElementById('total-cost').value) || 0;
     const quantity = parseInt(document.getElementById('quantity').value) || 1;
     const purchaseDate = document.getElementById('purchase-date').value;
-    const platform = document.getElementById('purchase-platform').value;
 
     if (!name || cost <= 0) {
       alert('Please enter a name and valid cost');
@@ -510,15 +518,13 @@ function initFormEvents() {
       cost,
       quantity,
       purchaseDate,
-      platform,
       imageData: thumbnailData
     });
 
-    celebrateSuccess(saveBtn);
     setTimeout(() => {
       resetAddLotState();
       navigate('/inventory');
-    }, 1000);
+    }, 100);
   });
 }
 

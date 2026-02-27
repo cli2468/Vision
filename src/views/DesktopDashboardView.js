@@ -65,7 +65,7 @@ export function DesktopDashboardView() {
   const hour = new Date().getHours();
   const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const rawName = auth.currentUser?.displayName?.split(' ')[0] || '';
-  const userName = isDemo ? 'Demo User ✨' : (rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase() : 'there');
+  const userName = isDemo ? 'Demo User' : (rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase() : 'there');
 
   const now = new Date();
   now.setHours(23, 59, 59, 999);
@@ -136,7 +136,7 @@ export function DesktopDashboardView() {
     <div class="desktop-dashboard vision-desktop-dashboard">
       <div class="dashboard-intro">
         <h2 class="dashboard-greeting">${timeGreeting}, ${userName}</h2>
-        <p class="dashboard-greeting-subtext">${isDemo ? "You're viewing the interactive demo workspace." : "Here's what's happening today."}</p>
+        <p class="dashboard-greeting-subtext">${isDemo ? "You're currently exploring the dashboard with sample data." : "Here's what's happening today."}</p>
       </div>
 
       <div class="kpi-pill">
@@ -269,7 +269,10 @@ function generateSegmentationLegendHTML(salesData, prevSalesData) {
     shopify: '#2DD4BF',
     facebook: '#8B5CF6',
     ebay: '#EF4444',
-    whatnot: '#F97316',
+    walmart: '#0071CE',
+    target: '#CC0000',
+    woot: '#679F1F',
+    bestbuy: '#FFF200',
     other: '#71717A'
   };
 
@@ -278,12 +281,28 @@ function generateSegmentationLegendHTML(salesData, prevSalesData) {
     shopify: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2 4 4l-1 5 13-1-1-6z"/><path d="M4 9 3 20l9 2 9-5V7Z"/></svg>`,
     facebook: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>`,
     ebay: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-    whatnot: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+    walmart: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>`,
+    target: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+    woot: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`,
+    bestbuy: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
     other: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`
   };
 
-  const getLabel = (p) => p === 'other' || p === 'unknown' ? 'Other' : p.charAt(0).toUpperCase() + p.slice(1);
-
+  const getLabel = (p) => {
+    const labels = {
+      amazon: 'Amazon',
+      ebay: 'eBay',
+      facebook: 'Facebook',
+      walmart: 'Walmart',
+      target: 'Target',
+      woot: 'Woot',
+      bestbuy: 'Best Buy',
+      shopify: 'Shopify',
+      other: 'Other',
+      unknown: 'Other'
+    };
+    return labels[p] || p.charAt(0).toUpperCase() + p.slice(1);
+  };
   let sortedPlatforms = Object.keys(currentStats).sort((a, b) => currentStats[b].revenue - currentStats[a].revenue);
 
   if (sortedPlatforms.length === 0 || totalRevenue === 0) {

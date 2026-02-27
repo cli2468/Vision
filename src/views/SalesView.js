@@ -1,6 +1,6 @@
 // Sales View - All sales with filtering, sorting, and inline expanding
 
-import { getAllSales, getLots } from '../services/storage.js';
+import { getAllSales, getLots, updateSale, deleteSale } from '../services/storage.js';
 import { formatCurrency } from '../services/calculations.js';
 import { renderPlatformBadge } from '../services/uiHelpers.js';
 import { navigate } from '../router.js';
@@ -13,10 +13,39 @@ let isDatePickerOpen = false;
 let expandedSaleId = null;
 let currentViewingMonth = new Date().getMonth();
 let currentViewingYear = new Date().getFullYear();
+let editSaleData = null; // { lot, sale, saleIdx, drawerMode: 'edit' | 'delete' }
+let editSalePrice = '';
+let editSaleQty = 1;
+let editSalePlatform = 'facebook';
+let editSaleShipping = '';
+let pendingScrollToSale = false;
 
 export function SalesView() {
   const salesData = getAllSales();
   const allLots = getLots();
+
+  // Handle Hash Routing for auto-opening Edit Drawer (e.g., from Recent Sales click)
+  const hashObj = new URLSearchParams(window.location.hash.split('?')[1]);
+  const routeEditLot = hashObj.get('editLot');
+  const routeEditSale = hashObj.get('editSale');
+
+  if (routeEditLot && routeEditSale) {
+    const targetLot = allLots.find(l => l.id === routeEditLot);
+    if (targetLot && targetLot.sales) {
+      const targetSaleIndex = targetLot.sales.findIndex(s => s.id === routeEditSale);
+      if (targetSaleIndex !== -1) {
+        // Expand the sale row instead of opening the edit drawer
+        expandedSaleId = `${routeEditLot}-${targetSaleIndex}`;
+        pendingScrollToSale = true;
+
+        // Ensure the edit drawer is closed
+        editSaleData = null;
+
+        // Clear the hash without triggering a full re-render manually here
+        history.replaceState(null, null, '#/sales');
+      }
+    }
+  }
 
   // Search filtering
   let filteredSales = salesData;
@@ -45,7 +74,7 @@ export function SalesView() {
   const sortedSales = sortSales(filteredSales, currentSort.key, currentSort.direction);
 
   return `
-    <div class="desktop-inventory-container sales-log-view">
+    <div class="desktop-inventory-container sales-log-view ${editSaleData ? 'has-selection' : ''}">
       <div class="inv-toolbar">
         <div class="inv-toolbar-left">
           <div class="inv-toolbar-title">SALES</div>
@@ -113,34 +142,43 @@ export function SalesView() {
         </div>
       </div>
       
-      <div class="sales-log-container">
-        <div class="sale-log-header">
-          <div class="sale-col-date sortable ${currentSort.key === 'date' ? currentSort.direction : ''}" data-sort="date">
-            DATE ${getSortIndicator('date')}
+      <div class="inventory-content">
+        <div class="inventory-left-panel">
+          <div class="sales-log-container">
+            <div class="sale-log-header">
+              <div class="sale-col-date sortable ${currentSort.key === 'date' ? currentSort.direction : ''}" data-sort="date">
+                DATE ${getSortIndicator('date')}
+              </div>
+              <div class="sale-col-item sortable ${currentSort.key === 'item' ? currentSort.direction : ''}" data-sort="item">
+                ITEM ${getSortIndicator('item')}
+              </div>
+              <div class="sale-col-platform sortable ${currentSort.key === 'platform' ? currentSort.direction : ''}" data-sort="platform">
+                PLATFORM ${getSortIndicator('platform')}
+              </div>
+              <div class="sale-col-price sortable ${currentSort.key === 'revenue' ? currentSort.direction : ''}" data-sort="revenue">
+                SALE PRICE ${getSortIndicator('revenue')}
+              </div>
+              <div class="sale-col-profit sortable ${currentSort.key === 'profit' ? currentSort.direction : ''}" data-sort="profit">
+                PROFIT ${getSortIndicator('profit')}
+              </div>
+              <div class="sale-col-roi">ROI</div>
+              <div class="sale-col-qty sortable ${currentSort.key === 'units' ? currentSort.direction : ''}" data-sort="units">
+                QTY ${getSortIndicator('units')}
+              </div>
+              <div class="sale-col-actions"></div>
+            </div>
+            
+            <div class="sale-log-body">
+              ${sortedSales.length === 0 ? `
+                <div class="desktop-empty-state"><p>No sales records found.</p></div>
+              ` : renderSalesRows(sortedSales, allLots)}
+            </div>
           </div>
-          <div class="sale-col-item sortable ${currentSort.key === 'item' ? currentSort.direction : ''}" data-sort="item">
-            ITEM ${getSortIndicator('item')}
-          </div>
-          <div class="sale-col-platform sortable ${currentSort.key === 'platform' ? currentSort.direction : ''}" data-sort="platform">
-            PLATFORM ${getSortIndicator('platform')}
-          </div>
-          <div class="sale-col-price sortable ${currentSort.key === 'revenue' ? currentSort.direction : ''}" data-sort="revenue">
-            SALE PRICE ${getSortIndicator('revenue')}
-          </div>
-          <div class="sale-col-profit sortable ${currentSort.key === 'profit' ? currentSort.direction : ''}" data-sort="profit">
-            PROFIT ${getSortIndicator('profit')}
-          </div>
-          <div class="sale-col-roi">ROI</div>
-          <div class="sale-col-qty sortable ${currentSort.key === 'units' ? currentSort.direction : ''}" data-sort="units">
-            QTY ${getSortIndicator('units')}
-          </div>
-          <div class="sale-col-actions"></div>
         </div>
-        
-        <div class="sale-log-body">
-          ${sortedSales.length === 0 ? `
-            <div class="desktop-empty-state"><p>No sales records found.</p></div>
-          ` : renderSalesRows(sortedSales, allLots)}
+
+        <!-- Detail Panel Wrapper -->
+        <div class="inventory-right-panel ${editSaleData ? 'active' : ''}">
+          ${editSaleData ? renderEditDrawer() : ''}
         </div>
       </div>
     </div>
@@ -280,10 +318,6 @@ function renderSalesRows(sales, lots) {
               <span class="sale-detail-value">${daysToSell}</span>
             </div>
           </div>
-          <div class="sale-log-details-actions">
-            <button class="sale-inline-action-btn edit sale-edit-text-btn" data-lot-id="${lot.id}" data-sale-idx="${saleIndex}">Edit Sale</button>
-            <button class="sale-inline-action-btn delete sale-delete-text-btn" data-lot-id="${lot.id}" data-sale-idx="${saleIndex}">Delete</button>
-          </div>
         </div>
       `;
     }
@@ -327,6 +361,314 @@ function renderSalesRows(sales, lots) {
   }).join('');
 }
 
+function renderEditDrawer() {
+  const { lot, sale, drawerMode } = editSaleData;
+  if (drawerMode === 'delete') return renderDeleteConfirmation(lot, sale);
+
+  const price = parseFloat(editSalePrice) || 0;
+  const qty = parseInt(editSaleQty) || 1;
+  const priceInCents = Math.round(price * 100);
+  const totalRevenue = priceInCents * qty;
+
+  const costBasis = lot.unitCost * qty;
+  const isFacebook = editSalePlatform === 'facebook';
+  const feeRate = isFacebook ? 0 : 0.135;
+  const fees = Math.round(totalRevenue * feeRate);
+
+  const shippingPerUnit = isFacebook ? 0 : (parseFloat(editSaleShipping) || 0);
+  const shippingCostCents = Math.round(shippingPerUnit * 100) * qty;
+
+  const netProfit = totalRevenue - fees - shippingCostCents - costBasis;
+
+  return `
+    <div class="intelligence-panel sale-drawer">
+      <div class="drawer-header">
+        <h3 class="drawer-title">Edit Sale</h3>
+        <button class="close-drawer-btn" id="close-edit-drawer" title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="drawer-content">
+        <div class="form-group">
+          <label class="form-label">Sale Price (per unit)</label>
+          <div class="input-with-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" 
+                   class="form-input" 
+                   id="edit-sale-price" 
+                   placeholder="0.00" 
+                   step="0.01" 
+                   min="0" 
+                   value="${editSalePrice}"
+                   inputmode="decimal">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Quantity</label>
+          <div class="quantity-stepper">
+            <button type="button" class="stepper-btn" id="edit-qty-decrease">-</button>
+            <input type="number" 
+                   class="form-input stepper-input" 
+                   id="edit-sale-qty" 
+                   value="${editSaleQty}" 
+                   min="1" 
+                   max="${lot.remaining + sale.unitsSold}"
+                   readonly>
+            <button type="button" class="stepper-btn" id="edit-qty-increase">+</button>
+          </div>
+          <div class="qty-hint">Max: ${lot.remaining + sale.unitsSold} units</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Platform</label>
+          <div class="custom-dropdown" id="edit-sale-platform-dropdown">
+            <div class="dropdown-trigger">
+              <span class="platform-name">${editSalePlatform.charAt(0).toUpperCase() + editSalePlatform.slice(1)}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" data-value="amazon">Amazon</div>
+              <div class="dropdown-item" data-value="ebay">eBay</div>
+              <div class="dropdown-item" data-value="facebook">Facebook</div>
+              <div class="dropdown-item" data-value="walmart">Walmart</div>
+              <div class="dropdown-item" data-value="target">Target</div>
+              <div class="dropdown-item" data-value="woot">Woot</div>
+              <div class="dropdown-item" data-value="bestbuy">Best Buy</div>
+            </div>
+          </div>
+        </div>
+
+        ${!isFacebook ? `
+          <div class="form-group">
+            <label class="form-label">Shipping Fee (per unit)</label>
+            <div class="input-with-prefix">
+              <span class="input-prefix">$</span>
+              <input type="number" 
+                     class="form-input" 
+                     id="edit-shipping-cost" 
+                     placeholder="0.00" 
+                     step="0.01" 
+                     min="0" 
+                     value="${editSaleShipping}"
+                     inputmode="decimal">
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="sale-summary" id="edit-sale-summary-box">
+          <div class="summary-row">
+            <span>Revenue</span>
+            <span>${formatCurrency(totalRevenue)}</span>
+          </div>
+          <div class="summary-row">
+            <span>Fees (${isFacebook ? '0%' : '13.5%'})</span>
+            <span class="negative">-${formatCurrency(fees)}</span>
+          </div>
+          ${!isFacebook ? `
+            <div class="summary-row">
+              <span>Shipping</span>
+              <span class="negative">-${formatCurrency(shippingCostCents)}</span>
+            </div>
+          ` : ''}
+          <div class="summary-row">
+            <span>COGS (${qty} × ${formatCurrency(lot.unitCost)})</span>
+            <span class="negative">-${formatCurrency(costBasis)}</span>
+          </div>
+          <div class="summary-row total">
+            <span>Net Profit</span>
+            <span class="${netProfit >= 0 ? 'positive' : 'negative'}">${formatCurrency(netProfit, true)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-footer" style="display: flex; gap: 12px;">
+        <button class="btn btn-danger" id="initiate-delete-sale" style="flex: 0 0 auto; padding: 0 20px; font-weight: 600; white-space: nowrap; transition: all 0.2s ease;">
+          Delete
+        </button>
+        <button class="btn btn-primary record-sale-drawer-btn" style="flex: 1;" id="confirm-save-edit" ${price <= 0 ? 'disabled' : ''}>
+          Update Sale
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// (Obsolete) renderDeleteConfirmation removed
+
+function attachEditDrawerEvents() {
+  const { lot, sale, drawerMode } = editSaleData;
+
+  // Close drawer
+  document.getElementById('close-edit-drawer')?.addEventListener('click', () => {
+    editSaleData = null;
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  });
+
+  if (drawerMode === 'delete') {
+    // Legacy route protection - redirect to edit if we somehow land on delete
+    editSaleData.drawerMode = 'edit';
+    window.dispatchEvent(new CustomEvent('viewchange'));
+    return;
+  }
+
+  // Edit Mode Events
+  const priceInput = document.getElementById('edit-sale-price');
+  const qtyInput = document.getElementById('edit-sale-qty');
+  const shipInput = document.getElementById('edit-shipping-cost');
+  const dropdown = document.getElementById('edit-sale-platform-dropdown');
+  const saveBtn = document.getElementById('confirm-save-edit');
+
+  const updateSummary = () => {
+    const price = parseFloat(editSalePrice) || 0;
+    const qty = parseInt(editSaleQty) || 1;
+    const priceInCents = Math.round(price * 100);
+    const totalRevenue = priceInCents * qty;
+
+    const costBasis = lot.unitCost * qty;
+    const isFacebook = editSalePlatform === 'facebook';
+    const feeRate = isFacebook ? 0 : 0.135;
+    const fees = Math.round(totalRevenue * feeRate);
+
+    const shippingPerUnit = isFacebook ? 0 : (parseFloat(editSaleShipping) || 0);
+    const shippingCostCents = Math.round(shippingPerUnit * 100) * qty;
+
+    const netProfit = totalRevenue - fees - shippingCostCents - costBasis;
+
+    const summaryBox = document.getElementById('edit-sale-summary-box');
+    if (summaryBox) {
+      const rows = summaryBox.querySelectorAll('.summary-row');
+      if (rows.length >= 3) {
+        rows[0].querySelectorAll('span')[1].textContent = formatCurrency(totalRevenue);
+        rows[1].querySelectorAll('span')[1].textContent = '-' + formatCurrency(fees);
+        rows[1].querySelector('span').textContent = `Fees (${isFacebook ? '0%' : '13.5%'})`;
+
+        if (!isFacebook) {
+          const shipRow = Array.from(rows).find(r => r.textContent.includes('Shipping'));
+          if (shipRow) {
+            shipRow.querySelectorAll('span')[1].textContent = '-' + formatCurrency(shippingCostCents);
+          }
+        }
+
+        const cogsRow = Array.from(rows).find(r => r.textContent.includes('COGS'));
+        if (cogsRow) {
+          cogsRow.querySelector('span').textContent = `COGS (${qty} × ${formatCurrency(lot.unitCost)})`;
+          cogsRow.querySelectorAll('span')[1].textContent = '-' + formatCurrency(costBasis);
+        }
+
+        const totalRow = summaryBox.querySelector('.summary-row.total');
+        if (totalRow) {
+          const valSpan = totalRow.querySelectorAll('span')[1];
+          valSpan.textContent = formatCurrency(netProfit, true);
+          valSpan.className = netProfit >= 0 ? 'positive' : 'negative';
+        }
+      }
+    }
+
+    if (saveBtn) saveBtn.disabled = price <= 0;
+  };
+
+  priceInput?.addEventListener('input', (e) => {
+    editSalePrice = e.target.value;
+    updateSummary();
+  });
+
+  shipInput?.addEventListener('input', (e) => {
+    editSaleShipping = e.target.value;
+    updateSummary();
+  });
+
+  document.getElementById('edit-qty-decrease')?.addEventListener('click', () => {
+    if (editSaleQty > 1) {
+      editSaleQty--;
+      if (qtyInput) qtyInput.value = editSaleQty;
+      updateSummary();
+    }
+  });
+
+  document.getElementById('edit-qty-increase')?.addEventListener('click', () => {
+    if (editSaleQty < (lot.remaining + sale.unitsSold)) {
+      editSaleQty++;
+      if (qtyInput) qtyInput.value = editSaleQty;
+      updateSummary();
+    }
+  });
+
+  // Custom dropdown events
+  const trigger = dropdown?.querySelector('.dropdown-trigger');
+  trigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+
+  dropdown?.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editSalePlatform = item.dataset.value;
+      dropdown.classList.remove('open');
+      window.dispatchEvent(new CustomEvent('viewchange'));
+    });
+  });
+
+  saveBtn?.addEventListener('click', () => {
+    const price = parseFloat(editSalePrice) || 0;
+    const qty = parseInt(editSaleQty) || 1;
+    const shipping = editSalePlatform !== 'facebook' ? (parseFloat(editSaleShipping) || 0) : 0;
+
+    updateSale(lot.id, sale.id, {
+      pricePerUnit: Math.round(price * 100),
+      unitsSold: qty,
+      platform: editSalePlatform,
+      shippingCost: Math.round(shipping * 100) * qty
+    });
+
+    editSaleData = null;
+    window.dispatchEvent(new CustomEvent('viewchange'));
+  });
+
+  // Inline Delete Logic
+  const deleteBtn = document.getElementById('initiate-delete-sale');
+  let deleteTimeout = null;
+
+  deleteBtn?.addEventListener('click', () => {
+    if (deleteBtn.dataset.confirming === 'true') {
+      // Execute Delete
+      deleteSale(lot.id, sale.id);
+      editSaleData = null;
+      // Also clear hash if it exists
+      if (window.location.hash.includes('editLot')) {
+        window.location.hash = '#/sales';
+      } else {
+        window.dispatchEvent(new CustomEvent('viewchange'));
+      }
+    } else {
+      // Enter Confirm State
+      deleteBtn.dataset.confirming = 'true';
+      deleteBtn.textContent = 'Are you sure?';
+      deleteBtn.style.background = 'rgba(239, 68, 68, 0.15)';
+      deleteBtn.style.color = '#F87171';
+      deleteBtn.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+      deleteBtn.style.boxShadow = '0 0 12px rgba(239, 68, 68, 0.2)';
+
+      // Auto-revert after 4 seconds
+      clearTimeout(deleteTimeout);
+      deleteTimeout = setTimeout(() => {
+        deleteBtn.dataset.confirming = 'false';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.style.background = '';
+        deleteBtn.style.color = '';
+        deleteBtn.style.border = '';
+        deleteBtn.style.boxShadow = '';
+      }, 4000);
+    }
+  });
+}
+
+
 // Helper for nice date formats in trigger
 function formatShortDate(isoString) {
   if (!isoString) return '';
@@ -350,16 +692,32 @@ export function initSalesEvents() {
     });
   });
 
-  // Action buttons - stop propagation
+  // Action buttons
   document.querySelectorAll('.edit-sale-btn, .delete-sale-btn, .sale-edit-text-btn, .sale-delete-text-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const lotId = btn.dataset.lotId;
-      const saleIdx = btn.dataset.saleIdx;
-      // In a real app we'd open an edit modal or confirm delete here
-      console.log('Action clicked:', btn.className, 'for', lotId, 'idx', saleIdx);
+      const saleIdx = parseInt(btn.dataset.saleIdx);
+      const lot = getLots().find(l => l.id === lotId);
+      const sale = lot?.sales?.[saleIdx];
+
+      if (!lot || !sale) return;
+
+      if (btn.classList.contains('delete') || btn.classList.contains('delete-sale-btn') || btn.classList.contains('sale-delete-text-btn')) {
+        editSaleData = { lot, sale, saleIdx, drawerMode: 'delete' };
+      } else {
+        editSaleData = { lot, sale, saleIdx, drawerMode: 'edit' };
+        editSalePrice = (sale.totalPrice / 100 / sale.unitsSold).toFixed(2);
+        editSaleQty = sale.unitsSold;
+        editSalePlatform = sale.platform || 'facebook';
+        editSaleShipping = (sale.shippingCost / 100 / sale.unitsSold).toFixed(2);
+      }
+      window.dispatchEvent(new CustomEvent('viewchange'));
     });
   });
+
+  if (editSaleData) attachEditDrawerEvents();
+
 
   // Search - inline filtering to prevent focus loss
   const searchInput = document.getElementById('sales-search');
@@ -593,4 +951,15 @@ export function initSalesEvents() {
       window.dispatchEvent(new CustomEvent('viewchange'));
     });
   });
+
+  // Auto-scroll to the expanded row if directed from another view
+  if (pendingScrollToSale && expandedSaleId) {
+    pendingScrollToSale = false;
+    setTimeout(() => {
+      const expandedRow = document.querySelector(`.sale-log-row[data-unique-id="${expandedSaleId}"]`);
+      if (expandedRow) {
+        expandedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }
 }

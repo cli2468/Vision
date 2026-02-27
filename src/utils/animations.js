@@ -1,81 +1,115 @@
 // Animation Utilities
 
+let canvas = null;
+let ctx = null;
+let particles = [];
+let animId = null;
+
+function setupCanvas() {
+  if (!document.getElementById('canvas-overlay')) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'canvas-overlay';
+    document.body.appendChild(canvas);
+  } else {
+    canvas = document.getElementById('canvas-overlay');
+  }
+  ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+}
+
+function animateCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += p.gravity;
+    p.vx *= p.drag;
+    p.vy *= p.drag;
+    p.rotation += p.rotationSpeed;
+    p.life -= 1;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rotation);
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    if (p.shape === 'circle') {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.shape === 'rect') {
+      ctx.fillRect(-p.size, -p.size / 2, p.size * 2, p.size);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(0, -p.size);
+      ctx.lineTo(p.size, p.size);
+      ctx.lineTo(-p.size, p.size);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+  if (particles.length > 0) {
+    animId = requestAnimationFrame(animateCanvas);
+  } else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    animId = null;
+  }
+}
+
+function startCanvas() {
+  if (!animId) animId = requestAnimationFrame(animateCanvas);
+}
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+const CONFETTI_COLORS = [
+  '#34d399', '#6ee7b7', '#fbbf24', '#f87171', '#a78bfa', '#38bdf8', '#fb923c', '#f9fafb'
+];
+const SHAPES = ['circle', 'rect', 'triangle'];
+
 /**
  * Create confetti burst effect
  * @param {HTMLElement} element - Element to burst from (optional, defaults to center)
- * @param {Object} options - Configuration options
+ * @param {Object} options - Configuration options (ignored in canvas version but kept for signature)
  */
 export function createConfettiBurst(element = null, options = {}) {
-  const defaults = {
-    count: 50,
-    colors: ['#CCFF00', '#FFFFFF', '#D4D0C9', '#B4B1AB'],
-    duration: 2000,
-    spread: 100
-  };
+  if (!canvas) setupCanvas();
 
-  const config = { ...defaults, ...options };
-
-  // Create container
-  const container = document.createElement('div');
-  container.className = 'confetti-container';
-  document.body.appendChild(container);
-
-  // Get burst origin
-  let originX = window.innerWidth / 2;
-  let originY = window.innerHeight / 2;
+  let ox = window.innerWidth / 2;
+  let oy = window.innerHeight / 2;
 
   if (element) {
     const rect = element.getBoundingClientRect();
-    originX = rect.left + rect.width / 2;
-    originY = rect.top + rect.height / 2;
+    ox = rect.left + rect.width / 2;
+    oy = rect.top + rect.height / 2;
   }
 
-  // Create confetti pieces
-  for (let i = 0; i < config.count; i++) {
-    const confetti = document.createElement('div');
-    confetti.className = 'confetti';
-
-    // Random properties
-    const color = config.colors[Math.floor(Math.random() * config.colors.length)];
-    const size = Math.random() * 8 + 6;
-    const angle = (Math.random() * 360) * (Math.PI / 180);
-    const velocity = Math.random() * config.spread + 50;
-    const tx = Math.cos(angle) * velocity;
-    const ty = Math.sin(angle) * velocity - 100;
-    const rotation = Math.random() * 720;
-
-    confetti.style.cssText = `
-      background: ${color};
-      width: ${size}px;
-      height: ${size}px;
-      left: ${originX}px;
-      top: ${originY}px;
-      transform: translate(-50%, -50%);
-    `;
-
-    // Custom animation for each piece
-    confetti.style.animation = `none`;
-    container.appendChild(confetti);
-
-    // Trigger animation
-    requestAnimationFrame(() => {
-      confetti.style.transition = `all ${config.duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
-      confetti.style.opacity = '1';
-      confetti.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) rotate(${rotation}deg)`;
-
-      // Fade out and fall
-      setTimeout(() => {
-        confetti.style.transition = `all ${config.duration * 0.5}ms ease-in`;
-        confetti.style.opacity = '0';
-        confetti.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty + 300}px)) rotate(${rotation * 2}deg)`;
-      }, config.duration * 0.5);
+  for (let i = 0; i < 90; i++) {
+    const angle = rand(0, Math.PI * 2);
+    const speed = rand(3, 14);
+    const life = Math.floor(rand(60, 120));
+    particles.push({
+      x: ox, y: oy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - rand(2, 6),
+      gravity: 0.35,
+      drag: 0.98,
+      rotation: rand(0, Math.PI * 2),
+      rotationSpeed: rand(-0.15, 0.15),
+      size: rand(3, 8),
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+      life, maxLife: life,
     });
   }
-
-  // Clean up
-  setTimeout(() => {
-    container.remove();
-  }, config.duration * 1.5);
+  startCanvas();
 }
 
 /**

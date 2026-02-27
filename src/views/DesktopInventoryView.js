@@ -79,21 +79,19 @@ function generateSparklineSVG(lot) {
   const pathData = pathPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ');
   const fillPathData = `${pathData} L200 70 L0 70 Z`;
 
+  const randSuffix = Math.random().toString(36).substring(2, 8);
+  const gradId = `spark-grad-${lot.id}-${randSuffix}`;
+
   return `
     <svg width="100%" height="70" viewBox="0 0 200 70" preserveAspectRatio="none">
       <defs>
-        <linearGradient id="spark-gradient-${lot.id}" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#34D399"/>
           <stop offset="100%" stop-color="transparent"/>
         </linearGradient>
-        <clipPath id="spark-clip-${lot.id}">
-          <rect x="0" y="0" width="0" height="70">
-            <animate attributeName="width" from="0" to="200" dur="1.1s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" keyTimes="0;1"/>
-          </rect>
-        </clipPath>
       </defs>
-      <g clip-path="url(#spark-clip-${lot.id})">
-        <path d="${fillPathData}" fill="url(#spark-gradient-${lot.id})" opacity="0.2"/>
+      <g>
+        <path d="${fillPathData}" fill="url(#${gradId})" opacity="0.2"/>
         <path d="${pathData}" fill="none" class="spark-path" stroke="#34D399" stroke-width="2"/>
       </g>
     </svg>
@@ -385,14 +383,17 @@ function renderIntelligencePanel(lot) {
           </div>
           <div class="recent-sales-list">
             ${lot.sales.slice(-5).reverse().map(sale => `
-              <div class="recent-sale-item stacked">
+              <div class="recent-sale-item stacked" data-lot-id="${lot.id}" data-sale-id="${sale.id}">
                 <div class="sale-col">
                   <span class="sale-date">${formatDate(sale.dateSold)}</span>
                   <span class="sale-qty">${sale.unitsSold}× units</span>
                 </div>
                 <div class="sale-col align-right">
                   <span class="sale-revenue val-currency">${formatCurrency(sale.totalPrice)}</span>
-                  <span class="sale-profit val-currency ${sale.profit >= 0 ? 'positive' : 'negative'}">${formatCurrency(sale.profit, true)}</span>
+                  <span class="sale-profit val-currency ${sale.profit >= 0 ? 'positive' : 'negative'}">
+                    ${formatCurrency(sale.profit, true)}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px; opacity:0.6;"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+                  </span>
                 </div>
               </div>
             `).join('')}
@@ -415,33 +416,33 @@ function renderSaleDrawer(lot) {
   const priceInCents = Math.round(price * 100);
   const totalRevenue = priceInCents * qty;
 
-  const feeRate = desktopSalePlatform === 'ebay' ? 0.135 : 0;
+  const costBasis = lot.unitCost * qty;
+  const isFacebook = desktopSalePlatform === 'facebook';
+  const feeRate = isFacebook ? 0 : 0.135;
   const fees = Math.round(totalRevenue * feeRate);
 
-  const shippingPerUnit = desktopSalePlatform === 'ebay' ? (parseFloat(desktopSaleShipping) || 0) : 0;
+  const shippingPerUnit = isFacebook ? 0 : (parseFloat(desktopSaleShipping) || 0);
   const shippingCostCents = Math.round(shippingPerUnit * 100) * qty;
 
-  const costBasis = lot.unitCost * qty;
   const netProfit = totalRevenue - fees - shippingCostCents - costBasis;
 
   return `
     <div class="intelligence-panel sale-drawer">
       <div class="drawer-header">
-        <button class="back-btn" id="back-to-view">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          Back
-        </button>
         <h3 class="drawer-title">Record Sale</h3>
+        <button class="close-drawer-btn" id="back-to-view" title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
-      <div class="drawer-content">
+      <div class="drawer-content" id="desktop-sale-drawer-content">
         <div class="form-group">
           <label class="form-label">Sale Price (per unit)</label>
-          <div class="input-prefix">
-            <span class="prefix">$</span>
+          <div class="input-with-prefix">
+            <span class="input-prefix">$</span>
             <input type="number" 
                    class="form-input" 
                    id="desktop-sale-price" 
@@ -471,21 +472,28 @@ function renderSaleDrawer(lot) {
 
         <div class="form-group">
           <label class="form-label">Platform</label>
-          <div class="platform-toggle">
-            <button class="platform-btn ${desktopSalePlatform === 'facebook' ? 'active' : ''}" data-platform="facebook">
-              Facebook
-            </button>
-            <button class="platform-btn ${desktopSalePlatform === 'ebay' ? 'active' : ''}" data-platform="ebay">
-              eBay
-            </button>
+          <div class="custom-dropdown" id="desktop-sale-platform-dropdown">
+            <div class="dropdown-trigger">
+              <span class="platform-name">${desktopSalePlatform.charAt(0).toUpperCase() + desktopSalePlatform.slice(1)}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-item" data-value="amazon">Amazon</div>
+              <div class="dropdown-item" data-value="ebay">eBay</div>
+              <div class="dropdown-item" data-value="facebook">Facebook</div>
+              <div class="dropdown-item" data-value="walmart">Walmart</div>
+              <div class="dropdown-item" data-value="target">Target</div>
+              <div class="dropdown-item" data-value="woot">Woot</div>
+              <div class="dropdown-item" data-value="bestbuy">Best Buy</div>
+            </div>
           </div>
         </div>
 
-        ${desktopSalePlatform === 'ebay' ? `
+        ${!isFacebook ? `
           <div class="form-group">
             <label class="form-label">Shipping Fee (per unit)</label>
-            <div class="input-prefix">
-              <span class="prefix">$</span>
+            <div class="input-with-prefix">
+              <span class="input-prefix">$</span>
               <input type="number" 
                      class="form-input" 
                      id="desktop-shipping-cost" 
@@ -498,16 +506,16 @@ function renderSaleDrawer(lot) {
           </div>
         ` : ''}
 
-        <div class="sale-summary">
+        <div class="sale-summary" id="desktop-sale-summary-box">
           <div class="summary-row">
             <span>Revenue</span>
             <span>${formatCurrency(totalRevenue)}</span>
           </div>
           <div class="summary-row">
-            <span>Fees (${desktopSalePlatform === 'ebay' ? '13.5%' : '0%'})</span>
+            <span>Fees (${isFacebook ? '0%' : '13.5%'})</span>
             <span class="negative">-${formatCurrency(fees)}</span>
           </div>
-          ${desktopSalePlatform === 'ebay' ? `
+          ${!isFacebook ? `
             <div class="summary-row">
               <span>Shipping</span>
               <span class="negative">-${formatCurrency(shippingCostCents)}</span>
@@ -823,6 +831,18 @@ function attachPanelEvents() {
       }
     });
   }
+
+  // Recent Sales Click logic -> redirect to Sales tab with specific edit pane open
+  document.querySelectorAll('.recent-sale-item.stacked').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation(); // prevent row click
+      const lotId = e.currentTarget.dataset.lotId;
+      const saleId = e.currentTarget.dataset.saleId;
+      if (lotId && saleId) {
+        window.location.hash = `#/sales?editLot=${lotId}&editSale=${saleId}`;
+      }
+    });
+  });
 }
 
 function attachDrawerEvents(lot) {
@@ -846,7 +866,8 @@ function attachDrawerEvents(lot) {
   document.getElementById('desktop-qty-decrease')?.addEventListener('click', () => {
     if (desktopSaleQty > 1) {
       desktopSaleQty--;
-      document.getElementById('desktop-sale-qty').value = desktopSaleQty;
+      const qtyInput = document.getElementById('desktop-sale-qty');
+      if (qtyInput) qtyInput.value = desktopSaleQty;
       updateSaleSummary(lot);
     }
   });
@@ -854,17 +875,30 @@ function attachDrawerEvents(lot) {
   document.getElementById('desktop-qty-increase')?.addEventListener('click', () => {
     if (desktopSaleQty < lot.remaining) {
       desktopSaleQty++;
-      document.getElementById('desktop-sale-qty').value = desktopSaleQty;
+      const qtyInput = document.getElementById('desktop-sale-qty');
+      if (qtyInput) qtyInput.value = desktopSaleQty;
       updateSaleSummary(lot);
     }
   });
 
-  // Platform toggle
-  document.querySelectorAll('.platform-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      desktopSalePlatform = btn.dataset.platform;
+  // Custom Platform Dropdown
+  const dropdown = document.getElementById('desktop-sale-platform-dropdown');
+  const trigger = dropdown?.querySelector('.dropdown-trigger');
+
+  trigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+
+  // Close dropdown on click outside
+  const closeDropdown = () => dropdown?.classList.remove('open');
+  document.addEventListener('click', closeDropdown);
+
+  dropdown?.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      desktopSalePlatform = item.dataset.value;
+      dropdown.classList.remove('open');
 
       // Re-render drawer to show/hide shipping field
       const rightPanel = document.querySelector('.inventory-right-panel');
@@ -874,6 +908,7 @@ function attachDrawerEvents(lot) {
       }
     });
   });
+
 
   // Shipping input
   document.getElementById('desktop-shipping-cost')?.addEventListener('input', (e) => {
@@ -886,7 +921,7 @@ function attachDrawerEvents(lot) {
     const price = parseFloat(desktopSalePrice);
     if (!price || price <= 0) return;
 
-    const shipping = desktopSalePlatform === 'ebay' ? (parseFloat(desktopSaleShipping) || 0) : 0;
+    const shipping = desktopSalePlatform !== 'facebook' ? (parseFloat(desktopSaleShipping) || 0) : 0;
 
     recordSale(
       lot.id,
@@ -896,6 +931,8 @@ function attachDrawerEvents(lot) {
       shipping,
       new Date().toISOString().split('T')[0]
     );
+
+    celebrateSuccess(document.getElementById('desktop-confirm-sale'));
 
     // Optimistic UI update
     desktopSaleMode = false;
@@ -928,11 +965,55 @@ function attachDrawerEvents(lot) {
 }
 
 function updateSaleSummary(lot) {
-  // Re-render just the summary section
-  const rightPanel = document.querySelector('.inventory-right-panel');
-  if (rightPanel) {
-    rightPanel.innerHTML = renderSaleDrawer(lot);
-    attachDrawerEvents(lot);
+  // Update the summary box and potentially the confirm button state without full re-render
+  const summaryBox = document.getElementById('desktop-sale-summary-box');
+  const confirmBtn = document.getElementById('desktop-confirm-sale');
+
+  if (summaryBox) {
+    // We can't easily re-render just part of the template without duplicating logic,
+    // so we'll recalculate here or just update the revenue/profit/confirm bits.
+    const price = parseFloat(desktopSalePrice) || 0;
+    const qty = Math.min(parseInt(desktopSaleQty) || 1, lot.remaining);
+    const priceInCents = Math.round(price * 100);
+    const totalRevenue = priceInCents * qty;
+
+    const isFacebook = desktopSalePlatform === 'facebook';
+    const feeRate = isFacebook ? 0 : 0.135;
+    const fees = Math.round(totalRevenue * feeRate);
+
+    const shippingPerUnit = isFacebook ? 0 : (parseFloat(desktopSaleShipping) || 0);
+    const shippingCostCents = Math.round(shippingPerUnit * 100) * qty;
+
+    const costBasis = lot.unitCost * qty;
+    const netProfit = totalRevenue - fees - shippingCostCents - costBasis;
+
+    // Direct DOM updates to avoid focus loss
+    const rows = summaryBox.querySelectorAll('.summary-row');
+    if (rows.length >= 3) {
+      rows[0].querySelectorAll('span')[1].textContent = formatCurrency(totalRevenue);
+      rows[1].querySelectorAll('span')[1].textContent = '-' + formatCurrency(fees);
+      rows[1].querySelector('span').textContent = `Fees (${isFacebook ? '0%' : '13.5%'})`;
+
+      if (!isFacebook) {
+        // Find shipping row specifically
+        const shipRow = Array.from(rows).find(r => r.textContent.includes('Shipping'));
+        if (shipRow) {
+          shipRow.querySelectorAll('span')[1].textContent = '-' + formatCurrency(shippingCostCents);
+        }
+      }
+
+      const totalRow = summaryBox.querySelector('.summary-row.total');
+      if (totalRow) {
+        const valSpan = totalRow.querySelectorAll('span')[1];
+        valSpan.textContent = formatCurrency(netProfit, true);
+        valSpan.className = netProfit >= 0 ? 'positive' : 'negative';
+      }
+    }
+  }
+
+  if (confirmBtn) {
+    const price = parseFloat(desktopSalePrice) || 0;
+    confirmBtn.disabled = price <= 0;
   }
 }
 

@@ -41,7 +41,11 @@ export function navigate(path, direction = null) {
  * Get current path from hash
  */
 function getPath() {
-    const hash = window.location.hash.slice(1);
+    let hash = window.location.hash.slice(1);
+    // Strip query parameters for route matching
+    if (hash.includes('?')) {
+        hash = hash.split('?')[0];
+    }
     return hash || '/';
 }
 
