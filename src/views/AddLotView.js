@@ -597,7 +597,6 @@ function renderMobileUpload() {
   return `
     <div class="page">
       <div class="container">
-        <h1 class="page-title">Add Lot</h1>
         
         <div class="upload-area" id="upload-area">
           <div class="upload-icon">📸</div>
@@ -605,7 +604,7 @@ function renderMobileUpload() {
           <div class="upload-hint">Amazon, Target, Walmart, etc.</div>
         </div>
         
-        <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;" />
+        <input type="file" id="file-input" accept="image/*" style="display: none;" />
         
         <div style="text-align: center; margin-top: var(--spacing-xl);">
           <p class="text-muted" style="margin-bottom: var(--spacing-lg);">or</p>
@@ -637,11 +636,14 @@ function renderMobileProcessing() {
 
 function renderMobilePreview() {
   const zoomClass = mobileImageZoomed ? 'zoomed' : '';
+  const qty = extractedData.quantity || 1;
+  const cost = extractedData.cost || 0;
+  const costPerUnit = qty > 0 ? (cost / qty).toFixed(2) : '0.00';
+  const today = new Date().toISOString().split('T')[0];
 
   return `
     <div class="page">
-      <div class="container">
-        <h1 class="page-title">Add Lot</h1>
+      <div class="container" style="padding: 16px;">
         
         ${mobileImagePreview ? `
           <div class="image-preview-container ${zoomClass}" id="image-preview-container">
@@ -650,40 +652,48 @@ function renderMobilePreview() {
           </div>
         ` : ''}
         
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Item Name</label>
-            <div class="input-with-clear">
-              <input type="text" class="form-input" id="lot-name" value="${escapeHtml(extractedData.name)}" placeholder="Enter item name" />
-              <button type="button" class="clear-input-btn" id="clear-name-btn" title="Clear">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+        <div style="background: var(--surface, #1B1B1B); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <h2 style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary); margin: 0;">Add Inventory</h2>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="transactional-label">Item Name</label>
+            <input type="text" class="form-input form-input-compact" id="lot-name" value="${escapeHtml(extractedData.name)}" placeholder="Enter item name" />
+          </div>
+
+          <div class="transaction-grid" style="margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="transactional-label">Quantity</label>
+              <div class="quantity-stepper">
+                <button type="button" class="stepper-btn" id="decrease-qty">-</button>
+                <input type="number" class="form-input form-input-compact stepper-input transactional-input-emphasized" id="lot-quantity" placeholder="1" min="1" value="${qty}" inputmode="numeric" readonly />
+                <button type="button" class="stepper-btn" id="increase-qty">+</button>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="transactional-label">Total Cost ($)</label>
+              <input type="number" class="form-input form-input-compact transactional-input-emphasized" id="lot-cost" value="${cost || ''}" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
             </div>
           </div>
-          
-          <div class="form-group">
-            <label class="form-label">Cost (USD)</label>
-            <input type="number" class="form-input" id="lot-cost" value="${extractedData.cost || ''}" placeholder="0.00" step="0.01" min="0" inputmode="decimal" />
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="transactional-label">Cost Per Unit</label>
+            <div class="form-input form-input-compact" id="cost-per-unit-display" style="background: rgba(255,255,255,0.02); color: var(--text-secondary); pointer-events: none; user-select: none; display: flex; align-items: center; justify-content: center;">
+              $${costPerUnit}
+            </div>
+            <span style="font-size: 0.65rem; color: rgba(255,255,255,0.3); margin-top: 4px; display: block;">Auto-calculated</span>
           </div>
-          
-          <div class="form-group">
-            <label class="form-label">Quantity</label>
-            <input type="number" class="form-input" id="lot-quantity" value="${extractedData.quantity}" placeholder="1" min="1" inputmode="numeric" />
+
+          <div class="form-group date-group" style="margin-bottom: 0;">
+            <label class="transactional-label">Purchase Date</label>
+            <input type="date" class="form-input form-input-compact" id="lot-purchase-date" value="${today}" />
           </div>
-          
-          <div class="form-group">
-            <label class="form-label">Purchase Date</label>
-            <input type="date" class="form-input" id="lot-purchase-date" value="${new Date().toISOString().split('T')[0]}" />
-          </div>
-          
-          <button class="btn btn-primary btn-full" id="save-lot-btn">
+
+          <button class="btn btn-transactional-primary btn-full" id="save-lot-btn" style="margin-top: 20px;">
             Save to Inventory
           </button>
-          
-          <button class="btn btn-secondary btn-full" id="cancel-btn" style="margin-top: var(--spacing-md);">
+          <button id="cancel-btn" style="display: block; width: 100%; margin-top: 12px; padding: 10px; background: none; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; cursor: pointer; font-family: inherit;">
             Cancel
           </button>
         </div>
@@ -767,6 +777,9 @@ export function initMobileAddLotEvents() {
   const nameInput = document.getElementById('lot-name');
   const clearNameBtn = document.getElementById('clear-name-btn');
   const imageContainer = document.getElementById('image-preview-container');
+  const decreaseBtn = document.getElementById('decrease-qty');
+  const increaseBtn = document.getElementById('increase-qty');
+  const qtyInput = document.getElementById('lot-quantity');
 
   // Upload area click
   uploadArea?.addEventListener('click', () => {
@@ -834,6 +847,32 @@ export function initMobileAddLotEvents() {
 
   // Save lot
   saveBtn?.addEventListener('click', mobileSaveLotAndNavigate);
+
+  // Cost per unit auto-calculation
+  const costInput = document.getElementById('lot-cost');
+  const cpuDisplay = document.getElementById('cost-per-unit-display');
+  function updateCostPerUnit() {
+    const q = parseInt(qtyInput?.value) || 1;
+    const c = parseFloat(costInput?.value) || 0;
+    const cpu = q > 0 ? (c / q).toFixed(2) : '0.00';
+    if (cpuDisplay) cpuDisplay.textContent = `$${cpu}`;
+  }
+
+  costInput?.addEventListener('input', updateCostPerUnit);
+
+  // Quantity stepper
+  decreaseBtn?.addEventListener('click', () => {
+    const current = parseInt(qtyInput?.value) || 1;
+    if (current > 1) {
+      qtyInput.value = current - 1;
+      updateCostPerUnit();
+    }
+  });
+  increaseBtn?.addEventListener('click', () => {
+    const current = parseInt(qtyInput?.value) || 1;
+    qtyInput.value = current + 1;
+    updateCostPerUnit();
+  });
 
   // Cancel
   cancelBtn?.addEventListener('click', () => {
