@@ -136,7 +136,15 @@ function renderInventoryGrid(lots) {
   if (lots.length === 0) {
     return `
       <div class="desktop-empty-state">
-        <p>No items found</p>
+        <div class="empty-state-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 16px;">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <h3 class="empty-state-title">No inventory yet</h3>
+          <p class="empty-state-desc">Head to the Add tab in the menu to get started.</p>
+        </div>
       </div>
     `;
   }
@@ -556,7 +564,13 @@ function calculateSummaryMetrics(lots) {
     l.remaining > 0 && (l.remaining <= 2 || (l.remaining / l.quantity) <= 0.2)
   ).length;
 
-  return { skusInStock, totalCapital, totalUnrealizedProfit, lowStockCount };
+  // Calculate avg portfolio ROI across all sold units
+  const allSales = lots.flatMap(l => (l.sales || []).filter(s => !s.returned));
+  const totalCostBasis = allSales.reduce((sum, s) => sum + (s.costBasis || 0), 0);
+  const totalProfit = allSales.reduce((sum, s) => sum + (s.profit || 0), 0);
+  const avgRoi = totalCostBasis > 0 ? Math.round((totalProfit / totalCostBasis) * 100) : 0;
+
+  return { skusInStock, totalCapital, totalUnrealizedProfit, lowStockCount, avgRoi };
 }
 
 export function DesktopInventoryView() {
@@ -654,7 +668,7 @@ export function DesktopInventoryView() {
           <div class="inv-header-divider"></div>
           <div class="inv-header-stat">
             <span class="inv-header-stat-label">Avg Portfolio ROI</span>
-            <span class="inv-header-stat-value accent-green">+58%</span>
+            <span class="inv-header-stat-value ${summary.avgRoi >= 0 ? 'accent-green' : 'accent-red'}">${summary.avgRoi > 0 ? '+' : ''}${summary.avgRoi}%</span>
             <span class="inv-header-sub">across sold units</span>
           </div>
           <div class="inv-header-divider"></div>

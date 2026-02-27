@@ -170,7 +170,16 @@ export function SalesView() {
             
             <div class="sale-log-body">
               ${sortedSales.length === 0 ? `
-                <div class="desktop-empty-state"><p>No sales records found.</p></div>
+                <div class="desktop-empty-state">
+                  <div class="empty-state-inner">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 16px;">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                      <polyline points="17 6 23 6 23 12"></polyline>
+                    </svg>
+                    <h3 class="empty-state-title">No sales recorded yet</h3>
+                    <p class="empty-state-desc">Record your first sale from the Inventory screen to start tracking your profits.</p>
+                  </div>
+                </div>
               ` : renderSalesRows(sortedSales, allLots)}
             </div>
           </div>

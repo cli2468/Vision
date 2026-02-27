@@ -61,6 +61,17 @@ export function Sidebar(activeRoute = '/') {
     </button>
   `;
 
+  const isDemo = localStorage.getItem('demoMode') === 'true';
+  const demoButtonHtml = (!isDemo && !user) ? `
+    <button class="sidebar-nav-item sidebar-demo-btn" id="sidebar-demo-btn" onclick="window.loadDemoMode()">
+      <div class="sidebar-nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+      </div>
+      <div class="collapsible-content sidebar-nav-label">Try Demo</div>
+      <div class="sidebar-tooltip">Try Demo</div>
+    </button>
+  ` : '';
+
   return `
     <aside class="desktop-sidebar ${isCollapsed ? 'collapsed' : ''}" data-collapsed="${isCollapsed}">
       <div class="sidebar-header">
@@ -89,6 +100,7 @@ export function Sidebar(activeRoute = '/') {
       </div>
 
       <div class="sidebar-footer">
+        ${demoButtonHtml}
         ${authHtml}
       </div>
     </aside>
@@ -266,7 +278,15 @@ export function updateSidebarAuthState() {
     </button>
   `;
 
-  footerNode.innerHTML = authHtml;
+  footerNode.innerHTML = (localStorage.getItem('demoMode') !== 'true' && !user ? `
+    <button class="sidebar-nav-item sidebar-demo-btn" id="sidebar-demo-btn" onclick="window.loadDemoMode()">
+      <div class="sidebar-nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+      </div>
+      <div class="collapsible-content sidebar-nav-label">Try Demo</div>
+      <div class="sidebar-tooltip">Try Demo</div>
+    </button>
+  ` : '') + authHtml;
 
   // Bind events only to the newly injected auth elements
   bindAuthEvents();

@@ -168,6 +168,14 @@ function initApp() {
     window.location.reload();
   };
 
+  // Global helper to load demo mode on demand
+  window.loadDemoMode = () => {
+    localStorage.setItem('demoMode', 'true');
+    localStorage.removeItem('resell_demo_lots'); // Clear stale data so it regenerates fresh
+    localStorage.setItem('dashboardCurrentRange', 'all');
+    window.location.reload();
+  };
+
   const app = document.getElementById('app');
   if (!app) return;
 

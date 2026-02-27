@@ -87,6 +87,32 @@ function openModal() {
   const container = document.getElementById('modal-container');
   if (!container) return;
 
+  // If in demo mode, show a prompt to exit demo first
+  if (localStorage.getItem('demoMode') === 'true') {
+    container.innerHTML = `
+      <div class="modal-overlay bottom-sheet" id="login-modal-overlay">
+        <div class="modal-content login-modal">
+          <div class="modal-header">
+            <h2 class="modal-title">Demo Mode Active</h2>
+            <button class="modal-close" id="close-login-modal">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="login-modal-body">
+            <div class="login-prompt">
+              <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">You're currently viewing demo data. Exit demo mode first to sign in and sync your real inventory.</p>
+              <button class="btn btn-primary btn-full" onclick="window.exitDemoMode()">Exit Demo Mode</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = getModalHtml();
 }
 

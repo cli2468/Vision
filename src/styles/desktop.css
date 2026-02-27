@@ -4085,7 +4085,8 @@
     display: grid;
     grid-template-columns: 1.25fr 1fr;
     grid-template-rows: 1fr 1fr;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     width: 100%;
     box-sizing: border-box;
     /* Flush layout: no gap or padding */
@@ -4364,7 +4365,8 @@
   /* Flow Transition */
   .add-inventory-flow {
     display: flex;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     background: #171717;
     /* Rest of the pages use 17 */
     animation: flowFadeUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -4773,4 +4775,58 @@
 .page-view:has(.desktop-inventory-container) {
   max-width: none !important;
   width: 100% !important;
+}
+
+/* ===== Empty States ===== */
+.desktop-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: 60px 24px;
+}
+
+.empty-state-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 380px;
+}
+
+.empty-state-title {
+  color: var(--text-primary, #fff);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.empty-state-desc {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.empty-state-cta {
+  background: var(--accent-teal, #2DD4BF);
+  color: #000;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.empty-state-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(45, 212, 191, 0.25);
+}
+
+.empty-state-cta:active {
+  transform: scale(0.98);
 }
