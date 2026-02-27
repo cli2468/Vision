@@ -90,7 +90,7 @@ function renderPicker() {
       <div class="add-method-card featured" data-view="ocr" style="--index: 0">
         <div class="card-screenshot-collage" style="overflow: visible; border-radius: 10px; margin: 0 -24px 20px; width: calc(100% + 48px);">
           <video autoplay loop muted playsinline style="width: 100%; height: auto; object-fit: contain; display: block; border-radius: 10px;">
-            <source src="/demo-parser.mp4" type="video/mp4">
+            <source src="${import.meta.env.BASE_URL}demo-parser.mp4" type="video/mp4">
           </video>
         </div>
         <div class="add-card-badge">
