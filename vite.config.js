@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Use VITE_BASE env var for deployment flexibility (Vercel uses '/', GitHub Pages uses '/ResellApp/')
+// Use VITE_BASE env var for deployment flexibility (Vercel uses '/', GitHub Pages uses '/Vision/')
 const base = process.env.VITE_BASE || '/';
 
 export default defineConfig({
@@ -15,8 +15,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'ResellTracker',
-        short_name: 'ResellTracker',
+        name: 'Vision',
+        short_name: 'Vision',
         description: 'Track reselling inventory and profits with OCR',
         theme_color: '#0f0f23',
         background_color: '#0f0f23',
