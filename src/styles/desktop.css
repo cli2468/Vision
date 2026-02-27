@@ -4830,3 +4830,105 @@
 .empty-state-cta:active {
   transform: scale(0.98);
 }
+
+/* ===== Demo Onboarding Overlay ===== */
+#demo-onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#demo-onboarding-overlay.visible {
+  opacity: 1;
+}
+
+#demo-onboarding-overlay.closing {
+  opacity: 0;
+}
+
+.demo-onboarding-card {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 48px 40px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
+}
+
+#demo-onboarding-overlay.visible .demo-onboarding-card {
+  transform: scale(1) translateY(0);
+}
+
+#demo-onboarding-overlay.closing .demo-onboarding-card {
+  transform: scale(0.95) translateY(10px);
+}
+
+.demo-onboarding-icon {
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: rgba(45, 212, 191, 0.08);
+  border: 1px solid rgba(45, 212, 191, 0.15);
+}
+
+.demo-onboarding-title {
+  color: var(--text-primary, #fff);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.demo-onboarding-desc {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 8px;
+}
+
+.demo-onboarding-hint {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  margin: 0 0 28px;
+  font-style: italic;
+}
+
+.demo-onboarding-cta {
+  background: var(--accent-teal, #2DD4BF);
+  color: #000;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+}
+
+.demo-onboarding-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(45, 212, 191, 0.3);
+}
+
+.demo-onboarding-cta:active {
+  transform: scale(0.97);
+}

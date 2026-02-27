@@ -228,6 +228,34 @@ function initApp() {
   // Start demo tour if applicable
   initDemoTour();
 
+  // Demo onboarding popup — shown once when entering demo mode
+  if (localStorage.getItem('demoMode') === 'true' && !sessionStorage.getItem('demoOnboardingSeen')) {
+    sessionStorage.setItem('demoOnboardingSeen', 'true');
+    const onboarding = document.createElement('div');
+    onboarding.id = 'demo-onboarding-overlay';
+    onboarding.innerHTML = `
+      <div class="demo-onboarding-card">
+        <div class="demo-onboarding-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal, #2DD4BF)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h2 class="demo-onboarding-title">Welcome to Vision</h2>
+        <p class="demo-onboarding-desc">You're viewing the app with sample inventory and sales data. Explore the dashboard, browse items, and see how everything works.</p>
+        <p class="demo-onboarding-hint">You can exit demo mode anytime from the badge in the top right.</p>
+        <button class="demo-onboarding-cta" id="demo-onboarding-dismiss">Start Exploring</button>
+      </div>
+    `;
+    document.body.appendChild(onboarding);
+    // Trigger entrance animation on next frame
+    requestAnimationFrame(() => onboarding.classList.add('visible'));
+    document.getElementById('demo-onboarding-dismiss')?.addEventListener('click', () => {
+      onboarding.classList.remove('visible');
+      onboarding.classList.add('closing');
+      setTimeout(() => onboarding.remove(), 400);
+    });
+  }
+
   // Mobile first-visit popup suggesting desktop for demo
   if (sessionStorage.getItem('showMobileDesktopPrompt') === 'true') {
     sessionStorage.removeItem('showMobileDesktopPrompt');
