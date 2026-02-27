@@ -937,30 +937,23 @@ function attachDrawerEvents(lot) {
     // Optimistic UI update
     desktopSaleMode = false;
 
-    // Check if sold out
+    // Check if sold out to trigger row exit animation first if still on screen
     const updatedLot = getLots().find(l => l.id === lot.id);
-    if (updatedLot && updatedLot.remaining === 0) {
-      // Animate sold out transition
-      const row = document.querySelector(`.inv-card[data-lot-id="${lot.id}"]`);
-      if (row) {
-        row.classList.add('sold-out-transition');
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('viewchange'));
-        }, 300);
-      } else {
-        window.dispatchEvent(new CustomEvent('viewchange'));
-      }
-    } else {
-      // Update right panel to show view mode
-      const rightPanel = document.querySelector('.inventory-right-panel');
-      if (rightPanel && updatedLot) {
-        rightPanel.innerHTML = renderIntelligencePanel(updatedLot);
-        attachPanelEvents();
-      }
+    const newSaleId = updatedLot?.sales?.[updatedLot.sales.length - 1]?.id;
 
-      // Update row data without full re-render
-      updateRowData(updatedLot);
+    if (updatedLot && updatedLot.remaining === 0) {
+      const row = document.querySelector(`.inv-card[data-lot-id="${lot.id}"]`);
+      if (row) row.classList.add('sold-out-transition');
     }
+
+    // Redirect to the sales screen to view the newly recorded sale
+    setTimeout(() => {
+      if (newSaleId) {
+        window.location.hash = `#/sales?expandLot=${lot.id}&expandSale=${newSaleId}`;
+      } else {
+        window.location.hash = `#/sales`;
+      }
+    }, 400);
   });
 }
 
