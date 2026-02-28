@@ -240,12 +240,13 @@ function sortSales(sales, key, direction) {
 
 function getPlatformColor(platform) {
   switch (platform?.toLowerCase()) {
-    case 'ebay': return '#34D399'; // Teal
-    case 'amazon': return '#FBBF24'; // Yellow
-    case 'shopify': return '#A78BFA'; // Purple
-    case 'facebook': return '#60A5FA'; // Blue
-    case 'poshmark': return '#F87171'; // Red
-    default: return '#9CA3AF'; // Gray
+    case 'amazon': return '#FBBF24';  // Yellow
+    case 'ebay': return '#EF4444';    // Red
+    case 'facebook': return '#8B5CF6'; // Purple
+    case 'shopify': return '#2DD4BF';  // Teal
+    case 'whatnot': return '#F97316';  // Orange
+    case 'poshmark': return '#F87171'; // Pink-red
+    default: return '#71717A';         // Gray
   }
 }
 

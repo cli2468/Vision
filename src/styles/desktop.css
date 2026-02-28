@@ -1566,39 +1566,39 @@
   }
 
   .platform-badge.facebook {
-    background: rgba(122, 162, 247, 0.16);
-    color: var(--platform-facebook);
+    background: rgba(139, 92, 246, 0.16);
+    color: #8B5CF6;
   }
 
   .platform-badge.ebay {
-    background: rgba(192, 132, 87, 0.18);
-    color: var(--platform-ebay);
+    background: rgba(239, 68, 68, 0.16);
+    color: #EF4444;
   }
 
   .platform-badge.amazon {
-    background: rgba(255, 153, 0, 0.14);
-    color: #FF9900;
+    background: rgba(251, 191, 36, 0.16);
+    color: #FBBF24;
   }
 
   .platform-badge.shopify {
-    background: rgba(150, 191, 72, 0.15);
-    color: #96BF48;
+    background: rgba(45, 212, 191, 0.16);
+    color: #2DD4BF;
   }
 
   .platform-badge.poshmark {
-    background: rgba(144, 46, 58, 0.14);
-    color: #902e3a;
+    background: rgba(248, 113, 113, 0.16);
+    color: #F87171;
   }
 
   .platform-badge.whatnot {
-    background: rgba(245, 208, 30, 0.14);
-    color: #F5D01E;
+    background: rgba(249, 115, 22, 0.16);
+    color: #F97316;
   }
 
   .platform-badge.unknown,
   .platform-badge.other {
-    background: rgba(171, 171, 171, 0.14);
-    color: var(--desktop-text-muted);
+    background: rgba(113, 113, 122, 0.16);
+    color: #71717A;
   }
 
   .view-all-btn {
